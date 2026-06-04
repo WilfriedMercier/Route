@@ -39,6 +39,7 @@ class UI:
 
         # Defining the different UI components
         self.topbar       = TopBar(
+            self.app,
             {lang : translation['topbar'] for lang, translation in translations.items()}, 
             default_language
         )
@@ -71,6 +72,7 @@ class UI:
         # Place the topbar at the top, and put sidebar + main content in a row below it
         self.layout = html.Div(
             [
+                dcc.Store('theme', storage_type='local', data={'value' : 'light'}),
                 self.topbar.layout,
                 html.Div(
                     [
@@ -353,7 +355,7 @@ class Sidebar:
             style={
                 'margin' : '0.5rem',
                 'background': 'transparent',  # Removes the grey/blue background
-                'border': '2px solid #6c757d',             # Removes the border
+                'border': '0px solid #6c757d',             # Removes the border
                 'color': '#6c757d',           # Bootstrap 'text-muted' grey color
                 'padding': '0.25rem',         # Small padding to make the click area larger than the icon
                 'borderRadius': '50%',        # Makes it perfectly round
@@ -573,7 +575,9 @@ class MainContent:
 class TopBar:
     r'''Class responsible for building the top navigation bar of the application.'''
 
-    def __init__(self, translations: dict, default_language: LanguageEnum = LanguageEnum.ENGLISH) -> None:
+    def __init__(self, app: dash.Dash, translations: dict, default_language: LanguageEnum = LanguageEnum.ENGLISH) -> None:
+
+        self.app = app
 
         # Component handling the language translation for this widget
         self.language_handler = LanguageHandler(translations, default_language)
@@ -585,24 +589,50 @@ class TopBar:
     def build_layout(self) -> None:
         r'''Build the top navigation bar layout.'''
 
-        self.layout = html.Div(
-            [
-                html.H1('Route'),
-                dcc.Dropdown(
-                    id='language-dropdown',
-                    options=[
-                        {
-                            'label': self.language_handler.map_language_to_dropdown_text(lang),
-                            'value': lang.value
-                        }
-                        for lang in self.language_handler.languages
-                    ],
-                    value=self.language_handler.language.value,  # Default selected value
-                    clearable=False,
-                    searchable=False,
-                    style={"fontSize": "14px"}
-                )
+        self.theme_button = dbc.Button(
+            id='theme-toggle',
+            children=html.I(className="bi bi-moon-stars-fill fs-5"), # Default: Moon (Dark mode icon, implying "Switch to Dark")
+            style={
+                'background': 'transparent',
+                'border': '0px solid #6c757d',
+                'color': '#6c757d',
+                'padding': '0',
+                'borderRadius': '50%',
+                'display': 'inline-flex',
+                'alignItems': 'center',
+                'justifyContent': 'center',
+                'width': '30px',
+                'height': '30px',
+                'cursor': 'pointer',
+                'transition': 'all 0.2s ease'
+            }
+        )
+
+        self.language_selector = dcc.Dropdown(
+            id='language-dropdown',
+            options=[
+                {
+                    'label': self.language_handler.map_language_to_dropdown_text(lang),
+                    'value': lang.value
+                }
+                for lang in self.language_handler.languages
             ],
+            value=self.language_handler.language.value,  # Default selected value
+            clearable=False,
+            searchable=False,
+            style={"fontSize": "14px"}
+        )
+
+        self.button_group = html.Div(
+            [self.language_selector, self.theme_button],
+            style={
+                'display' : 'flex',
+                'gap' : '20px'   
+            }
+        )
+
+        self.layout = html.Div(
+            [html.H1('Route'), self.button_group],
             className='bg-light border-bottom p-3',
             style={
                 "display": "flex",

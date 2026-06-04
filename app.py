@@ -4,7 +4,7 @@ import pathlib
 import argparse
 import dash_bootstrap_components as     dbc
 from   lib.ui                    import UI
-from   lib.lang                  import load_languages, LanguageEnum, map_string_code_to_language
+from   lib.lang                  import load_languages, map_string_code_to_language
 
 def main() -> None:
 
