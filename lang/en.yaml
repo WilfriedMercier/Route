@@ -1,0 +1,11 @@
+topbar:
+  title: Route
+sidebar:
+  title: Available Hikes
+elevation_plot:
+  xlabel: Distance (km)
+  ylabel: Elevation (m)
+  hovertemplate:
+    distance: Distance
+    remaining_distance: Remaining distance
+    elevation: Elevation
