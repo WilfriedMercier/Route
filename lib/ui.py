@@ -5,7 +5,7 @@ from   dash                      import html, dcc, Input, Output, State
 from   typing                    import Any
 
 from   .io                       import load_hikes_from_directory
-from   .lang                     import LanguageEnum, LanguageHandler, language_mapper
+from   .lang                     import LanguageEnum, LanguageHandler, map_string_code_to_language
 
 class UI:
     r'''
@@ -208,7 +208,8 @@ class UI:
 
             if value is None: return dash.no_update, dash.no_update
 
-            lang = language_mapper(value)
+            # Value in the dropdown must be a string so we parse it to the right type
+            lang = map_string_code_to_language(value)
 
             self.sidebar.update_layout_language(lang)
             self.main_content.elevation_plot.update_layout_language(lang)
@@ -324,7 +325,6 @@ class Map:
         return
     
 class Sidebar:
-
     r'''Class responsible for building the sidebar with the list of hikes.'''
 
     def __init__(self, app: dash.Dash, hike_names: list[str], translations: dict, default_language: LanguageEnum = LanguageEnum.ENGLISH) -> None:
@@ -333,8 +333,6 @@ class Sidebar:
 
         # Component handling the language translation for this widget
         self.language_handler = LanguageHandler(translations, default_language)
-
-        self._is_collapsed = False
 
         self.hike_names    = hike_names
 
@@ -589,20 +587,20 @@ class TopBar:
 
         self.layout = html.Div(
             [
-                html.H1('Route', className='m-0'),
+                html.H1('Route'),
                 dcc.Dropdown(
                     id='language-dropdown',
                     options=[
-                        {'label': 'English',  'value': 'en'},
-                        {'label': 'Français', 'value': 'fr'},
+                        {
+                            'label': self.language_handler.map_language_to_dropdown_text(lang),
+                            'value': lang.value
+                        }
+                        for lang in self.language_handler.languages
                     ],
                     value=self.language_handler.language.value,  # Default selected value
                     clearable=False,
                     searchable=False,
-                    style={
-                        "width": "150px",
-                        "fontSize": "14px"
-                    }
+                    style={"fontSize": "14px"}
                 )
             ],
             className='bg-light border-bottom p-3',
