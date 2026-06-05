@@ -559,23 +559,25 @@ class TopBar:
     def build_layout(self) -> None:
         r'''Build the top navigation bar layout.'''
 
-        self.theme_button = dbc.Button(
+        self.light_icon = html.I(
+            className="bi bi-brightness-high-fill fs-3",
+            style={'color': '#6c757d'}
+        )
+
+        self.dark_icon = html.I(
+            className="bi bi-moon-stars-fill fs-5",
+            style={'color': '#6c757d'}
+        )
+
+        self.theme_button = dbc.Switch(
             id='theme-toggle',
-            children=html.I(className="bi bi-moon-stars-fill fs-5"), # Default: Moon (Dark mode icon, implying "Switch to Dark")
-            style={
-                'background': 'transparent',
-                'border': '0px solid #6c757d',
-                'color': '#6c757d',
-                'padding': '0',
-                'borderRadius': '50%',
-                'display': 'inline-flex',
-                'alignItems': 'center',
-                'justifyContent': 'center',
-                'width': '30px',
-                'height': '30px',
-                'cursor': 'pointer',
-                'transition': 'all 0.2s ease'
-            }
+            value=False,
+            style={'marginBottom': '0'}
+        )
+
+        self.theme_button_group = html.Div(
+            [self.light_icon, self.theme_button, self.dark_icon],
+            style={'display' : 'flex', 'gap': '10px', 'alignItems': 'center', 'justifyContent': 'center'}
         )
 
         self.language_selector = dcc.Dropdown(
@@ -589,15 +591,17 @@ class TopBar:
             ],
             value=self.language_handler.language.value,  # Default selected value
             clearable=False,
-            searchable=False,
-            style={"fontSize": "14px"}
+            searchable=False
         )
 
+
         self.button_group = html.Div(
-            [self.language_selector, self.theme_button],
+            [self.language_selector, self.theme_button_group],
             style={
                 'display' : 'flex',
-                'gap' : '20px'   
+                'gap' : '20px',
+                'alignItems' : 'center',
+                'justifyContent' : 'center'
             }
         )
 

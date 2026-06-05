@@ -30,7 +30,6 @@ def main() -> None:
     languages      = [map_string_code_to_language(pathlib.Path(lang).stem) for lang in language_files]
     translations   = load_languages(languages)
 
-    print(languages)
     ui           = UI(app, translations, map_string_code_to_language(args.language))
     app.layout   = ui.layout
 
