@@ -62,12 +62,12 @@ class UI:
         self.main_content.map.add_hikes_to_map(self.hikes_data)
         self.main_content.elevation_plot.add_elevation_data_to_plot(distances, elevations)
 
-        self.build_layout()
+        self._build_layout()
         self._register_callbacks()
 
         return
     
-    def build_layout(self) -> None:
+    def _build_layout(self) -> None:
         r'''Build the main layout of the application.'''
 
         # Place the topbar at the top, and put sidebar + main content in a row below it
@@ -231,7 +231,7 @@ class Map:
     def __init__(self, center_lat: float = 45.7640, center_lon: float = 4.8357, zoom: int = 10) -> None:
 
         self.build_map_figure(center_lat, center_lon, zoom=zoom)
-        self.build_layout()
+        self._build_layout()
 
         self.center = (center_lat, center_lon)
         self.zoom   = zoom
@@ -276,7 +276,7 @@ class Map:
 
         return
     
-    def build_layout(self) -> None:
+    def _build_layout(self) -> None:
         r"""Build the map container with the initialized figure."""
 
         self.layout = html.Div(
@@ -339,13 +339,13 @@ class Sidebar:
 
         self.hike_names    = hike_names
 
-        self.build_layout()
+        self._build_layout()
 
         self._register_callbacks()
 
         return
     
-    def build_layout(self) -> None:
+    def _build_layout(self) -> None:
         r'''Build the sidebar with a list of hikes.'''
 
         self.toggle_button = dbc.Button(
@@ -420,7 +420,7 @@ class ElevationPlot:
         self.language_handler = LanguageHandler(translations, default_language)
 
         self.build_figure()
-        self.build_layout()
+        self._build_layout()
 
         return
     
@@ -470,7 +470,7 @@ class ElevationPlot:
             '<extra></extra>'
         )
     
-    def build_layout(self) -> None:
+    def _build_layout(self) -> None:
         r'''Build the layout for the elevation profile plot.'''
 
         self.layout = html.Div(
@@ -525,11 +525,11 @@ class MainContent:
         self.map            = map
         self.elevation_plot = elevation_plot
 
-        self.build_layout()
+        self._build_layout()
 
         return
     
-    def build_layout(self) -> None:
+    def _build_layout(self) -> None:
         r'''Build the main content area containing the map and elevation plot.'''
 
         self.layout = html.Div(
