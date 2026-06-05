@@ -351,29 +351,13 @@ class Sidebar:
             id='sidebar-toggle',
             children=html.I(className="bi bi-arrows-angle-contract"), 
             className='mb-1',
-            color='secondary',
-            style={
-                'margin' : '0.5rem',
-                'background': 'transparent',  # Removes the grey/blue background
-                'border': '0px solid #6c757d',             # Removes the border
-                'color': '#6c757d',           # Bootstrap 'text-muted' grey color
-                'padding': '0.25rem',         # Small padding to make the click area larger than the icon
-                'borderRadius': '50%',        # Makes it perfectly round
-                'display': 'inline-flex',     # Ensures the icon centers perfectly in the circle
-                'alignItems': 'center',
-                'justifyContent': 'center',
-                'width': '32px',              # Fixed width for the circle
-                'height': '32px',             # Fixed height for the circle
-                'cursor': 'pointer',
-                'alignSelf': 'flex-end',      # Keeps it on the right
-                'transition': 'background 0.2s, color 0.2s' # Smooth hover effect
-            }
+            color='secondary'
         )
 
         self.title = html.P(
             self.language_handler['title'], 
             className = 'text-muted mb-4',
-            style     = {'padding' : '0', 'margin': '0', 'fontWeight': 'bold', 'textAlign': 'left'}
+            id        = 'sidebar-title'
         )
 
         self.hike_list = dcc.RadioItems(
@@ -384,26 +368,12 @@ class Sidebar:
         )
 
         self.main = dbc.Collapse(
-            html.Div(
-                [self.title, self.hike_list],
-                style = {
-                    'margin' : '1rem',
-                    'alignSelf' : 'flex-start'
-                }
-            ),
+            html.Div([self.title, self.hike_list], className="sidebar-main-inner"),
             id      = 'sidebar-collapsible-content',
             is_open = True
         )
 
-        self.layout = html.Div(
-            [self.toggle_button, self.main],
-            style={
-                'display'       : 'flex',
-                'flexDirection' : 'column', # Stack vertically
-                'alignItems'    : 'stretch',
-                'borderRight': '1px solid #dee2e6'
-            }
-        )
+        self.layout = html.Div([self.toggle_button, self.main], className='sidebar-container')
 
         return
     
