@@ -4,8 +4,8 @@ sidebar:
   title: Randonnées disponibles
 elevation_plot:
   xlabel: Distance (km)
-  ylabel: Élévation (m)
+  ylabel: Altitude (m)
   hovertemplate:
     distance: Distance
     remaining_distance: Distance restante
-    elevation: Élévation
+    elevation: Altitude
