@@ -2,6 +2,10 @@
     color : #6c757d;
 }
 
+#theme-toggle {
+    margin-bottom : 0;
+}
+
 #topbar-themebutton-group {
     display         : flex; 
     gap             : 10px;

@@ -2,6 +2,31 @@ import dash
 import dash_bootstrap_components as     dbc
 from   ..lang                    import LanguageEnum, LanguageHandler
 
+class ThemeSwitcher:
+
+    def __init__(self) -> None:
+
+        self._build_layout()
+
+        return
+    
+    def _build_layout(self) -> None:
+
+        self.light_icon = dash.html.I(className="bi bi-brightness-high-fill fs-3 grey-icons")
+        self.dark_icon  = dash.html.I(className="bi bi-moon-stars-fill fs-5 grey-icons")
+
+        self.theme_button = dbc.Switch(
+            id    = 'theme-toggle',
+            value = False
+        )
+
+        self.layout = dash.html.Div(
+            [self.light_icon, self.theme_button, self.dark_icon],
+            id = 'topbar-themebutton-group'
+        )
+
+        return
+
 class TopBar:
     r'''Class responsible for building the top navigation bar of the application.'''
 
@@ -12,26 +37,14 @@ class TopBar:
         # Component handling the language translation for this widget
         self.language_handler = LanguageHandler(translations, default_language)
 
-        self.build_layout()
+        self._build_layout()
 
         return
     
-    def build_layout(self) -> None:
+    def _build_layout(self) -> None:
         r'''Build the top navigation bar layout.'''
 
-        self.light_icon = dash.html.I(className="bi bi-brightness-high-fill fs-3 grey-icons")
-        self.dark_icon  = dash.html.I(className="bi bi-moon-stars-fill fs-5 grey-icons")
-
-        self.theme_button = dbc.Switch(
-            id    = 'theme-toggle',
-            value = False,
-            style = {'marginBottom': '0'}
-        )
-
-        self.theme_button_group = dash.html.Div(
-            [self.light_icon, self.theme_button, self.dark_icon],
-            id = 'topbar-themebutton-group'
-        )
+        self.theme_switcher = ThemeSwitcher()
 
         self.language_selector = dash.dcc.Dropdown(
             id         = 'language-dropdown',
@@ -48,7 +61,7 @@ class TopBar:
         )
 
         self.button_group = dash.html.Div(
-            [self.language_selector, self.theme_button_group],
+            [self.language_selector, self.theme_switcher.layout],
             id = 'topbar-buttongroup'
         )
 
