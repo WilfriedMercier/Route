@@ -6,6 +6,7 @@ from   typing                    import Any
 
 from   .io                       import load_hikes_from_directory
 from   .lang                     import LanguageEnum, LanguageHandler, map_string_code_to_language
+from   .components               import TopBar
 
 class UI:
     r'''
@@ -542,60 +543,3 @@ class MainContent:
 
         return
     
-class TopBar:
-    r'''Class responsible for building the top navigation bar of the application.'''
-
-    def __init__(self, app: dash.Dash, translations: dict, default_language: LanguageEnum = LanguageEnum.ENGLISH) -> None:
-
-        self.app = app
-
-        # Component handling the language translation for this widget
-        self.language_handler = LanguageHandler(translations, default_language)
-
-        self.build_layout()
-
-        return
-    
-    def build_layout(self) -> None:
-        r'''Build the top navigation bar layout.'''
-
-        self.light_icon = html.I(className="bi bi-brightness-high-fill fs-3 grey-icons")
-        self.dark_icon  = html.I(className="bi bi-moon-stars-fill fs-5 grey-icons")
-
-        self.theme_button = dbc.Switch(
-            id    = 'theme-toggle',
-            value = False,
-            style = {'marginBottom': '0'}
-        )
-
-        self.theme_button_group = html.Div(
-            [self.light_icon, self.theme_button, self.dark_icon],
-            id = 'topbar-themebutton-group'
-        )
-
-        self.language_selector = dcc.Dropdown(
-            id         = 'language-dropdown',
-            options    = [
-                {
-                    'label': self.language_handler.map_language_to_dropdown_text(lang),
-                    'value': lang.value
-                }
-                for lang in self.language_handler.languages
-            ],
-            value      = self.language_handler.language.value,  # Default selected value
-            clearable  = False,
-            searchable = False
-        )
-
-        self.button_group = html.Div(
-            [self.language_selector, self.theme_button_group],
-            id = 'topbar-buttongroup'
-        )
-
-        self.layout = html.Div(
-            [html.H1('Route'), self.button_group],
-            id        = 'topbar',
-            className = 'bg-light border-bottom p-3',
-        )
-
-        return
