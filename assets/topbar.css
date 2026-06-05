@@ -1,4 +1,32 @@
+.grey-icons {
+    color : #6c757d;
+}
+
+#topbar-themebutton-group {
+    display         : flex; 
+    gap             : 10px;
+    align-items     : center; 
+    justify-content : center;
+}
+
 #language-dropdown {
     background-color: transparent; /* Subtle highlight */
     border: 0px solid transparent;
+}
+
+#topbar-buttongroup {
+    display         : flex;
+    gap             : 20px;
+    align-items     : center;
+    justify-content : center;
+    margin-right    : 0.5rem;
+}
+
+#topbar {
+    display          : flex;
+    justify-content  : space-between;
+    align-items      : center;
+    padding          : 10px 20px;
+    background-color : #f8f9fa;
+    border-bottom    : 1px solid #ddd;
 }

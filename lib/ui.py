@@ -559,63 +559,43 @@ class TopBar:
     def build_layout(self) -> None:
         r'''Build the top navigation bar layout.'''
 
-        self.light_icon = html.I(
-            className="bi bi-brightness-high-fill fs-3",
-            style={'color': '#6c757d'}
-        )
-
-        self.dark_icon = html.I(
-            className="bi bi-moon-stars-fill fs-5",
-            style={'color': '#6c757d'}
-        )
+        self.light_icon = html.I(className="bi bi-brightness-high-fill fs-3 grey-icons")
+        self.dark_icon  = html.I(className="bi bi-moon-stars-fill fs-5 grey-icons")
 
         self.theme_button = dbc.Switch(
-            id='theme-toggle',
-            value=False,
-            style={'marginBottom': '0'}
+            id    = 'theme-toggle',
+            value = False,
+            style = {'marginBottom': '0'}
         )
 
         self.theme_button_group = html.Div(
             [self.light_icon, self.theme_button, self.dark_icon],
-            style={'display' : 'flex', 'gap': '10px', 'alignItems': 'center', 'justifyContent': 'center'}
+            id = 'topbar-themebutton-group'
         )
 
         self.language_selector = dcc.Dropdown(
-            id='language-dropdown',
-            options=[
+            id         = 'language-dropdown',
+            options    = [
                 {
                     'label': self.language_handler.map_language_to_dropdown_text(lang),
                     'value': lang.value
                 }
                 for lang in self.language_handler.languages
             ],
-            value=self.language_handler.language.value,  # Default selected value
-            clearable=False,
-            searchable=False
+            value      = self.language_handler.language.value,  # Default selected value
+            clearable  = False,
+            searchable = False
         )
-
 
         self.button_group = html.Div(
             [self.language_selector, self.theme_button_group],
-            style={
-                'display' : 'flex',
-                'gap' : '20px',
-                'alignItems' : 'center',
-                'justifyContent' : 'center'
-            }
+            id = 'topbar-buttongroup'
         )
 
         self.layout = html.Div(
             [html.H1('Route'), self.button_group],
-            className='bg-light border-bottom p-3',
-            style={
-                "display": "flex",
-                "justifyContent": "space-between",
-                "alignItems": "center",
-                "padding": "10px 20px",
-                "backgroundColor": "#f8f9fa",
-                "borderBottom": "1px solid #ddd"
-            }
+            id        = 'topbar',
+            className = 'bg-light border-bottom p-3',
         )
 
         return
