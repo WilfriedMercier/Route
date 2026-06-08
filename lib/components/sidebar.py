@@ -120,7 +120,7 @@ class HikeList:
         self.buttons: list[HikeListElement] = []
 
         for pos, hike_name in enumerate(hike_names):
-            self.buttons.append(HikeListElement(self._app, hike_name, pos))
+            self.buttons.append(HikeListElement(self._app, hike_name, pos, is_selected=pos==0))
 
         self.layout = dash.html.Div([button.layout for button in self.buttons], id='hikelist')
 
@@ -169,7 +169,7 @@ class HikeListElement:
     :param idd: unique identifier for this widget
     '''
 
-    def __init__(self, app: dash.Dash, hike_name: str, idd: int) -> None:
+    def __init__(self, app: dash.Dash, hike_name: str, idd: int, is_selected: bool = False) -> None:
         
         self._app        = app
 
@@ -179,7 +179,7 @@ class HikeListElement:
         self.hidden      = False
         self.highlighted = False
 
-        self._build_layout()
+        self._build_layout(is_selected)
         self._register_callbacks()
 
         return
@@ -193,17 +193,18 @@ class HikeListElement:
         return dash.html.I(className="bi bi-eye-slash")
     
     @property
-    def clicked_style(self) -> dict:
+    def selected_style(self) -> dict:
         return {'backgroundColor': '#0D6EFD', 'color' : 'white'} 
     
-    def _build_layout(self) -> None:
+    def _build_layout(self, is_selected: bool) -> None:
 
         self.button = dbc.Button(
             self.hike_name,
             id        = {'type' : 'hikelist-button', 'index' : self._id},
             className = 'hikelist-button',
             outline   = True,
-            color     = 'primary'
+            color     = 'primary',
+            style     = self.selected_style if is_selected else {}
         )
 
         self.hide_button = dash.dcc.Button(
