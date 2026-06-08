@@ -42,3 +42,14 @@
     background-color : #f8f9fa;
     border-bottom    : 1px solid #ddd;
 }
+
+.logo {
+    width: 42px;
+    height: 42px;;
+}
+
+#logo-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}

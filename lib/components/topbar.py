@@ -46,6 +46,8 @@ class TopBar:
 
         self.theme_switcher = ThemeSwitcher()
 
+        self.logo = dash.html.Img(src="/assets/logo.svg", className='logo')
+
         self.language_selector = dash.dcc.Dropdown(
             id         = 'language-dropdown',
             options    = [
@@ -66,7 +68,10 @@ class TopBar:
         )
 
         self.layout = dash.html.Div(
-            [dash.html.H1('Route'), self.button_group],
+            [
+                dash.html.Div([self.logo, dash.html.H1('Route')], id='logo-title-group'),
+                self.button_group
+            ],
             id        = 'topbar',
             className = 'bg-light border-bottom p-3',
         )
