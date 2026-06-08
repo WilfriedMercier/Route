@@ -3,14 +3,27 @@ import dash_bootstrap_components as     dbc
 from   ..lang                    import LanguageEnum, LanguageHandler
 
 class Sidebar:
-    r'''Class responsible for building the sidebar with the list of hikes.'''
+    r'''
+    Class responsible for building the sidebar with the list of hikes.
+    
+    :param app: main application used for callback handling
+    :param hike_names: list of hike names to display
+    :param translations: dictionary containing the translations of the UI elements of the sidebar
+    :param default_language: default language to be displayed
+    '''
 
-    def __init__(self, app: dash.Dash, hike_names: list[str], translations: dict, default_language: LanguageEnum = LanguageEnum.ENGLISH) -> None:
+    def __init__(
+            self, 
+            app              : dash.Dash, 
+            hike_names       : list[str], 
+            translations     : dict, 
+            default_language : LanguageEnum = LanguageEnum.ENGLISH
+        ) -> None:
 
-        self.app = app
+        self._app = app
 
         # Component handling the language translation for this widget
-        self.language_handler = LanguageHandler(translations, default_language)
+        self._language_handler = LanguageHandler(translations, default_language)
 
         self._build_layout(hike_names)
 
@@ -29,12 +42,12 @@ class Sidebar:
         )
 
         self.title = dash.html.P(
-            self.language_handler['title'], 
+            self._language_handler['title'], 
             className = 'text-muted mb-4',
             id        = 'sidebar-title'
         )
 
-        self.hike_list = HikeList(self.app, hike_names)
+        self.hike_list = HikeList(self._app, hike_names)
 
         self.main = dbc.Collapse(
             dash.html.Div([self.title, self.hike_list.layout], className="sidebar-main-inner"),
@@ -53,14 +66,14 @@ class Sidebar:
         :param: new language to apply
         '''
 
-        self.language_handler.language = lang
-        self.title.children            = self.language_handler['title']
+        self._language_handler.language = lang
+        self.title.children             = self._language_handler['title']
 
         return
     
     def _register_callbacks(self):
 
-        @self.app.callback(
+        @self._app.callback(
             [
                 dash.Output('sidebar-collapsible-content', 'is_open'),
                 dash.Output('sidebar-toggle', 'children')
@@ -83,11 +96,16 @@ class Sidebar:
         return
     
 class HikeList:
-    r'''Widget containing the list of hikes.'''
+    r'''
+    Widget containing the list of hikes.
+    
+    :param app: main application used for callback handling
+    :param hike_names: list of hike names to display
+    '''
 
     def __init__(self, app: dash.Dash, hike_names: list[str]) -> None:
 
-        self.app = app
+        self._app = app
 
         self._build_layout(hike_names)
         self._register_callbacks()
@@ -102,7 +120,7 @@ class HikeList:
         self.buttons: list[HikeListElement] = []
 
         for pos, hike_name in enumerate(hike_names):
-            self.buttons.append(HikeListElement(self.app, self, hike_name, pos))
+            self.buttons.append(HikeListElement(self._app, hike_name, pos))
 
         self.layout = dash.html.Div([button.layout for button in self.buttons], id='hikelist')
 
@@ -111,7 +129,7 @@ class HikeList:
     def _register_callbacks(self):
         r'''Callback used whenever a hike is clicked in the hike list.'''
 
-        @self.app.callback(
+        @self._app.callback(
             dash.Output({'type' : 'hikelist-button', 'index' : dash.ALL}, 'style'),
             dash.Input( {'type' : 'hikelist-button', 'index' : dash.ALL}, 'n_clicks'),
             prevent_initial_call = True
@@ -136,27 +154,34 @@ class HikeList:
             # Update style
             return [
                 {'backgroundColor': '#0D6EFD', 'color' : 'white'} 
-                if button.id == clicked_id else {} 
+                if button._id == clicked_id else {} 
                 for button in self.buttons
             ]
         
         return
 
 class HikeListElement:
+    r'''
+    Widget containing a single hike shown in the sidebar.
 
-    def __init__(self, app: dash.Dash, parent: HikeList, hike_name: str, idd: int) -> None:
+    :param app: main application used for callback handling
+    :param hike_name: hike name to display
+    :param idd: unique identifier for this widget
+    '''
+
+    def __init__(self, app: dash.Dash, hike_name: str, idd: int) -> None:
         
-        self.app         = app
-        self.parent      = parent
+        self._app        = app
 
         self.hike_name   = hike_name
-        self.id          = idd
+        self._id         = idd
 
         self.hidden      = False
         self.highlighted = False
 
         self._build_layout()
         self._register_callbacks()
+
         return
     
     @property
@@ -167,11 +192,15 @@ class HikeListElement:
     def icon_hidden(self) -> dash.html.I:
         return dash.html.I(className="bi bi-eye-slash")
     
+    @property
+    def clicked_style(self) -> dict:
+        return {'backgroundColor': '#0D6EFD', 'color' : 'white'} 
+    
     def _build_layout(self) -> None:
 
         self.button = dbc.Button(
             self.hike_name,
-            id        = {'type' : 'hikelist-button', 'index' : self.id},
+            id        = {'type' : 'hikelist-button', 'index' : self._id},
             className = 'hikelist-button',
             outline   = True,
             color     = 'primary'
@@ -180,7 +209,7 @@ class HikeListElement:
         self.hide_button = dash.dcc.Button(
             self.icon_shown,
             className = 'hikelist-hide-button',
-            id        = f'hikelist-hide-button-{self.id}'
+            id        = f'hikelist-hide-button-{self._id}'
         )
 
         self.layout = dbc.Row(
@@ -189,18 +218,18 @@ class HikeListElement:
                 dbc.Col(self.button, width='auto')
             ],
             className = 'hikelist-element',
-            id        = f'hikelist-element-{self.id}'
+            id        = f'hikelist-element-{self._id}'
         )
 
         return
     
     def _register_callbacks(self) -> None:
 
-        @self.app.callback([
-                dash.Output(f'hikelist-hide-button-{self.id}', 'children'),
-                dash.Output({'type' : 'hikelist-button', 'index' : self.id}, 'disabled')
+        @self._app.callback([
+                dash.Output(f'hikelist-hide-button-{self._id}', 'children'),
+                dash.Output({'type' : 'hikelist-button', 'index' : self._id}, 'disabled')
             ],
-            dash.Input(f'hikelist-hide-button-{self.id}', 'n_clicks'),
+            dash.Input(f'hikelist-hide-button-{self._id}', 'n_clicks'),
             prevent_initial_call=True
         )
         def hide_button_callback(*args) -> tuple[dash.html.I, bool]:
