@@ -6,7 +6,7 @@ from   typing                    import Any
 
 from   .io                       import load_hikes_from_directory
 from   .lang                     import LanguageEnum, LanguageHandler, map_string_code_to_language
-from   .components               import TopBar
+from   .components               import TopBar, Sidebar
 
 class UI:
     r'''
@@ -102,6 +102,7 @@ class UI:
 
     def _register_callbacks(self) -> None:
 
+        """
         @self.app.callback(
             Output('map', 'figure'),
             Output('elevation-plot', 'figure'),
@@ -144,7 +145,7 @@ class UI:
                     break
 
             return self.main_content.map.fig, self.main_content.elevation_plot.fig
-        
+        """
         @self.app.callback(
             Output('map', 'figure', allow_duplicate=True),
             Input('elevation-plot', 'hoverData'),
@@ -324,90 +325,6 @@ class Map:
             opacity=0.5,
             hoverinfo='none',
         ))
-
-        return
-    
-class Sidebar:
-    r'''Class responsible for building the sidebar with the list of hikes.'''
-
-    def __init__(self, app: dash.Dash, hike_names: list[str], translations: dict, default_language: LanguageEnum = LanguageEnum.ENGLISH) -> None:
-
-        self.app = app
-
-        # Component handling the language translation for this widget
-        self.language_handler = LanguageHandler(translations, default_language)
-
-        self.hike_names    = hike_names
-
-        self._build_layout()
-
-        self._register_callbacks()
-
-        return
-    
-    def _build_layout(self) -> None:
-        r'''Build the sidebar with a list of hikes.'''
-
-        self.toggle_button = dbc.Button(
-            id='sidebar-toggle',
-            children=html.I(className="bi bi-arrows-angle-contract"), 
-            className='mb-1',
-            color='secondary'
-        )
-
-        self.title = html.P(
-            self.language_handler['title'], 
-            className = 'text-muted mb-4',
-            id        = 'sidebar-title'
-        )
-
-        self.hike_list = dcc.RadioItems(
-            options   = [{'label': hike_name, 'value': hike_name} for hike_name in self.hike_names],
-            value     = self.hike_names[0] if self.hike_names else None,
-            className = 'mb-2',
-            id        = 'hike-list'
-        )
-
-        self.main = dbc.Collapse(
-            html.Div([self.title, self.hike_list], className="sidebar-main-inner"),
-            id      = 'sidebar-collapsible-content',
-            is_open = True
-        )
-
-        self.layout = html.Div([self.toggle_button, self.main], className='sidebar-container')
-
-        return
-    
-    def update_layout_language(self, lang: LanguageEnum) -> None:
-        r'''
-        Update the language of the elements in the layout.
-
-        :param: new language to apply
-        '''
-
-        self.language_handler.language = lang
-        self.title.children            = self.language_handler['title']
-
-        return
-    
-    def _register_callbacks(self):
-
-        @self.app.callback(
-            [
-                Output('sidebar-collapsible-content', 'is_open'),
-                Output('sidebar-toggle', 'children')
-            ],
-            [Input('sidebar-toggle', 'n_clicks')],
-            [State('sidebar-collapsible-content', 'is_open')]
-        )
-        def toggle_sidebar_callback(n: int | None, is_open: bool) -> tuple[bool, html.I] | tuple[dash.NoUpdate, dash.NoUpdate]:
-
-            if n and is_open:
-                return False, html.I(className=u"bi bi-arrows-angle-expand")
-            elif n and not is_open:
-                return True, html.I(className=u"bi bi-arrows-angle-contract")
-
-            return dash.no_update, dash.no_update
 
         return
 

@@ -1,29 +1,28 @@
 /* Container for Toggle Button and Main Content */
 .sidebar-container {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    border-right: 1px solid #dee2e6;
-    /* Optional: Ensure full height if needed */
-    min-height: 100vh; 
+    display        : flex;
+    flex-direction : column;
+    align-items    : stretch;
+    border-right   : 1px solid #dee2e6;
+    min-height     : 100vh; 
 }
 
 /* Toggle Button Styling */
 #sidebar-toggle {
-    margin: 0.5rem;
-    background: transparent;
-    border: 0px solid #6c757d; /* Effectively no border, kept for safety */
-    color: #6c757d;
-    padding: 0.25rem;
-    border-radius: 50%;       /* Makes it round */
-    display: inline-flex;     /* Centers icon perfectly */
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    cursor: pointer;
-    align-self: flex-end;     /* Pushes button to the right */
-    transition: background 0.2s, color 0.2s;
+    margin          : 0.5rem;
+    background      : transparent;
+    border          : 0px solid #6c757d; /* Effectively no border, kept for safety */
+    color           : #6c757d;
+    padding         : 0.25rem;
+    border-radius   : 50%;       /* Makes it round */
+    display         : inline-flex;     /* Centers icon perfectly */
+    align-items     : center;
+    justify-content : center;
+    width           : 32px;
+    height          : 32px;
+    cursor          : pointer;
+    align-self      : flex-end;     /* Pushes button to the right */
+    transition      : background 0.2s, color 0.2s;
     
     /* Remove default Bootstrap button outlines/focus rings */
     outline: none !important;
@@ -32,29 +31,53 @@
 
 /* Hover Effect for the Button */
 #sidebar-toggle:hover {
-    color: #495057;           /* Darker grey on hover */
-    background-color: rgba(108, 117, 125, 0.1); /* Subtle highlight */
+    color            : #495057;           /* Darker grey on hover */
+    background-color : rgba(108, 117, 125, 0.1); /* Subtle highlight */
 }
 
 /* Title Styling */
 #sidebar-title {
-    padding: 0;
-    margin: 0;
-    font-weight: bold;
-    text-align: left;
-    line-height: 1.2; /* Ensures vertical alignment consistency */
+    padding     : 0;
+    margin      : 0;
+    font-weight : bold;
+    text-align  : left;
+    line-height : 1.2; /* Ensures vertical alignment consistency */
 }
 
 /* Main Collapsible Content Styling */
 .sidebar-main-inner {
-    margin: 1rem;
-    align-self: flex-start;   /* Aligns content to the left */
-    width: 100%;
+    margin     : 1rem;
+    align-self : flex-start;   /* Aligns content to the left */
+    width      : 100%;
 }
 
-/* Fix for RadioItems label spacing if needed */
-#hike-list .radio-item-label {
-    display: block;
-    margin-bottom: 0.25rem;
-    cursor: pointer;
+/* Hike list widget*/
+.hikelist-button {
+    border: none;
+    text-align: left;
+}
+
+.hikelist-button:hover {
+    background-color: #8bb6f6;
+}
+
+.hikelist-hide-button {
+    align-content : center;
+    border        : none;
+    background-color : transparent;
+    color: #6c757d;
+}
+
+.hikelist-hide-button:hover {
+    color: #495057;
+}
+
+.hikelist-hide-button:active {
+    background-color: transparent;
+}
+
+.hikelist-element {
+    display       : flex;
+    align-items   : center;
+    margin-bottom : 3px;
 }
