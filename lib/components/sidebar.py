@@ -198,6 +198,12 @@ class HikeListElement:
         return
     
     @property
+    def id(self) -> int: return self._id
+
+    @property
+    def app(self) -> dash.Dash: return self._app
+    
+    @property
     def icon_shown(self) -> dash.html.I:
         return dash.html.I(className="bi bi-eye-fill")
     
@@ -237,9 +243,9 @@ class HikeListElement:
             [
                 dbc.Col(dash.html.Div([
                     self.colorpicker,
-                    self.hide_button
-                ], style={'display' : 'flex'}), width='auto'),
-                dbc.Col(self.button, width='auto')
+                    self.button
+                ], style={'display' : 'flex', 'alignItems' : 'center', 'gap' : '5px'}), width='auto'),
+                dbc.Col(self.hide_button, width='auto')
             ],
             className = 'hikelist-element',
             id        = f'hikelist-element-{self._id}'
@@ -249,14 +255,15 @@ class HikeListElement:
     
     def _register_callbacks(self) -> None:
 
-        @self._app.callback([
+        @self.app.callback([
                 dash.Output(f'hikelist-hide-button-{self._id}', 'children'),
+                dash.Output(f'hikelist-colorpicker-{self._id}', 'disabled'),
                 dash.Output({'type' : 'hikelist-button', 'index' : self._id}, 'disabled')
             ],
             dash.Input(f'hikelist-hide-button-{self._id}', 'n_clicks'),
             prevent_initial_call=True
         )
-        def hide_button_callback(*args) -> tuple[dash.html.I, bool]:
+        def hide_button_callback(*args) -> tuple[dash.html.I, bool, bool]:
             r'''Callback used whenever the hide button is triggered for this widget.'''
 
             if self.hidden: 
@@ -266,4 +273,20 @@ class HikeListElement:
 
             self.hidden = not self.hidden
 
-            return icon, self.hidden
+            return icon, self.hidden, self.hidden
+        
+        @self.app.callback(
+            dash.Output('elevation-plot', 'figure', allow_duplicate = True,),
+            dash.Input({'type' : 'hikelist-button', 'index' : self._id}, 'n_clicks'),
+            prevent_initial_call = True
+        )
+        def hike_button_callback(*args) -> None:
+
+            # Get distances and elevations for the given hike
+            info = self.app.ui.hikes_data[self.hike_name]
+
+            map_widget = self.app.ui.map_page
+
+            map_widget.update_layout_data(info['distances'], info['elevations'], info['color'])
+
+            return map_widget.elevation_plot.fig

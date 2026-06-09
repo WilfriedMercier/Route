@@ -31,6 +31,7 @@ def main() -> None:
     translations   = load_languages(languages)
 
     ui           = UI(app, translations, map_string_code_to_language(args.language))
+    app.ui       = ui # type: ignore
     app.layout   = ui.layout
 
     app.run(debug=True)
