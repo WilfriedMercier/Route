@@ -34,9 +34,11 @@ class UI:
             zoom                   = current_hike['zoom']
             distances              = current_hike['distances']
             elevations             = current_hike['elevations']
+            color                  = current_hike['color']
         else:
             center_lat, center_lon, zoom = 45.7640, 4.8357, 10  # Default to Lyon if no hikes are loaded
             distances, elevations        = [], []
+            color                        = 'black'
 
         # Defining the different UI components
         self.topbar       = TopBar(
@@ -48,13 +50,14 @@ class UI:
         map               = Map(center_lat, center_lon, zoom)
         elevation_plot    = ElevationPlot(
             {lang : translation['elevation_plot'] for lang, translation in translations.items()}, 
-            default_language
+            default_language,
+            color = color
         )
 
         self.main_content = MainContent(map, elevation_plot)
         self.sidebar      = Sidebar(
             self.app,
-            list(self.hikes_data.keys()),
+            {hike_name : {'color' : properties['color']} for hike_name, properties in self.hikes_data.items()},
             {lang : translation['sidebar'] for lang, translation in translations.items()}, 
             default_language
         )
@@ -312,8 +315,9 @@ class Map:
     def add_hike_to_map(self, hike_data: dict) -> None:
         r'''Add a single hike to the map figure.'''
 
-        lats = [coord[0] for coord in hike_data['coords']]
-        lons = [coord[1] for coord in hike_data['coords']]
+        lats  = [coord[0] for coord in hike_data['coords']]
+        lons  = [coord[1] for coord in hike_data['coords']]
+        color = hike_data['color']
 
         # Use Scattermapbox for Plotly mapbox-based figures
         self.fig.add_trace(go.Scattermapbox(
@@ -321,28 +325,43 @@ class Map:
             lon=lons,
             lat=lats,
             showlegend=False,
-            line=dict(width=4, color='blue'),
-            opacity=0.5,
+            line=dict(width=4, color=color),
+            opacity=1,
             hoverinfo='none',
         ))
 
         return
 
 class ElevationPlot:
-    r'''Class responsible for building the elevation profile plot.'''
+    r'''
+    Class responsible for building the elevation profile plot.
+    
+    :param translations: A dictionary containing translations for different languages.
+    :param default_language: default language used when the application starts
+    :param color: color used to the line and the filled area
+    '''
 
-    def __init__(self, translations: dict, default_language: LanguageEnum = LanguageEnum.ENGLISH) -> None:
+    def __init__(
+            self, 
+            translations     : dict, 
+            default_language : LanguageEnum = LanguageEnum.ENGLISH,
+            color            : str = 'black'
+        ) -> None:
 
         # Component handling the language translation for this widget
         self.language_handler = LanguageHandler(translations, default_language)
 
-        self.build_figure()
+        self.build_figure(color)
         self._build_layout()
 
         return
     
-    def build_figure(self) -> None:
-        r'''Build the elevation profile figure using Plotly.'''
+    def build_figure(self, color : str) -> None:
+        r'''
+        Build the elevation profile figure using Plotly.
+        
+        :param color: color of the line and filled area on the plot
+        '''
 
         self.fig = go.Figure()
 
@@ -351,9 +370,8 @@ class ElevationPlot:
             y=[],  # Elevation (m)
             customdata=[],
             mode='lines',
-            line=dict(color='blue', width=2),
+            line=dict(color=color, width=2),
             fill='tozeroy',
-            fillcolor='rgba(0, 34, 200, 0.2)',
             hovertemplate=self.hovertemplate,
             name='Elevation Profile'
         )
@@ -422,8 +440,17 @@ class ElevationPlot:
 
         return
     
-    def add_elevation_data_to_plot(self, distances: list[float], elevations: list[float]) -> None:
-        r'''Add elevation data to the plot figure.'''
+    def add_elevation_data_to_plot(
+            self, 
+            distances  : list[float], 
+            elevations : list[float]
+        ) -> None:
+        r'''
+        Add elevation data to the plot figure.
+        
+        :param distances: cumulative distances since the beginning of the hike in km
+        :param elevations: elevation in m at each point along the hike
+        '''
 
         total_distance = distances[-1] if distances else 0.0
         remaining      = [[max(0.0, total_distance - d)] for d in distances]

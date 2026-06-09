@@ -1,7 +1,9 @@
 import os
 import pathlib
 import gpxpy
-import collections
+from   plotly.colors import qualitative
+
+COLOR_PALETTE = qualitative.Plotly
 
 from .logic import (
     calculate_distance_from_coords, 
@@ -72,6 +74,10 @@ def load_hikes_from_directory() -> dict[str, dict]:
                             
             except Exception as e: print(f"Error loading {filename}: {str(e)}")
     
+    # Add a default color to each hike by looping through a color palette
+    for pos, hike_name in enumerate(hikes_data.keys()):
+        hikes_data[hike_name]['color'] = COLOR_PALETTE[pos]
+
     return dict(sorted(hikes_data.items()))
 
 def load_gpx_file(file_path: pathlib.Path) -> tuple[list[tuple[float, float]], list[float]]:

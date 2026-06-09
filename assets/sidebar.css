@@ -81,3 +81,10 @@
     align-items   : center;
     margin-bottom : 3px;
 }
+
+.hikelist-colorpicker {
+    width : 35px;
+    padding: 0;
+    border-color: transparent;
+    cursor: pointer;
+}

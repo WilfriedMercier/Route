@@ -7,7 +7,7 @@ class Sidebar:
     Class responsible for building the sidebar with the list of hikes.
     
     :param app: main application used for callback handling
-    :param hike_names: list of hike names to display
+    :param hikes: dictionary where the keys are hike names and the values are dictionaries with associated values (e.g. color)
     :param translations: dictionary containing the translations of the UI elements of the sidebar
     :param default_language: default language to be displayed
     '''
@@ -15,7 +15,7 @@ class Sidebar:
     def __init__(
             self, 
             app              : dash.Dash, 
-            hike_names       : list[str], 
+            hikes            : dict[str, dict], 
             translations     : dict, 
             default_language : LanguageEnum = LanguageEnum.ENGLISH
         ) -> None:
@@ -25,14 +25,18 @@ class Sidebar:
         # Component handling the language translation for this widget
         self._language_handler = LanguageHandler(translations, default_language)
 
-        self._build_layout(hike_names)
+        self._build_layout(hikes)
 
         self._register_callbacks()
 
         return
     
-    def _build_layout(self, hike_names: list[str]) -> None:
-        r'''Build the sidebar with a list of hikes.'''
+    def _build_layout(self, hikes: dict[str, dict]) -> None:
+        r'''
+        Build the sidebar with a list of hikes.
+        
+        :param hikes: dictionary where the keys are hike names and the values are dictionaries with associated values (e.g. color)
+        '''
 
         self.toggle_button = dbc.Button(
             id        = 'sidebar-toggle',
@@ -47,7 +51,7 @@ class Sidebar:
             id        = 'sidebar-title'
         )
 
-        self.hike_list = HikeList(self._app, hike_names)
+        self.hike_list = HikeList(self._app, hikes)
 
         self.main = dbc.Collapse(
             dash.html.Div([self.title, self.hike_list.layout], className="sidebar-main-inner"),
@@ -100,27 +104,33 @@ class HikeList:
     Widget containing the list of hikes.
     
     :param app: main application used for callback handling
-    :param hike_names: list of hike names to display
+    :param hikes: dictionary where the keys are hike names and the values are dictionaries with associated values (e.g. color)
     '''
 
-    def __init__(self, app: dash.Dash, hike_names: list[str]) -> None:
+    def __init__(self, app: dash.Dash, hikes: dict[str, dict]) -> None:
 
         self._app = app
 
-        self._build_layout(hike_names)
+        self._build_layout(hikes)
         self._register_callbacks()
 
         return
     
-    def _build_layout(self, hike_names: list[str] | None) -> None:
-        r'''Build the hike list widget's layout.'''
+    def _build_layout(self, hikes: dict[str, dict] | None) -> None:
+        r'''
+        Build the hike list widget's layout.
+        
+        :param hikes: dictionary where the keys are hike names and the values are dictionaries with associated values (e.g. color)
+        '''
 
-        if hike_names is None: return
+        if hikes is None: return
 
         self.buttons: list[HikeListElement] = []
 
-        for pos, hike_name in enumerate(hike_names):
-            self.buttons.append(HikeListElement(self._app, hike_name, pos, is_selected=pos==0))
+        for pos, (hike_name, properties) in enumerate(hikes.items()):
+            self.buttons.append(
+                HikeListElement(self._app, hike_name, properties['color'], pos, is_selected=pos==0)
+            )
 
         self.layout = dash.html.Div([button.layout for button in self.buttons], id='hikelist')
 
@@ -166,14 +176,17 @@ class HikeListElement:
 
     :param app: main application used for callback handling
     :param hike_name: hike name to display
+    :param color: color associated to the hike
     :param idd: unique identifier for this widget
+    :param is_selected: whether the hike is selected at startup or not (changes its default style)
     '''
 
-    def __init__(self, app: dash.Dash, hike_name: str, idd: int, is_selected: bool = False) -> None:
+    def __init__(self, app: dash.Dash, hike_name: str, color: str, idd: int, is_selected: bool = False) -> None:
         
         self._app        = app
 
         self.hike_name   = hike_name
+        self.color       = color
         self._id         = idd
 
         self.hidden      = False
@@ -213,9 +226,19 @@ class HikeListElement:
             id        = f'hikelist-hide-button-{self._id}'
         )
 
+        self.colorpicker = dbc.Input(
+            id        = f'hikelist-colorpicker-{self._id}',
+            className = 'hikelist-colorpicker',
+            value     = self.color,
+            type      = 'color' , # type: ignore
+        )
+
         self.layout = dbc.Row(
             [
-                dbc.Col(self.hide_button, width='auto'),
+                dbc.Col(dash.html.Div([
+                    self.colorpicker,
+                    self.hide_button
+                ], style={'display' : 'flex'}), width='auto'),
                 dbc.Col(self.button, width='auto')
             ],
             className = 'hikelist-element',
