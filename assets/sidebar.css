@@ -79,7 +79,9 @@
 .hikelist-element {
     display       : flex;
     align-items   : center;
+    justify-content: space-between;
     margin-bottom : 3px;
+    width: 100%;
 }
 
 .hikelist-colorpicker {
@@ -87,4 +89,9 @@
     padding: 0;
     border-color: transparent;
     cursor: pointer;
+}
+
+.hikelist-colorpicker:disabled {
+    opacity: 0.5;
+    cursor: default;
 }
