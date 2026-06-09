@@ -11,56 +11,45 @@ class Map:
     :param zoom: Initial zoom level for the map.
     '''
 
-    def __init__(self, center_lat: float = 45.7640, center_lon: float = 4.8357, zoom: int = 10) -> None:
+    def __init__(self, lat: float, lon: float, zoom: int) -> None:
 
-        self.build_map_figure(center_lat, center_lon, zoom=zoom)
-        self._build_layout()
+        self._init_map_figure()
+        self._init_layout()
 
-        self.center = (center_lat, center_lon)
-        self.zoom   = zoom
+        self.set_zoom_and_center(lat, lon, zoom)
 
         return 
     
-    def build_map_figure(self, lat: float = 45.7640, lon: float = 4.8357, zoom: int = 10) -> None:
-        r'''
-        Initialize the map figure centered on the specified latitude and longitude.
-        
-        :param lat: Latitude for the map center.
-        :param lon: Longitude for the map center.
-        :param zoom: Initial zoom level for the map.
-        '''
+    def _init_map_figure(self) -> None:
+        r'''Initialize the map figure centered on the specified latitude and longitude.'''
 
         self.fig = go.Figure()
 
         self.fig.update_layout(
-            template='plotly_white',
-            mapbox=dict(
-                style='open-street-map',
-                center=dict(lat=lat, lon=lon),
-                zoom=zoom
-            ),
-            paper_bgcolor='white',
-            plot_bgcolor='white',
-            font=dict(color='#2c3e50', family='Open Sans, sans-serif'),
-            margin=dict(l=0, r=0, t=0, b=0),
+            template      = 'plotly_white',
+            mapbox        = {'style' : 'open-street-map'},
+            paper_bgcolor = 'white',
+            plot_bgcolor  = 'white',
+            font          = {'color' : '#2c3e50', 'family' : 'Open Sans, sans-serif'},
+            margin        = {'l' : 0, 'r' : 0, 't' : 0, 'b' : 0},
         )
         
         self.highlighted_point = go.Scattermapbox(
-            mode="markers",
-            lon=[4.773566],
-            lat=[45.736296],
-            showlegend=False,
-            marker=dict(size=12, color='black', symbol='circle'),
-            hoverinfo='none',
-            name='point'
+            mode       = "markers",
+            lon        = [4.773566],
+            lat        = [45.736296],
+            showlegend = False,
+            marker     = {'size' : 12, 'color' : 'black', 'symbol' : 'circle'},
+            hoverinfo  = 'none',
+            name       = 'point'
         )
 
         self.fig.add_trace(self.highlighted_point)
 
         return
     
-    def _build_layout(self) -> None:
-        r"""Build the map container with the initialized figure."""
+    def _init_layout(self) -> None:
+        r"""Initialize the map container with the figure."""
 
         self.layout = dash.html.Div(
             [
@@ -83,16 +72,46 @@ class Map:
 
         return
     
-    def add_hikes_to_map(self, hikes_data: dict) -> None:
-        r'''Add all hikes from the loaded data to the map figure.'''
+    def set_zoom_and_center(self, lat: float, lon: float, zoom: int) -> None:
+        r'''
+        Update the zoom and center values of the map.
+        
+        .. note:
+            To see the effect, the figure must be returned in a callback.
 
-        for hike_data in hikes_data.values():
-            self.add_hike_to_map(hike_data)
+        :param lat: Latitude for the map center.
+        :param lon: Longitude for the map center.
+        :param zoom: Zoom level for the map.
+        '''
+
+        self.zoom   = zoom
+        self.center = (lat, lon)
+
+        self.fig.update_layout(
+            mapbox = {'center' : {'lat' : lat, 'lon' : lon}, 'zoom' : self.zoom}
+        )
+
+        return
+    
+    def add_hikes_to_map(self, hikes_data: dict[str, dict]) -> None:
+        r'''
+        Add all hikes from the loaded data to the map figure.
+        
+        :param hikes_data: dictionary containing as key the name of the hike and as values a dictionary with hike properties
+        '''
+
+        for name, data in hikes_data.items():
+            self.add_hike_to_map(name, data)
             
         return
     
-    def add_hike_to_map(self, hike_data: dict) -> None:
-        r'''Add a single hike to the map figure.'''
+    def add_hike_to_map(self, hike_name: str, hike_data: dict) -> None:
+        r'''
+        Add a single hike to the map figure.
+        
+        :param hike_name: name of the hike
+        :param hike_data: dictionary with hike properties
+        '''
 
         lats  = [coord[0] for coord in hike_data['coords']]
         lons  = [coord[1] for coord in hike_data['coords']]
@@ -100,15 +119,44 @@ class Map:
 
         # Use Scattermapbox for Plotly mapbox-based figures
         self.fig.add_trace(go.Scattermapbox(
-            mode="lines",
-            lon=lons,
-            lat=lats,
-            showlegend=False,
-            line=dict(width=4, color=color),
-            opacity=1,
-            hoverinfo='none',
+            mode       = "lines",
+            lon        = lons,
+            lat        = lats,
+            showlegend = False,
+            line       = {'width' : 4, 'color' : color},
+            opacity    = 1,
+            hoverinfo  = 'none',
+            name       = hike_name
         ))
 
+        return
+    
+    def hide_hike_from_map(self, index: int) -> None:
+        r'''
+        Hide the hike with the given index from the map.
+
+        .. note:: 
+            
+            The first trace is the highlight marker, so the index is increased by 1
+
+        :param index: index of the hike in the hike list
+        '''
+
+        self.fig.data[index + 1].visible = False
+        return
+
+    def show_hike_from_map(self, index: int) -> None:
+        r'''
+        Show the hike with the given index from the map.
+
+        .. note:: 
+            
+            The first trace is the highlight marker, so the index is increased by 1
+
+        :param index: index of the hike in the hike list
+        '''
+
+        self.fig.data[index + 1].visible = True
         return
 
 class ElevationPlot:
@@ -130,14 +178,14 @@ class ElevationPlot:
         # Component handling the language translation for this widget
         self.language_handler = LanguageHandler(translations, default_language)
 
-        self._build_figure(color)
-        self._build_layout()
+        self._init_figure(color)
+        self._init_layout()
 
         return
     
-    def _build_figure(self, color: str) -> None:
+    def _init_figure(self, color: str) -> None:
         r'''
-        Build the elevation profile figure using Plotly.
+        Initialize the elevation profile figure using Plotly.
         
         :param color: color of the line and filled area on the plot
         '''
@@ -184,16 +232,16 @@ class ElevationPlot:
             '<extra></extra>'
         )
     
-    def _build_layout(self) -> None:
-        r'''Build the layout for the elevation profile plot.'''
+    def _init_layout(self) -> None:
+        r'''Initialize the layout for the elevation profile plot.'''
 
         self.layout = dash.html.Div(
             [
                 dash.dcc.Graph(
-                    id='elevation-plot',
-                    figure=self.fig,
-                    config={'displayModeBar': False},
-                    style={'height': '80%', 'width': '100%'}
+                    id     = 'elevation-plot',
+                    figure = self.fig,
+                    config = {'displayModeBar': False},
+                    style  = {'height': '80%', 'width': '100%'}
                 )
             ],
             className='flex-fill',
@@ -211,8 +259,8 @@ class ElevationPlot:
 
         self.language_handler.language = lang
         self.fig.update_layout(
-            xaxis=dict(title=self.language_handler['xlabel']),
-            yaxis=dict(title=self.language_handler['ylabel']),
+            xaxis = {'title' : self.language_handler['xlabel']},
+            yaxis = {'title' : self.language_handler['ylabel']},
         )
 
         self.fig.data[0].hovertemplate = self.hovertemplate
@@ -238,8 +286,6 @@ class ElevationPlot:
         self.fig.data[0].x = distances
         self.fig.data[0].y = elevations
         self.fig.data[0].customdata = remaining
-
-        
 
         self.fig.update_traces(
             line_color = color,
@@ -300,13 +346,22 @@ class MapPage:
         return
     
     def update_layout_data(
-            self, 
+            self,
             distances  : list[float], 
             elevations : list[float],
-            color      : str
+            color      : str,
+            lat        : float,
+            lon        : float,
+            zoom       : int
         ) -> None:
 
         self.elevation_plot.add_elevation_data_to_plot(distances, elevations, color)
+        self.map.fig.update_layout(
+            mapbox= {
+                'center' : {'lat' : lat, 'lon' : lon},
+                'zoom'   : zoom
+            }
+        )
 
         return
     

@@ -1,5 +1,6 @@
 import dash
 import dash_bootstrap_components as     dbc
+from   typing                    import Any
 from   ..lang                    import LanguageEnum, LanguageHandler
 
 class Sidebar:
@@ -219,7 +220,7 @@ class HikeListElement:
 
         self.button = dbc.Button(
             self.hike_name,
-            id        = {'type' : 'hikelist-button', 'index' : self._id},
+            id        = {'type' : 'hikelist-button', 'index' : self.id},
             className = 'hikelist-button',
             outline   = True,
             color     = 'primary',
@@ -229,11 +230,11 @@ class HikeListElement:
         self.hide_button = dash.dcc.Button(
             self.icon_shown,
             className = 'hikelist-hide-button',
-            id        = f'hikelist-hide-button-{self._id}'
+            id        = f'hikelist-hide-button-{self.id}'
         )
 
         self.colorpicker = dbc.Input(
-            id        = f'hikelist-colorpicker-{self._id}',
+            id        = f'hikelist-colorpicker-{self.id}',
             className = 'hikelist-colorpicker',
             value     = self.color,
             type      = 'color' , # type: ignore
@@ -248,7 +249,7 @@ class HikeListElement:
                 dbc.Col(self.hide_button, width='auto')
             ],
             className = 'hikelist-element',
-            id        = f'hikelist-element-{self._id}'
+            id        = f'hikelist-element-{self.id}'
         )
 
         return
@@ -256,14 +257,15 @@ class HikeListElement:
     def _register_callbacks(self) -> None:
 
         @self.app.callback([
-                dash.Output(f'hikelist-hide-button-{self._id}', 'children'),
-                dash.Output(f'hikelist-colorpicker-{self._id}', 'disabled'),
-                dash.Output({'type' : 'hikelist-button', 'index' : self._id}, 'disabled')
+                dash.Output(f'hikelist-hide-button-{self.id}', 'children'),
+                dash.Output(f'hikelist-colorpicker-{self.id}', 'disabled'),
+                dash.Output({'type' : 'hikelist-button', 'index' : self.id}, 'disabled'),
+                dash.Output('map', 'figure', allow_duplicate=True)
             ],
-            dash.Input(f'hikelist-hide-button-{self._id}', 'n_clicks'),
+            dash.Input(f'hikelist-hide-button-{self.id}', 'n_clicks'),
             prevent_initial_call=True
         )
-        def hide_button_callback(*args) -> tuple[dash.html.I, bool, bool]:
+        def hide_button_callback(*args) -> tuple[dash.html.I, bool, bool, Any]:
             r'''Callback used whenever the hide button is triggered for this widget.'''
 
             if self.hidden: 
@@ -273,20 +275,32 @@ class HikeListElement:
 
             self.hidden = not self.hidden
 
-            return icon, self.hidden, self.hidden
+            # Hide hike on the map
+            map_widget = self.app.ui.map_page.map
+
+            if self.hidden: map_widget.hide_hike_from_map(self.id)
+            else          : map_widget.show_hike_from_map(self.id)
+
+            return icon, self.hidden, self.hidden, map_widget.fig
         
-        @self.app.callback(
-            dash.Output('elevation-plot', 'figure', allow_duplicate = True,),
+        @self.app.callback([
+                dash.Output('elevation-plot', 'figure', allow_duplicate = True),
+                dash.Output('map',            'figure', allow_duplicate = True)
+        ],
             dash.Input({'type' : 'hikelist-button', 'index' : self._id}, 'n_clicks'),
             prevent_initial_call = True
         )
-        def hike_button_callback(*args) -> None:
+        def hike_button_callback(*args) -> tuple[Any, Any]:
+
+            map_widget = self.app.ui.map_page
 
             # Get distances and elevations for the given hike
             info = self.app.ui.hikes_data[self.hike_name]
 
-            map_widget = self.app.ui.map_page
+            # Update the elevation plot and the map
+            map_widget.update_layout_data(
+                info['distances'], info['elevations'], info['color'],
+                info['center'][0], info['center'][1], info['zoom']
+            )
 
-            map_widget.update_layout_data(info['distances'], info['elevations'], info['color'])
-
-            return map_widget.elevation_plot.fig
+            return map_widget.elevation_plot.fig, map_widget.map.fig
