@@ -1,28 +1,27 @@
 import dash
-import dash_bootstrap_components as     dbc
-from   ..lang                    import LanguageEnum, LanguageHandler
+import dash_mantine_components as     dmc
+from   dash_iconify            import DashIconify
+
+from   ..lang                  import LanguageEnum, LanguageHandler
 
 class ThemeSwitcher:
+    r'''Class defining the widget used to switch between light and dark modes.'''
 
     def __init__(self) -> None:
 
-        self._build_layout()
+        self._init_layout()
 
         return
     
-    def _build_layout(self) -> None:
+    def _init_layout(self) -> None:
 
-        self.light_icon = dash.html.I(className="bi bi-brightness-high-fill fs-3 grey-icons")
-        self.dark_icon  = dash.html.I(className="bi bi-moon-stars-fill fs-5 grey-icons")
-
-        self.theme_button = dbc.Switch(
-            id    = 'theme-toggle',
-            value = False
-        )
-
-        self.layout = dash.html.Div(
-            [self.light_icon, self.theme_button, self.dark_icon],
-            id = 'topbar-themebutton-group'
+        self.layout = dmc.MantineProvider(
+            dmc.ColorSchemeToggle(
+                lightIcon = DashIconify(icon="radix-icons:sun", width=20),
+                darkIcon  = DashIconify(icon="radix-icons:moon", width=20),
+                color     = "black",
+                size      = "lg",
+            )
         )
 
         return
@@ -32,16 +31,19 @@ class TopBar:
 
     def __init__(self, app: dash.Dash, translations: dict, default_language: LanguageEnum = LanguageEnum.ENGLISH) -> None:
 
-        self.app = app
+        self._app = app
 
         # Component handling the language translation for this widget
         self.language_handler = LanguageHandler(translations, default_language)
 
-        self._build_layout()
+        self._init_layout()
 
         return
     
-    def _build_layout(self) -> None:
+    @property
+    def app(self) -> dash.Dash: return self._app
+    
+    def _init_layout(self) -> None:
         r'''Build the top navigation bar layout.'''
 
         self.theme_switcher = ThemeSwitcher()

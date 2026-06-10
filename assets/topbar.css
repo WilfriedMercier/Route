@@ -2,6 +2,7 @@
     color : #6c757d;
 }
 
+/*
 #theme-toggle {
     background-color : white;
     border-color     : #0D6EFD;
@@ -18,6 +19,7 @@
 #theme-toggle + label {
     display: none !important;
 }
+*/
 
 #topbar-themebutton-group {
     display         : flex; 
@@ -58,3 +60,9 @@
     align-items: center;
     gap: 10px;
 }
+
+.mantine-ActionIcon-root:hover {
+    background: none;    
+    transform: scale(1.1);
+}
+
