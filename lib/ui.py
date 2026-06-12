@@ -1,11 +1,11 @@
 import dash
-import plotly.graph_objects as     go
-from   dash                 import html, dcc, Input, Output
-from   typing               import Any
+import dash_mantine_components   as     dbc
+import plotly.graph_objects      as     go
+from   typing                    import Any
 
 from   .io                  import load_hikes_from_directory
 from   .lang                import LanguageEnum, map_string_code_to_language
-from   .components          import TopBar, Sidebar, MapPage
+from   .components          import TopBar, Sidebar, MapPage, MenuBar
 
 class UI:
     r'''
@@ -40,7 +40,30 @@ class UI:
             distances, elevations        = [], []
             color                        = 'black'
 
-        # Defining the different UI components
+        self._init_layout(
+            center_lat, center_lon, zoom,
+            translations, default_language,
+            color
+        )
+
+        self.map_page.map.add_hikes_to_map(self.hikes_data)
+        self.map_page.elevation_plot.add_elevation_data_to_plot(distances, elevations, color)
+
+        self._register_callbacks()
+
+        return
+    
+    def _init_layout(
+            self, 
+            center_lat       : float, 
+            center_lon       : float,
+            zoom             : int,
+            translations     : dict[str, dict],
+            default_language : LanguageEnum,
+            color            : str   
+        ) -> None:
+        r'''Build the main layout of the application.'''
+
         self.topbar       = TopBar(
             self.app,
             {lang : translation['topbar'] for lang, translation in translations.items()}, 
@@ -48,103 +71,36 @@ class UI:
         )
 
         self.map_page = MapPage(center_lat, center_lon, zoom, translations, default_language, color)
-        self.sidebar      = Sidebar(
+        self.sidebar  = Sidebar(
             self.app,
             {hike_name : {'color' : properties['color']} for hike_name, properties in self.hikes_data.items()},
             {lang : translation['sidebar'] for lang, translation in translations.items()}, 
             default_language
         )
 
-        self.map_page.map.add_hikes_to_map(self.hikes_data)
-        self.map_page.elevation_plot.add_elevation_data_to_plot(distances, elevations, color)
+        self.menubar = MenuBar()
 
-        self._build_layout()
-        self._register_callbacks()
-
-        return
-    
-    def _build_layout(self) -> None:
-        r'''Build the main layout of the application.'''
-
-        # Place the topbar at the top, and put sidebar + main content in a row below it
-        self.layout = html.Div(
+        self.layout = dbc.Stack(
             [
-                dcc.Store('theme', storage_type='local', data={'value' : 'light'}),
-                self.topbar.layout,
-                html.Div(
+                self.topbar.layout, 
+                dbc.Group(
                     [
-                        self.sidebar.layout,
-                        self.map_page.layout
+                        self.map_page.layout,
+                        self.menubar.layout,
                     ],
-                    className='d-flex',
-                    style={
-                        'display': 'flex',          # Enables flexbox
-                        'height': '100vh',          # Full viewport height
-                        'width': '100%',            # Full width
-                        'overflow': 'hidden'        # Prevents double scrollbars
-                    }
+                    id = 'main-group'
                 )
             ],
-            className='d-flex flex-column',
-            style={
-                'display': 'flex',          # Enables flexbox
-                'height': '100vh',          # Full viewport height
-                'width': '100%',            # Full width
-                'overflow': 'hidden'        # Prevents double scrollbars
-            },
+            id = 'main-stack',
         )
 
         return
 
     def _register_callbacks(self) -> None:
 
-        """
         @self.app.callback(
-            Output('map', 'figure'),
-            Output('elevation-plot', 'figure'),
-            Input('hike-list', "value")
-        )
-        def selected_hike_callback(hike_name: str | None) -> tuple[go.Figure, go.Figure]:
-            r'''Callback to update the display when a hike is selected from the sidebar.'''
-            
-            if hike_name is None:
-                return self.main_content.map.fig, self.main_content.elevation_plot.fig
-
-            # Update the center and zoom of the map based on the selected hike
-            hike_data              = self.hikes_data[hike_name]
-            center_lat, center_lon = hike_data['center']
-            zoom                   = hike_data['zoom']
-
-            self.main_content.map.fig.update_layout(
-                mapbox=dict(
-                    center=dict(lat=center_lat, lon=center_lon),
-                    zoom=zoom
-                )
-            )
-
-            # Update the elevation plot with the data from the selected hike
-            self.main_content.elevation_plot.add_elevation_data_to_plot(
-                hike_data['distances'],
-                hike_data['elevations']
-            )
-
-            # Save the currently selected hike name for use in the hover callback
-            self.current_hike_name = hike_name
-
-            for trace in self.main_content.map.fig.data:
-
-                if trace is None: continue
-                elif trace.name == 'point': # type: ignore
-                    trace.lat = [] # type: ignore
-                    trace.lon = [] # type: ignore
-
-                    break
-
-            return self.main_content.map.fig, self.main_content.elevation_plot.fig
-        """
-        @self.app.callback(
-            Output('map', 'figure', allow_duplicate=True),
-            Input('elevation-plot', 'hoverData'),
+            dash.Output('map', 'figure', allow_duplicate=True),
+            dash.Input('elevation-plot', 'hoverData'),
             prevent_initial_call=True,
         )
         def hovered_point_callback(hoverData: dict) -> go.Figure:
@@ -174,8 +130,8 @@ class UI:
             return self.map_page.map.fig
         
         @self.app.callback(
-            Output('map', 'figure', allow_duplicate=True),
-            Input('map', 'relayoutData'),
+            dash.Output('map', 'figure', allow_duplicate=True),
+            dash.Input('map', 'relayoutData'),
             prevent_initial_call=True
         )
         def map_interaction_callback(relayoutData: dict) -> go.Figure:
@@ -199,20 +155,30 @@ class UI:
             return self.map_page.map.fig
         
         @self.app.callback(
-            Output('map', 'figure', allow_duplicate=True),
-            Output('sidebar-collapsible-content', 'children'),
-            Input('language-dropdown', 'value'),
+                [
+                    dash.Output('map', 'figure', allow_duplicate=True),
+                    dash.Output('theme-toggle-tooltip', 'label')
+                ],
+            #Output('sidebar-collapsible-content', 'children'),
+            dash.Input('language-dropdown', 'value'),
             prevent_initial_call=True
         )
-        def language_selection_callback(value: str | None) -> tuple[go.Figure, Any] | tuple[dash.NoUpdate, dash.NoUpdate]:
+        def language_selection_callback(
+            value: str | None
+        ) -> tuple[go.Figure, Any] | tuple[dash.NoUpdate, dash.NoUpdate]:
 
-            if value is None: return dash.no_update, dash.no_update
+            if value is None: 
+                return dash.no_update, dash.no_update
 
             # Value in the dropdown must be a string so we parse it to the right type
             lang = map_string_code_to_language(value)
 
+            self.topbar.update_layout_language(lang)
             self.sidebar.update_layout_language(lang)
             self.map_page.elevation_plot.update_layout_language(lang)
 
-            return self.map_page.map.fig, self.sidebar.main.children
+            return (
+                self.map_page.map.fig, 
+                self.topbar.language_handler['theme_switcher']['tooltip']
+            )
                 

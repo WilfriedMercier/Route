@@ -3,6 +3,7 @@ import glob
 import pathlib
 import argparse
 import dash_bootstrap_components as     dbc
+import dash_mantine_components   as     dmc
 from   lib.ui                    import UI
 from   lib.lang                  import load_languages, map_string_code_to_language
 
@@ -32,7 +33,7 @@ def main() -> None:
 
     ui           = UI(app, translations, map_string_code_to_language(args.language))
     app.ui       = ui # type: ignore
-    app.layout   = ui.layout
+    app.layout   = dmc.MantineProvider(ui.layout)
 
     app.run(debug=True)
 

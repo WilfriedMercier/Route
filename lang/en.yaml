@@ -1,5 +1,6 @@
 topbar:
-  title: Route
+  theme_switcher:
+    tooltip: Switch between light/dark modes
 sidebar:
   title: Available Hikes
 elevation_plot:

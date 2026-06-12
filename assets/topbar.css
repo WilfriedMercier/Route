@@ -22,28 +22,18 @@
     margin-right    : 0.5rem;
 }
 
-#topbar {
-    display          : flex;
-    justify-content  : space-between;
-    align-items      : center;
-    padding          : 10px 20px;
-    background-color : #f8f9fa;
-    border-bottom    : 1px solid #ddd;
-}
-
 .logo {
-    width: 42px;
-    height: 42px;;
+    width  : 42px;
+    height : 42px;
 }
 
 #logo-title-group {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    display     : flex;
+    align-items : center;
+    gap         : 10px;
 }
 
 .mantine-ActionIcon-root:hover {
-    background: none;    
-    transform: scale(1.1);
+    background : none;    
+    transform  : scale(1.1);
 }
-

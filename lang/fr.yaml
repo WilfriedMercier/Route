@@ -1,5 +1,6 @@
 topbar:
-  title: Route
+  theme_switcher:
+    tooltip: Changer entre mode jour et nuit
 sidebar:
   title: Randonnées disponibles
 elevation_plot:

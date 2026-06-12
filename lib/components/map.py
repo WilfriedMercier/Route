@@ -1,6 +1,7 @@
 import dash
-import plotly.graph_objects as     go
-from   ..lang               import LanguageEnum, LanguageHandler
+import plotly.graph_objects      as     go
+import dash_bootstrap_components as     dbc
+from   ..lang                    import LanguageEnum, LanguageHandler
 
 class Map:
     r'''
@@ -51,23 +52,10 @@ class Map:
     def _init_layout(self) -> None:
         r"""Initialize the map container with the figure."""
 
-        self.layout = dash.html.Div(
-            [
-                dash.html.Div(
-                    [
-                        dash.dcc.Graph(
-                            id='map',
-                            figure=self.fig,
-                            config={'displayModeBar': False, 'scrollZoom': True},
-                            style={'height': '100%', 'width': '100%'}
-                        )
-                    ],
-                    className='p-4',
-                    style={'height': '100%', 'width': '100%'}
-                )
-            ],
-            className='flex-fill', 
-            style={'height': '60%', 'width': '100%'}
+        self.layout = dash.dcc.Graph(
+            id     = 'map',
+            figure = self.fig,
+            config = {'displayModeBar': False, 'scrollZoom': True}
         )
 
         return
@@ -235,17 +223,10 @@ class ElevationPlot:
     def _init_layout(self) -> None:
         r'''Initialize the layout for the elevation profile plot.'''
 
-        self.layout = dash.html.Div(
-            [
-                dash.dcc.Graph(
-                    id     = 'elevation-plot',
-                    figure = self.fig,
-                    config = {'displayModeBar': False},
-                    style  = {'height': '80%', 'width': '100%'}
-                )
-            ],
-            className='flex-fill',
-            style={'flex' : '1 1 0', 'height': '20%', 'padding': '1rem', 'minHeight': 0, 'overflow': 'auto'}
+        self.layout = dash.dcc.Graph(
+            id     = 'elevation-plot',
+            figure = self.fig,
+            config = {'displayModeBar': False},
         )
 
         return
@@ -337,10 +318,12 @@ class MapPage:
     def _build_layout(self) -> None:
         r'''Build the main content area containing the map and elevation plot.'''
 
-        self.layout = dash.html.Div(
-            [self._map.layout, self._elevation_plot.layout],
-            className='flex-fill d-flex flex-column',
-            style={'flex' : '1 1 0', 'height': '100vh', 'minHeight': 0, 'padding': '1rem', 'overflow': 'hidden', 'box-sizing': 'border-box'}
+        self.layout = dbc.Stack(
+            [
+                self._map.layout
+                #dash.html.Div(self._elevation_plot.layout) #, id='elevation-plot-flex-div')
+            ],
+            id='map-page'
         )
 
         return
