@@ -1,7 +1,7 @@
 topbar:
   theme_switcher:
     tooltip: Switch between light/dark modes
-sidebar:
+hike_panel:
   title: Available Hikes
 elevation_plot:
   xlabel: Distance (km)

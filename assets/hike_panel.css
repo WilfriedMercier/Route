@@ -1,0 +1,44 @@
+.hikelist-button {
+    color: light-dark(black, white);
+}
+
+.hikelist-button:hover {
+    background-color: #8bb6f6;
+}
+
+.hikelist-hide-button {
+    align-content : center;
+    border        : none;
+    background-color : transparent;
+    color: #6c757d;
+}
+
+.hikelist-hide-button:hover {
+    color: light-dark(black, white);
+    background-color: transparent;
+    scale: 1.2;
+}
+
+.hikelist-element {
+    display       : flex;
+    align-items   : center;
+    justify-content: space-between;
+    margin-bottom : 3px;
+    width: 100%;
+}
+
+.hikelist-colorpicker {
+    width : 35px;
+    padding: 0;
+    border-color: transparent;
+    cursor: pointer;
+}
+
+.hikelist-colorpicker:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.hikelist-colorpicker:hover {
+    scale: 1.1;
+}

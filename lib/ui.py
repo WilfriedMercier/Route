@@ -1,11 +1,11 @@
 import dash
-import dash_mantine_components   as     dbc
-import plotly.graph_objects      as     go
-from   typing                    import Any
+import dash_mantine_components as     dmc
+import plotly.graph_objects    as     go
+from   typing                  import Any
 
-from   .io                  import load_hikes_from_directory
-from   .lang                import LanguageEnum, map_string_code_to_language
-from   .components          import TopBar, Sidebar, MapPage, MenuBar
+from   .io                    import load_hikes_from_directory
+from   .lang                  import LanguageEnum, map_string_code_to_language
+from   .components            import TopBar, HikePanel, MapPage, MenuBar
 
 class UI:
     r'''
@@ -53,6 +53,33 @@ class UI:
 
         return
     
+    @property
+    def map_page(self) -> MapPage: 
+        '''Main page containing the hike and elevation maps.'''
+
+        return self._map_page
+    
+    @property
+    def topbar(self) -> TopBar:
+        '''Bar at the top of the page.'''
+
+        return self._topbar
+    
+    @property
+    def menubar(self) -> MenuBar: 
+        '''Menu bar located at the right or the bottom of the page.'''
+
+        return self._menubar
+    
+    @property
+    def hike_panel(self) -> HikePanel:
+        '''Hike panel shown when the right button is clicked in the menu bar.'''
+
+        return self._hike_panel
+    
+    @property
+    def layout(self) -> dmc.Stack: return self._layout
+    
     def _init_layout(
             self, 
             center_lat       : float, 
@@ -64,29 +91,31 @@ class UI:
         ) -> None:
         r'''Build the main layout of the application.'''
 
-        self.topbar       = TopBar(
+        self._topbar       = TopBar(
             self.app,
             {lang : translation['topbar'] for lang, translation in translations.items()}, 
             default_language
         )
 
-        self.map_page = MapPage(center_lat, center_lon, zoom, translations, default_language, color)
-        self.sidebar  = Sidebar(
+        self._map_page = MapPage(center_lat, center_lon, zoom, translations, default_language, color)
+        
+        self._hike_panel = HikePanel(
             self.app,
             {hike_name : {'color' : properties['color']} for hike_name, properties in self.hikes_data.items()},
-            {lang : translation['sidebar'] for lang, translation in translations.items()}, 
+            {lang : translation['hike_panel'] for lang, translation in translations.items()}, 
             default_language
         )
 
-        self.menubar = MenuBar()
+        self._menubar = MenuBar(self.app)
 
-        self.layout = dbc.Stack(
+        self._layout = dmc.Stack(
             [
                 self.topbar.layout, 
-                dbc.Group(
+                dmc.Group(
                     [
                         self.map_page.layout,
                         self.menubar.layout,
+                        self.hike_panel.layout
                     ],
                     id = 'main-group'
                 )
@@ -174,7 +203,7 @@ class UI:
             lang = map_string_code_to_language(value)
 
             self.topbar.update_layout_language(lang)
-            self.sidebar.update_layout_language(lang)
+            self.hike_panel.update_layout_language(lang)
             self.map_page.elevation_plot.update_layout_language(lang)
 
             return (

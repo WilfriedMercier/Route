@@ -1,7 +1,7 @@
 topbar:
   theme_switcher:
     tooltip: Changer entre mode jour et nuit
-sidebar:
+hike_panel:
   title: Randonnées disponibles
 elevation_plot:
   xlabel: Distance (km)
