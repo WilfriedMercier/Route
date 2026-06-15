@@ -47,3 +47,7 @@
 .hikelist-colorpicker:hover {
     transform : scale(1.1);
 }
+
+#hike-panel-title {
+    color: light-dark(black, white);
+}

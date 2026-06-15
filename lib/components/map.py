@@ -7,12 +7,16 @@ class Map:
     r'''
     Class responsible for building the map figure and adding hikes to it.
     
+    :param app: The Dash application instance
+    :param app: The Dash application instance
     :param lat: Latitude for the map center.
     :param lon: Longitude for the map center.
     :param zoom: Initial zoom level for the map.
     '''
 
-    def __init__(self, lat: float, lon: float, zoom: int) -> None:
+    def __init__(self, app: dash.Dash, lat: float, lon: float, zoom: int) -> None:
+
+        self._app = app
 
         self._init_map_figure()
         self._init_layout()
@@ -20,6 +24,12 @@ class Map:
         self.set_zoom_and_center(lat, lon, zoom)
 
         return 
+    
+    @property
+    def app(self) -> dash.Dash: return self._app
+
+    @property
+    def layout(self): return self._layout
     
     def _init_map_figure(self) -> None:
         r'''Initialize the map figure centered on the specified latitude and longitude.'''
@@ -52,7 +62,7 @@ class Map:
     def _init_layout(self) -> None:
         r"""Initialize the map container with the figure."""
 
-        self.layout = dash.dcc.Graph(
+        self._layout = dash.dcc.Graph(
             id     = 'map',
             figure = self.fig,
             config = {'displayModeBar': False, 'scrollZoom': True}
@@ -151,25 +161,31 @@ class ElevationPlot:
     r'''
     Class responsible for building the elevation profile plot.
     
-    :param translations: A dictionary containing translations for different languages.
-    :param default_language: default language used when the application starts
+    :param app: The Dash application instance
     :param color: color used for the line and the filled area
     '''
 
-    def __init__(
-            self, 
-            translations     : dict, 
-            default_language : LanguageEnum = LanguageEnum.ENGLISH,
-            color            : str = 'black'
-        ) -> None:
+    def __init__(self, app: dash.Dash, color: str = 'black') -> None:
 
-        # Component handling the language translation for this widget
-        self.language_handler = LanguageHandler(translations, default_language)
+        self._app = app
+
+        self._hovertemplate = (
+            f'<b>{self.app.lang['elevation_plot']["hovertemplate"]["distance"]}</b>:' + '%{x:.2f} km<br>'
+            f'<b>{self.app.lang['elevation_plot']["hovertemplate"]["remaining_distance"]}</b>:' + '%{customdata[0]:.2f} km<br>'
+            f'<b>{self.app.lang['elevation_plot']["hovertemplate"]["elevation"]}</b>:' + '%{y:.0f} m<br>'
+            '<extra></extra>'
+        )
 
         self._init_figure(color)
         self._init_layout()
 
         return
+    
+    @property
+    def app(self) -> dash.Dash: return self._app
+
+    @property
+    def hovertemplate(self) -> str: return self._hovertemplate
     
     def _init_figure(self, color: str) -> None:
         r'''
@@ -181,44 +197,33 @@ class ElevationPlot:
         self.fig = go.Figure()
 
         self.trace = go.Scatter(
-            x=[],  # Distance (km)
-            y=[],  # Elevation (m)
-            customdata=[],
-            mode='lines',
-            line=dict(color=color, width=2),
-            fill='tozeroy',
-            hovertemplate=self.hovertemplate,
-            name='Elevation'
+            x             = [],  # Distance (km)
+            y             = [],  # Elevation (m)
+            customdata    = [],
+            mode          = 'lines',
+            line          = {'color' : color, 'width' : 2},
+            fill          = 'tozeroy',
+            hovertemplate = self.hovertemplate,
+            name          = 'Elevation'
         )
 
         self.fig.add_trace(self.trace)
 
         self.fig.update_layout(
-            template='plotly_white',
-            paper_bgcolor='white',
-            plot_bgcolor='white',
-            font=dict(color='#2c3e50', family='Open Sans, sans-serif'),
-            margin=dict(l=0, r=0, t=0, b=0),
-            hovermode='x unified',
-            xaxis=dict(
-                title=self.language_handler['xlabel'],
-                unifiedhovertitle=dict(text=' ')
-            ),
-            yaxis=dict(title=self.language_handler['ylabel'])
+            template      = 'plotly_white',
+            paper_bgcolor = 'white',
+            plot_bgcolor  = 'white',
+            font          = {'color' : '#2c3e50', 'family' : 'Open Sans, sans-serif'},
+            margin        = {'l' : 0, 'r' : 0, 't' : 0, 'b' : 0},
+            hovermode     = 'x unified',
+            xaxis         = {
+                'title'             : self.app.lang['elevation_plot']['xlabel'],
+                'unifiedhovertitle' : {'text' : ' '}
+            },
+            yaxis         = {'title' : self.app.lang['elevation_plot']['ylabel']}
         )
 
         return
-    
-    @property
-    def hovertemplate(self) -> str:
-        r'''Template used when hovering over the graph.'''
-
-        return (
-            f'<b>{self.language_handler["hovertemplate"]["distance"]}</b>:' + '%{x:.2f} km<br>'
-            f'<b>{self.language_handler["hovertemplate"]["remaining_distance"]}</b>:' + '%{customdata[0]:.2f} km<br>'
-            f'<b>{self.language_handler["hovertemplate"]["elevation"]}</b>:' + '%{y:.0f} m<br>'
-            '<extra></extra>'
-        )
     
     def _init_layout(self) -> None:
         r'''Initialize the layout for the elevation profile plot.'''
@@ -231,6 +236,7 @@ class ElevationPlot:
 
         return
     
+    """
     def update_layout_language(self, lang: LanguageEnum) -> None:
         r'''
         Update the language of the elements in the layout.
@@ -247,6 +253,7 @@ class ElevationPlot:
         self.fig.data[0].hovertemplate = self.hovertemplate
 
         return
+    """
     
     def add_elevation_data_to_plot(
             self, 
@@ -264,8 +271,8 @@ class ElevationPlot:
         total_distance = distances[-1] if distances else 0.0
         remaining      = [[max(0.0, total_distance - d)] for d in distances]
 
-        self.fig.data[0].x = distances
-        self.fig.data[0].y = elevations
+        self.fig.data[0].x          = distances
+        self.fig.data[0].y          = elevations
         self.fig.data[0].customdata = remaining
 
         self.fig.update_traces(
@@ -280,34 +287,33 @@ class MapPage:
     r'''
     Class responsible for building the main content area of the application which contains the map and the elevation plot.
     
-    :param lat: Latitude for the map center.
-    :param lon: Longitude for the map center.
-    :param zoom: Initial zoom level for the map.
-    :param translations: A dictionary containing translations for different languages.
-    :param default_language: default language used when the application starts
+    :param app: The Dash application instance
+    :param lat: Latitude for the map center
+    :param lon: Longitude for the map center
+    :param zoom: Initial zoom level for the map
     :param color: default color used for the line and the filled area in the elevation plot
     '''
 
     def __init__(
-            self, 
-            lat              : float, 
-            lon              : float, 
-            zoom             : int,
-            translations     : dict[str, dict],
-            default_language : LanguageEnum,
-            color            : str
+            self,
+            app   : dash.Dash,
+            lat   : float, 
+            lon   : float, 
+            zoom  : int,
+            color : str
         ) -> None:
+    
+        self._app = app
 
-        self._map            = Map(lat, lon, zoom)
-        self._elevation_plot = ElevationPlot(
-            {lang : translation['elevation_plot'] for lang, translation in translations.items()}, 
-            default_language,
-            color = color
-        )
+        self._map            = Map(app, lat, lon, zoom)
+        self._elevation_plot = ElevationPlot(app, color = color)
 
-        self._build_layout()
+        self._init_layout()
 
         return
+
+    @property
+    def app(self) -> dash.Dash: return self._app
     
     @property
     def map(self) -> Map: return self._map
@@ -315,8 +321,8 @@ class MapPage:
     @property
     def elevation_plot(self) -> ElevationPlot: return self._elevation_plot
     
-    def _build_layout(self) -> None:
-        r'''Build the main content area containing the map and elevation plot.'''
+    def _init_layout(self) -> None:
+        r'''Initialize the main content area containing the map and elevation plot.'''
 
         self.layout = dbc.Stack(
             [

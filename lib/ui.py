@@ -4,26 +4,18 @@ import plotly.graph_objects    as     go
 from   typing                  import Any
 
 from   .io                    import load_hikes_from_directory
-from   .lang                  import LanguageEnum, map_string_code_to_language
 from   .components            import TopBar, HikePanel, MapPage, MenuBar
 
 class UI:
     r'''
     Class responsible for building the user interface of the application.
     
-    :param app: The Dash application instance.
-    :param translations: A dictionary containing translations for different languages.
-    :param default_language: default language used when the application starts
+    :param app: The Dash application instance
     '''
 
-    def __init__(
-            self, 
-            app              : dash.Dash, 
-            translations     : dict[str, dict], 
-            default_language : LanguageEnum
-        ) -> None:
+    def __init__(self, app : dash.Dash) -> None:
 
-        self.app               = app
+        self._app              = app
 
         self.hikes_data        = load_hikes_from_directory()
         self.current_hike_name = next(iter(self.hikes_data.keys()), None)
@@ -40,82 +32,52 @@ class UI:
             distances, elevations        = [], []
             color                        = 'black'
 
-        self._init_layout(
-            center_lat, center_lon, zoom,
-            translations, default_language,
-            color
-        )
+        self._init_layout(center_lat, center_lon, zoom, color)
 
-        self.map_page.map.add_hikes_to_map(self.hikes_data)
-        self.map_page.elevation_plot.add_elevation_data_to_plot(distances, elevations, color)
+        self._map_page.map.add_hikes_to_map(self.hikes_data)
+        self._map_page.elevation_plot.add_elevation_data_to_plot(distances, elevations, color)
 
         self._register_callbacks()
 
         return
     
     @property
-    def map_page(self) -> MapPage: 
-        '''Main page containing the hike and elevation maps.'''
-
-        return self._map_page
-    
-    @property
-    def topbar(self) -> TopBar:
-        '''Bar at the top of the page.'''
-
-        return self._topbar
-    
-    @property
-    def menubar(self) -> MenuBar: 
-        '''Menu bar located at the right or the bottom of the page.'''
-
-        return self._menubar
-    
-    @property
-    def hike_panel(self) -> HikePanel:
-        '''Hike panel shown when the right button is clicked in the menu bar.'''
-
-        return self._hike_panel
+    def app(self) -> dash.Dash: return self._app
     
     @property
     def layout(self) -> dmc.Stack: return self._layout
+
+    @property
+    def map_page(self) -> MapPage: return self._map_page
     
     def _init_layout(
             self, 
             center_lat       : float, 
             center_lon       : float,
             zoom             : int,
-            translations     : dict[str, dict],
-            default_language : LanguageEnum,
             color            : str   
         ) -> None:
         r'''Build the main layout of the application.'''
 
-        self._topbar       = TopBar(
-            self.app,
-            {lang : translation['topbar'] for lang, translation in translations.items()}, 
-            default_language
-        )
+        topbar    = TopBar(self.app)
 
-        self._map_page = MapPage(center_lat, center_lon, zoom, translations, default_language, color)
+        self._map_page  = MapPage(self.app, center_lat, center_lon, zoom, color)
         
-        self._hike_panel = HikePanel(
+        hike_panel = HikePanel(
             self.app,
-            {hike_name : {'color' : properties['color']} for hike_name, properties in self.hikes_data.items()},
-            {lang : translation['hike_panel'] for lang, translation in translations.items()}, 
-            default_language
+            {hike_name : {'color' : properties['color']} for hike_name, properties in self.hikes_data.items()}
         )
 
-        self._menubar = MenuBar(self.app)
+        menubar = MenuBar(self.app)
 
         self._layout = dmc.Stack(
             [
-                self.topbar.layout, 
+                topbar.layout, 
                 dmc.Group(
                     [
                         self.map_page.layout,
-                        self.menubar.layout,
-                        self.hike_panel.layout
+                        menubar.layout,
+                        hike_panel.layout
                     ],
                     id = 'main-group'
                 )
@@ -150,10 +112,13 @@ class UI:
                     break
 
                 self.map_page.map.fig.update_layout(
-                    mapbox=dict(
-                        center=dict(lat=self.map_page.map.center[0], lon=self.map_page.map.center[1]),
-                        zoom=self.map_page.map.zoom
-                    )
+                    mapbox = {
+                        'center' : {
+                            'lat' : self.map_page.map.center[0], 
+                            'lon' : self.map_page.map.center[1]
+                        },
+                        'zoom' : self.map_page.map.zoom
+                    }
                 )
 
             return self.map_page.map.fig
@@ -175,14 +140,18 @@ class UI:
             
             # This callback is triggered on any pan/zoom event
             self.map_page.map.fig.update_layout(
-                mapbox=dict(
-                    center=dict(lat=self.map_page.map.center[0], lon=self.map_page.map.center[1]),
-                    zoom=self.map_page.map.zoom
-                )
+                mapbox = {
+                    'center' : {
+                        'lat' : self.map_page.map.center[0], 
+                        'lon' : self.map_page.map.center[1]
+                    },
+                    'zoom' : self.map_page.map.zoom
+                }
             )
 
             return self.map_page.map.fig
         
+        """
         @self.app.callback(
                 [
                     dash.Output('map', 'figure', allow_duplicate=True),
@@ -210,4 +179,4 @@ class UI:
                 self.map_page.map.fig, 
                 self.topbar.language_handler['theme_switcher']['tooltip']
             )
-                
+        """ 

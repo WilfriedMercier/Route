@@ -8,7 +8,45 @@ class LanguageEnum(enum.Enum):
     ENGLISH = 'en'
     FRENCH  = 'fr'
 
+    @classmethod
+    def map_language_to_dropdown_text(cls, lang):
+
+        return {LanguageEnum.ENGLISH : 'En 🇬🇧',
+                LanguageEnum.FRENCH  : 'Fr 🇫🇷'
+        }[lang]
+
+    @classmethod
+    def map_dropdown_text_to_language(cls, lang: str):
+        r'''
+        Map a label representing a language to its associated language enum value.
+
+        :param lang: label to get the enum for
+        '''
+
+        return {
+            'En 🇬🇧' : LanguageEnum.ENGLISH,
+            'Fr 🇫🇷' : LanguageEnum.FRENCH
+        }[lang]
+    
+    @classmethod
+    def map_string_code_to_language(cls, lang: str):
+        r'''
+        Maps a string representing a language to its Enum representation.
+
+        :param lang: language string to transform into an enum
+        '''
+
+        if   lang.lower() == 'en' : return LanguageEnum.ENGLISH
+        elif lang.lower() == 'fr' : return LanguageEnum.FRENCH
+        else: raise ValueError(f'Language {lang} not supported.')
+
 class LanguageHandler:
+    r'''
+    Object handling the language update of the application.
+
+    :param translations: a dictionary of translations in different languages
+    :param default_language: default language used at startup
+    '''
 
     def __init__(self, translations: dict, default_language: LanguageEnum = LanguageEnum.ENGLISH):
 
@@ -32,39 +70,12 @@ class LanguageHandler:
     
     @property
     def dropdown_text_language(self) -> str:
-        return self.map_language_to_dropdown_text(self.language)
-    
-    @staticmethod
-    def map_language_to_dropdown_text(lang: LanguageEnum) -> str:
-
-        return {
-            LanguageEnum.ENGLISH : 'En 🇬🇧',
-            LanguageEnum.FRENCH  : 'Fr 🇫🇷'
-        }[lang]
-    
-    @staticmethod
-    def map_dropdown_text_to_language(lang: str) -> LanguageEnum:
-
-        return {
-            'En 🇬🇧' : LanguageEnum.ENGLISH,
-            'Fr 🇫🇷' : LanguageEnum.FRENCH
-        }[lang]
+        return LanguageEnum.map_language_to_dropdown_text(self.language)
     
     def __getitem__(self, key):
-        """Enables instance[key] syntax. Delegates the access to self.translation."""
+        r"""Enables instance[key] syntax. Delegates the access to self.translation."""
 
         return self.translation[key]
-
-def map_string_code_to_language(lang: str) -> LanguageEnum:
-    r'''
-    Maps a string representing a language to its Enum representation.
-
-    :param lang: language string to transform into an enum
-    '''
-
-    if   lang.lower() == 'en' : return LanguageEnum.ENGLISH
-    elif lang.lower() == 'fr' : return LanguageEnum.FRENCH
-    else: raise ValueError(f'Language {lang} not supported.')
 
 def load_language(lang: LanguageEnum) -> dict:
     r"""

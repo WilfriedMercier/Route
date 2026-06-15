@@ -131,7 +131,7 @@ class HikeListElement:
     
     def _init_layout(self, is_selected: bool) -> None:
 
-        self.button = dmc.Button(
+        button = dmc.Button(
             self.hike_name,
             id        = {'type' : 'hikelist-button', 'index' : self.id},
             className = 'hikelist-button',
@@ -139,13 +139,13 @@ class HikeListElement:
             style     = self.selected_style if is_selected else {}
         )
 
-        self.hide_button = dash.dcc.Button(
+        hide_button = dash.dcc.Button(
             self.icon_shown,
             className = 'hikelist-hide-button',
             id        = f'hikelist-hide-button-{self.id}'
         )
 
-        self.colorpicker = dbc.Input(
+        colorpicker = dbc.Input(
             id        = f'hikelist-colorpicker-{self.id}',
             className = 'hikelist-colorpicker',
             value     = self.color,
@@ -154,11 +154,12 @@ class HikeListElement:
 
         self._layout = dbc.Row(
             [
-                dbc.Col(dash.html.Div([
-                    self.colorpicker,
-                    self.button
-                ], style={'display' : 'flex', 'alignItems' : 'center', 'gap' : '5px'}), width='auto'),
-                dbc.Col(self.hide_button, width='auto')
+                dbc.Col(dash.html.Div(
+                    [colorpicker, button], 
+                    style = {'display' : 'flex', 'alignItems' : 'center', 'gap' : '5px'}), 
+                    width = 'auto'
+                ),
+                dbc.Col(hide_button, width='auto')
             ],
             className = 'hikelist-element',
             id        = f'hikelist-element-{self.id}'
@@ -227,22 +228,11 @@ class HikePanel:
     
     :param app: main application used for callback handling
     :param hikes: dictionary where the keys are hike names and the values are dictionaries with associated values (e.g. color)
-    :param translations: dictionary containing the translations of the UI elements of the sidebar
-    :param default_language: default language to be displayed
     '''
 
-    def __init__(
-            self, 
-            app              : dash.Dash, 
-            hikes            : dict[str, dict], 
-            translations     : dict, 
-            default_language : LanguageEnum = LanguageEnum.ENGLISH
-        ) -> None:
+    def __init__(self, app: dash.Dash, hikes: dict[str, dict]) -> None:
 
         self._app = app
-
-        # Component handling the language translation for this widget
-        self._language_handler = LanguageHandler(translations, default_language)
 
         self._init_layout(hikes)
 
@@ -253,9 +243,6 @@ class HikePanel:
     
     @property
     def app(self) -> dash.Dash: return self._app
-    
-    @property
-    def language_handler(self) -> LanguageHandler: return self._language_handler
 
     @property
     def hike_list(self) -> HikeList: return self._hike_list
@@ -271,21 +258,8 @@ class HikePanel:
 
         self._layout = dmc.Drawer(
             self.hike_list.layout,
-            title   = self.language_handler['title'],
-            id      = 'hike-panel',
-            style   = {'color' : 'light-dark(black, white)'}
+            title   = self.app.lang['hike_panel']['title'],
+            id      = 'hike-panel'
         )
-
-        return
-    
-    def update_layout_language(self, lang: LanguageEnum) -> None:
-        r'''
-        Update the language of the elements in the layout.
-
-        :param: new language to apply
-        '''
-
-        self._language_handler.language = lang
-        #self.title.children             = self.language_handler['title']
 
         return

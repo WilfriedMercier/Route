@@ -8,17 +8,12 @@ class TopBar:
     r'''
     Class responsible for building the top navigation bar of the application.
     
-    :param app: The Dash application instance.
-    :param translations: A dictionary containing translations for different languages.
-    :param default_language: default language used when the application starts
+    :param app: the Dash application instance
     '''
 
-    def __init__(self, app: dash.Dash, translations: dict, default_language: LanguageEnum = LanguageEnum.ENGLISH) -> None:
+    def __init__(self, app: dash.Dash) -> None:
 
         self._app = app
-
-        # Component handling the language translation for this widget
-        self._language_handler = LanguageHandler(translations, default_language)
 
         self._init_layout()
 
@@ -26,9 +21,6 @@ class TopBar:
     
     @property
     def app(self) -> dash.Dash: return self._app
-
-    @property
-    def language_handler(self): return self._language_handler
 
     @property
     def layout(self): return self._layout
@@ -45,7 +37,7 @@ class TopBar:
 
         theme_switcher_tooltip = dmc.Tooltip(
             theme_switcher_button,
-            label     = self.language_handler['theme_switcher']['tooltip'],
+            label     = self.app.lang['topbar']['theme_switcher']['tooltip'],
             openDelay = 1000,
             id        = 'theme-toggle-tooltip'
         )
@@ -56,12 +48,12 @@ class TopBar:
             id         = 'language-dropdown',
             options    = [
                 {
-                    'label': self.language_handler.map_language_to_dropdown_text(lang),
+                    'label': LanguageEnum.map_language_to_dropdown_text(lang),
                     'value': lang.value
                 }
-                for lang in self.language_handler.languages
+                for lang in self.app.lang.languages
             ],
-            value      = self.language_handler.language.value,  # Default selected value
+            value      = self.app.lang.language.value,  # Default selected value
             clearable  = False,
             searchable = False
         )

@@ -5,7 +5,7 @@ import argparse
 import dash_bootstrap_components as     dbc
 import dash_mantine_components   as     dmc
 from   lib.ui                    import UI
-from   lib.lang                  import load_languages, map_string_code_to_language
+from   lib.lang                  import load_languages, LanguageHandler, LanguageEnum
 
 def main() -> None:
 
@@ -27,16 +27,29 @@ def main() -> None:
     app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
     # Find the available languages
-    language_files = glob.glob(str(pathlib.Path('lang') / '*.yaml'))
-    languages      = [map_string_code_to_language(pathlib.Path(lang).stem) for lang in language_files]
-    translations   = load_languages(languages)
+    default_language = LanguageEnum.map_string_code_to_language(args.language)
 
-    ui           = UI(app, translations, map_string_code_to_language(args.language))
+    language_files   = glob.glob(str(pathlib.Path('lang') / '*.yaml'))
+
+    languages        = [
+        LanguageEnum.map_string_code_to_language(pathlib.Path(lang).stem) 
+        for lang in language_files
+    ]
+
+    translations     = load_languages(languages)
+
+    app.lang     = LanguageHandler( # type: ignore
+        translations, default_language=default_language
+    )
+
+    ui           = UI(app)
     app.ui       = ui # type: ignore
     app.layout   = dmc.MantineProvider(
         ui.layout,
         theme={"primaryColor": "blue"}
     )
+
+    
 
     app.run(debug=True)
 
