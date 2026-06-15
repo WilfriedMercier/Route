@@ -21,3 +21,15 @@
     display: flex;
     flex: 30%;
 }
+
+.div-map-style-selector {
+    position      : absolute;
+    top           : 30px;
+    right         : 30px;
+    background    : white;
+    padding       : 5px;
+    border-radius : 10px;
+    border        : 1px solid black;
+    box-shadow    : 0 2px 5px rgba(0,0,0,0.2);
+    z-index       : 1000;
+}

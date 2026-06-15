@@ -3,6 +3,10 @@ topbar:
     tooltip: Switch between light/dark modes
 hike_panel:
   title: Available Hikes
+  hide_button:
+    tooltip: Show/hide hike on the map
+  colorpicker:
+    tooltip: Change the color of the hike on the map
 elevation_plot:
   xlabel: Distance (km)
   ylabel: Elevation (m)
@@ -10,3 +14,8 @@ elevation_plot:
     distance: Distance
     remaining_distance: Remaining distance
     elevation: Elevation
+menubar:
+  hike_panel_button: 
+    tooltip: Toggle the hike list panel
+  hall_of_fame_button: 
+    tooltip: Toggle the hall of fame panel

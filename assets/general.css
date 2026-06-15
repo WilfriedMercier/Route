@@ -26,3 +26,8 @@
 .dash-options-list-option:hover {
     background-color: var(--custom-highlight-color);
 }
+
+.div-full-relative {
+    position : relative;
+    height   : 100%;
+}

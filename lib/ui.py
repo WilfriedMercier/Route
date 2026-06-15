@@ -3,8 +3,9 @@ import dash_mantine_components as     dmc
 import plotly.graph_objects    as     go
 from   typing                  import Any
 
-from   .io                    import load_hikes_from_directory
-from   .components            import TopBar, HikePanel, MapPage, MenuBar
+from   .lang                   import LanguageEnum
+from   .io                     import load_hikes_from_directory
+from   .components             import TopBar, HikePanel, MapPage, MenuBar
 
 class UI:
     r'''
@@ -50,6 +51,9 @@ class UI:
     @property
     def map_page(self) -> MapPage: return self._map_page
     
+    @property
+    def hike_panel(self) -> HikePanel: return self._hike_panel
+
     def _init_layout(
             self, 
             center_lat       : float, 
@@ -63,7 +67,7 @@ class UI:
 
         self._map_page  = MapPage(self.app, center_lat, center_lon, zoom, color)
         
-        hike_panel = HikePanel(
+        self._hike_panel = HikePanel(
             self.app,
             {hike_name : {'color' : properties['color']} for hike_name, properties in self.hikes_data.items()}
         )
@@ -77,7 +81,7 @@ class UI:
                     [
                         self.map_page.layout,
                         menubar.layout,
-                        hike_panel.layout
+                        self.hike_panel.layout
                     ],
                     id = 'main-group'
                 )
@@ -151,32 +155,37 @@ class UI:
 
             return self.map_page.map.fig
         
-        """
         @self.app.callback(
                 [
-                    dash.Output('map', 'figure', allow_duplicate=True),
-                    dash.Output('theme-toggle-tooltip', 'label')
+                    dash.Output('theme-toggle-tooltip', 'label'),
+                    dash.Output('hike-panel-button-tooltip', 'label'),
+                    dash.Output('hall-of-fame-button-tooltip', 'label'),
+                    dash.Output('hike-panel', 'title'),
+                    dash.Output({'type' : 'hikelist-hide-button-tooltip', 'index' : dash.ALL}, 'label'),
+                    dash.Output({'type' : 'hikelist-colorpicker-tooltip', 'index' : dash.ALL}, 'label')
                 ],
-            #Output('sidebar-collapsible-content', 'children'),
             dash.Input('language-dropdown', 'value'),
             prevent_initial_call=True
         )
         def language_selection_callback(
-            value: str | None
-        ) -> tuple[go.Figure, Any] | tuple[dash.NoUpdate, dash.NoUpdate]:
+            value: str
+        ) -> tuple[str, str, str, str, list[str], list[str]]:
 
-            if value is None: 
-                return dash.no_update, dash.no_update
+            # Value in the dropdown is a string so we parse it to the right type
+            lang = LanguageEnum.map_string_code_to_language(value)
 
-            # Value in the dropdown must be a string so we parse it to the right type
-            lang = map_string_code_to_language(value)
+            # Update the language of the language handler object
+            self.app.lang.language = lang
 
-            self.topbar.update_layout_language(lang)
-            self.hike_panel.update_layout_language(lang)
-            self.map_page.elevation_plot.update_layout_language(lang)
+            #self.map_page.elevation_plot.update_layout_language(lang)
+
+            n_buttons = len(self.hike_panel.hike_list.buttons)
 
             return (
-                self.map_page.map.fig, 
-                self.topbar.language_handler['theme_switcher']['tooltip']
+                self.app.lang['topbar']['theme_switcher']['tooltip'],
+                self.app.lang['menubar']['hike_panel_button']['tooltip'],
+                self.app.lang['menubar']['hall_of_fame_button']['tooltip'],
+                self.app.lang['hike_panel']['title'],
+                [self.app.lang['hike_panel']['hide_button']['tooltip']] * n_buttons,
+                [self.app.lang['hike_panel']['colorpicker']['tooltip']] * n_buttons
             )
-        """ 

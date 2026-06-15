@@ -31,8 +31,9 @@ class MenuBar:
 
         hike_panel_button_tooltip = dmc.Tooltip(
             hike_panel_button,
-            label     = 'Toggle the hike list panel',
-            openDelay = 1000
+            label     = self.app.lang['menubar']['hike_panel_button']['tooltip'],
+            openDelay = 1000,
+            id        = 'hike-panel-button-tooltip'
         )
 
         hall_of_fame_button = dmc.Button(
@@ -46,8 +47,9 @@ class MenuBar:
 
         hall_of_fame_button_tooltip = dmc.Tooltip(
             hall_of_fame_button,
-            label    = 'Toggle the hall of fame panel',
-            disabled = True
+            label    = self.app.lang['menubar']['hall_of_fame_button']['tooltip'],
+            disabled = True,
+            id       = 'hall-of-fame-button-tooltip'
         )
 
         self._layout = dmc.Stack(

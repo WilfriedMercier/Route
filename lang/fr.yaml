@@ -3,6 +3,10 @@ topbar:
     tooltip: Changer entre mode jour et nuit
 hike_panel:
   title: Randonnées disponibles
+  hide_button:
+    tooltip: Masquer/afficher la randonnée sur la carte
+  colorpicker:
+    tooltip: Modifier la couleur de la randonnée sur la carte
 elevation_plot:
   xlabel: Distance (km)
   ylabel: Altitude (m)
@@ -10,3 +14,8 @@ elevation_plot:
     distance: Distance
     remaining_distance: Distance restante
     elevation: Altitude
+menubar:
+  hike_panel_button: 
+    tooltip: Ouvrir le panneau des randonnées
+  hall_of_fame_button: 
+    tooltip: Ouvrir le panneau des statistiques

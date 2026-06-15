@@ -26,6 +26,9 @@ class HikeList:
 
     @property
     def layout(self): return self._layout
+
+    @property
+    def buttons(self): return self._buttons
     
     def _init_layout(self, hikes: dict[str, dict] | None) -> None:
         r'''
@@ -34,16 +37,16 @@ class HikeList:
         :param hikes: dictionary where the keys are hike names and the values are dictionaries with associated values (e.g. color)
         '''
 
-        if hikes is None: return
+        self._buttons: list[HikeListElement] = []
 
-        self.buttons: list[HikeListElement] = []
+        if hikes is not None: 
+                
+            for pos, (hike_name, properties) in enumerate(hikes.items()):
+                self._buttons.append(
+                    HikeListElement(self._app, hike_name, properties['color'], pos, is_selected=pos==0)
+                )
 
-        for pos, (hike_name, properties) in enumerate(hikes.items()):
-            self.buttons.append(
-                HikeListElement(self._app, hike_name, properties['color'], pos, is_selected=pos==0)
-            )
-
-        self._layout = dash.html.Div([button.layout for button in self.buttons], id='hikelist')
+        self._layout = dash.html.Div([button.layout for button in self._buttons], id='hikelist')
 
         return
 
@@ -139,17 +142,27 @@ class HikeListElement:
             style     = self.selected_style if is_selected else {}
         )
 
-        hide_button = dash.dcc.Button(
-            self.icon_shown,
-            className = 'hikelist-hide-button',
-            id        = f'hikelist-hide-button-{self.id}'
+        hide_button = dmc.Tooltip(
+            dash.dcc.Button(
+                self.icon_shown,
+                className = 'hikelist-hide-button',
+                id        = f'hikelist-hide-button-{self.id}'
+            ),
+            label     = self.app.lang['hike_panel']['hide_button']['tooltip'],
+            openDelay = 1000,
+            id        = {'type' : 'hikelist-hide-button-tooltip', 'index' : self.id}
         )
 
-        colorpicker = dbc.Input(
-            id        = f'hikelist-colorpicker-{self.id}',
-            className = 'hikelist-colorpicker',
-            value     = self.color,
-            type      = 'color' , # type: ignore
+        colorpicker = dmc.Tooltip(
+            dbc.Input(
+                id        = f'hikelist-colorpicker-{self.id}',
+                className = 'hikelist-colorpicker',
+                value     = self.color,
+                type      = 'color' , # type: ignore
+            ),
+            label     = self.app.lang['hike_panel']['colorpicker']['tooltip'],
+            openDelay = 1000,
+            id        = {'type' : 'hikelist-colorpicker-tooltip', 'index' : self.id}
         )
 
         self._layout = dbc.Row(

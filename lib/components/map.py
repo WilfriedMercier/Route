@@ -1,13 +1,94 @@
 import dash
 import plotly.graph_objects      as     go
+import dash_mantine_components   as     dmc
 import dash_bootstrap_components as     dbc
-from   ..lang                    import LanguageEnum, LanguageHandler
+from   dash_iconify              import DashIconify
 
-class Map:
+from   .base                     import BaseWidget
+
+class MapStyleButton(BaseWidget):
+
+    def __init__(self, app: dash.Dash, style: str, idd: int) -> None:
+        
+        super().__init__(app)
+
+        self._style = style
+        self._id    = idd
+
+        self._init_layout()
+        self._register_callbacks()
+
+        return
+    
+    @property
+    def id(self) -> int: return self._id
+
+    @property
+    def style(self) -> str: return self._style
+    
+    def _init_layout(self) -> None:
+
+        self._layout = dmc.Button(self.style, id=f'map-style-button-{self.id}')
+        return
+    
+    def _register_callbacks(self) -> None:
+
+        @self.app.callback(
+            dash.Output('map', 'figure', allow_duplicate = True),
+            dash.Input(f'map-style-button-{self.id}', 'n_clicks'),
+            dash.State('map', 'figure'),
+            prevent_initial_call = True
+        )
+        def callback_map_style_change(n_clicks, figure_dict: go.Figure) -> go.Figure:
+
+            figure = go.Figure(figure_dict)
+            figure.update_layout(
+                mapbox = {'style' : self.style}
+            )
+
+            return figure
+
+        return
+    
+class MapStyleSelector(BaseWidget):
+    r'''
+    A widget that allows to select different map styles.
+    
+    :param app: The Dash application instance
+    '''
+
+    def __init__(self, app: dash.Dash) -> None:
+
+        super().__init__(app)
+
+        self._init_layout()
+
+        return
+    
+    def _init_layout(self) -> None:
+
+        self.buttons = []
+        for pos, style in enumerate(('carto-positron', 'carto-darkmatter')):
+            self.buttons.append(MapStyleButton(self.app, style, pos))
+
+        self._layout = dash.html.Div(
+            dmc.HoverCard([
+                    dmc.HoverCardTarget(DashIconify(icon='fluent-mdl2:map-layers', height=35, width=35)),
+                    dmc.HoverCardDropdown(
+                        [button.layout for button in self.buttons]
+                    ),
+                ],
+                position = 'left'
+            ),
+            className = 'div-map-style-selector'
+        )
+
+        return
+
+class Map(BaseWidget):
     r'''
     Class responsible for building the map figure and adding hikes to it.
     
-    :param app: The Dash application instance
     :param app: The Dash application instance
     :param lat: Latitude for the map center.
     :param lon: Longitude for the map center.
@@ -16,20 +97,14 @@ class Map:
 
     def __init__(self, app: dash.Dash, lat: float, lon: float, zoom: int) -> None:
 
-        self._app = app
+        super().__init__(app)
 
         self._init_map_figure()
         self._init_layout()
 
         self.set_zoom_and_center(lat, lon, zoom)
 
-        return 
-    
-    @property
-    def app(self) -> dash.Dash: return self._app
-
-    @property
-    def layout(self): return self._layout
+        return
     
     def _init_map_figure(self) -> None:
         r'''Initialize the map figure centered on the specified latitude and longitude.'''
@@ -62,10 +137,17 @@ class Map:
     def _init_layout(self) -> None:
         r"""Initialize the map container with the figure."""
 
-        self._layout = dash.dcc.Graph(
-            id     = 'map',
-            figure = self.fig,
-            config = {'displayModeBar': False, 'scrollZoom': True}
+        style_selector = MapStyleSelector(self.app)
+
+        self._layout = dash.html.Div([
+                dash.dcc.Graph(
+                    id     = 'map',
+                    figure = self.fig,
+                    config = {'displayModeBar': False, 'scrollZoom': True}
+                ),
+                style_selector.layout
+            ],
+            className = 'div-full-relative'
         )
 
         return
@@ -157,7 +239,7 @@ class Map:
         self.fig.data[index + 1].visible = True
         return
 
-class ElevationPlot:
+class ElevationPlot(BaseWidget):
     r'''
     Class responsible for building the elevation profile plot.
     
@@ -167,7 +249,7 @@ class ElevationPlot:
 
     def __init__(self, app: dash.Dash, color: str = 'black') -> None:
 
-        self._app = app
+        super().__init__(app)
 
         self._hovertemplate = (
             f'<b>{self.app.lang['elevation_plot']["hovertemplate"]["distance"]}</b>:' + '%{x:.2f} km<br>'
@@ -180,9 +262,6 @@ class ElevationPlot:
         self._init_layout()
 
         return
-    
-    @property
-    def app(self) -> dash.Dash: return self._app
 
     @property
     def hovertemplate(self) -> str: return self._hovertemplate
@@ -228,32 +307,13 @@ class ElevationPlot:
     def _init_layout(self) -> None:
         r'''Initialize the layout for the elevation profile plot.'''
 
-        self.layout = dash.dcc.Graph(
+        self._layout = dash.dcc.Graph(
             id     = 'elevation-plot',
             figure = self.fig,
             config = {'displayModeBar': False},
         )
 
         return
-    
-    """
-    def update_layout_language(self, lang: LanguageEnum) -> None:
-        r'''
-        Update the language of the elements in the layout.
-
-        :param: new language to apply
-        '''
-
-        self.language_handler.language = lang
-        self.fig.update_layout(
-            xaxis = {'title' : self.language_handler['xlabel']},
-            yaxis = {'title' : self.language_handler['ylabel']},
-        )
-
-        self.fig.data[0].hovertemplate = self.hovertemplate
-
-        return
-    """
     
     def add_elevation_data_to_plot(
             self, 
@@ -266,6 +326,7 @@ class ElevationPlot:
         
         :param distances: cumulative distances since the beginning of the hike in km
         :param elevations: elevation in m at each point along the hike
+        :param color: color of the line plot
         '''
 
         total_distance = distances[-1] if distances else 0.0
@@ -283,7 +344,7 @@ class ElevationPlot:
 
         return
     
-class MapPage:
+class MapPage(BaseWidget):
     r'''
     Class responsible for building the main content area of the application which contains the map and the elevation plot.
     
@@ -303,7 +364,7 @@ class MapPage:
             color : str
         ) -> None:
     
-        self._app = app
+        super().__init__(app)
 
         self._map            = Map(app, lat, lon, zoom)
         self._elevation_plot = ElevationPlot(app, color = color)
@@ -311,9 +372,6 @@ class MapPage:
         self._init_layout()
 
         return
-
-    @property
-    def app(self) -> dash.Dash: return self._app
     
     @property
     def map(self) -> Map: return self._map
@@ -324,12 +382,12 @@ class MapPage:
     def _init_layout(self) -> None:
         r'''Initialize the main content area containing the map and elevation plot.'''
 
-        self.layout = dbc.Stack(
+        self._layout = dbc.Stack(
             [
                 self._map.layout
                 #dash.html.Div(self._elevation_plot.layout) #, id='elevation-plot-flex-div')
             ],
-            id='map-page'
+            id = 'map-page'
         )
 
         return
