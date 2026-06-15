@@ -1,17 +1,9 @@
-.grey-icons {
-    color : #6c757d;
-}
-
 #topbar-themebutton-group {
     display         : flex; 
     gap             : 10px;
     align-items     : center; 
     justify-content : center;
-}
-
-#language-dropdown {
-    background-color: transparent; /* Subtle highlight */
-    border: 0px solid transparent;
+    color           : light-dark(black, white);
 }
 
 #topbar-buttongroup {
@@ -33,7 +25,15 @@
     gap         : 10px;
 }
 
-.mantine-ActionIcon-root:hover {
-    background : none;    
-    transform  : scale(1.1);
+.title {
+    color : light-dark(black, white);
+}
+
+#theme-toggle {
+    background-color : transparent;
+    transition       : transform 0.2s ease;
+}
+
+#theme-toggle:hover {
+    transform: scale(1.2);
 }

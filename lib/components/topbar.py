@@ -29,27 +29,30 @@ class TopBar:
 
     @property
     def language_handler(self): return self._language_handler
+
+    @property
+    def layout(self): return self._layout
     
     def _init_layout(self) -> None:
         r'''Build the top navigation bar layout.'''
 
-        self.theme_switcher_button = dmc.ColorSchemeToggle(
-            lightIcon = DashIconify(icon="radix-icons:sun", width=20),
-            darkIcon  = DashIconify(icon="radix-icons:moon", width=20),
-            color     = "black",
+        theme_switcher_button = dmc.ColorSchemeToggle(
+            lightIcon = DashIconify(icon="radix-icons:sun",  width=25, color = 'darkorange'),
+            darkIcon  = DashIconify(icon="radix-icons:moon", width=25, color = 'lightblue'),
             size      = "lg",
             id        = 'theme-toggle'
         )
 
-        self.theme_switcher_tooltip = dmc.Tooltip(
-            self.theme_switcher_button,
-            label = self.language_handler['theme_switcher']['tooltip'],
-            id    = 'theme-toggle-tooltip'
+        theme_switcher_tooltip = dmc.Tooltip(
+            theme_switcher_button,
+            label     = self.language_handler['theme_switcher']['tooltip'],
+            openDelay = 1000,
+            id        = 'theme-toggle-tooltip'
         )
 
-        self.logo = dash.html.Img(src="/assets/logo.svg", className='logo')
+        logo = dash.html.Img(src="/assets/logo.svg", className='logo')
 
-        self.language_selector = dash.dcc.Dropdown(
+        language_selector = dash.dcc.Dropdown(
             id         = 'language-dropdown',
             options    = [
                 {
@@ -63,27 +66,20 @@ class TopBar:
             searchable = False
         )
 
-        self.button_group = dmc.Group(
-            [self.language_selector, self.theme_switcher_tooltip],
+        button_group = dmc.Group(
+            [language_selector, theme_switcher_tooltip],
             id = 'topbar-buttongroup'
         )
 
-        self.layout = dmc.Group(
+        self._layout = dmc.Group(
             [
-                dmc.Group([self.logo, dash.html.H1('Route')], id='logo-title-group'),
-                self.button_group
+                dmc.Group(
+                    [logo, dmc.Title('Route', order=1, className='title')], 
+                    id = 'logo-title-group'
+                ),
+                button_group
             ],
-            id        = 'topbar',
-            className = 'bg-light border-bottom p-3',
+            id = 'topbar'
         )
 
         return
-    
-    def update_layout_language(self, lang: LanguageEnum) -> None:
-        r'''
-        Update the language of the elements in the layout.
-
-        :param: new language to apply
-        '''
-
-        self._language_handler.language = lang

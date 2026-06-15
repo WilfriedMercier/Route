@@ -19,26 +19,39 @@ class MenuBar:
     @property
     def layout(self) -> dmc.Stack: return self._layout
 
-    @property
-    def hike_panel_button(self) -> dmc.Button: return self._hike_panel_button
-    
-    @property
-    def hall_of_fame_button(self) -> dmc.Button: return self._hall_of_fame_button
-
     def _init_layout(self) -> None:
 
-        self._hike_panel_button = dmc.Button(
-            DashIconify(icon='gis:hiker'),
-            id = 'hike-panel-button',
+        hike_panel_button = dmc.Button(
+            DashIconify(icon='gis:hiker', height=28, width=28),
+            id        = 'hike-panel-button',
+            size      = 'lg',
+            variant   = 'outline',
+            className = 'menubar-button',
         )
 
-        self._hall_of_fame_button = dmc.Button(
-            DashIconify(icon='mdi:achievement-outline'),
-            id = 'hof-button'
+        hike_panel_button_tooltip = dmc.Tooltip(
+            hike_panel_button,
+            label     = 'Toggle the hike list panel',
+            openDelay = 1000
+        )
+
+        hall_of_fame_button = dmc.Button(
+            DashIconify(icon='mdi:achievement-outline', height=28, width=28),
+            id        = 'hof-button',
+            size      = 'lg',
+            variant   = 'outline',
+            className = 'menubar-button',
+            disabled  = True
+        )
+
+        hall_of_fame_button_tooltip = dmc.Tooltip(
+            hall_of_fame_button,
+            label    = 'Toggle the hall of fame panel',
+            disabled = True
         )
 
         self._layout = dmc.Stack(
-            [self.hike_panel_button, self.hall_of_fame_button],
+            [hike_panel_button_tooltip, hall_of_fame_button_tooltip],
             id = 'menubar'
         )
 
@@ -52,8 +65,6 @@ class MenuBar:
             prevent_initial_call=True
         )
         def hike_panel_button_callback(n_clicks: int | None) -> bool:
-
-            print('hey')
 
             if n_clicks is None: return False
 

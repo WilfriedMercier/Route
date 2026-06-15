@@ -1,0 +1,12 @@
+:root {
+  --custom-theme-color      : #0D6EFD;
+  --custom-primary-color    : var(--custom-theme-color);
+  --custom-highlight-color  : #8bb6f6;
+  --custom-background-color : white;
+}
+
+:root[data-mantine-color-scheme="dark"] {
+  --custom-primary-color    : white;
+  --custom-highlight-color  : #8bb6f6;
+  --custom-background-color : #363636;
+}

@@ -1,0 +1,28 @@
+.dash-dropdown {
+    color            : light-dark(black, white);
+    background-color : transparent;
+    border           : 0px solid transparent;
+    transition       : transform 0.2s ease;
+}
+
+.dash-dropdown:hover {
+    transform: scale(1.1);
+}
+
+.dash-dropdown-content {
+    background-color : var(--custom-background-color);
+    border-color     : var(--custom-primary-color);
+}
+
+.dash-dropdown-trigger-icon {
+    color            : light-dark(black, white);
+    background-color : transparent;
+}
+
+.dash-options-list-option-text {
+    color            : light-dark(black, white);
+}
+
+.dash-options-list-option:hover {
+    background-color: var(--custom-highlight-color);
+}

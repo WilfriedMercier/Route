@@ -74,7 +74,7 @@ class HikeList:
     
             # Update style
             return [
-                {'backgroundColor': '#0D6EFD', 'color' : 'white'} 
+                {'backgroundColor': 'var(--custom-theme-color)', 'color' : 'white'}
                 if button._id == clicked_id else {} 
                 for button in self.buttons
             ]
@@ -144,8 +144,6 @@ class HikeListElement:
             className = 'hikelist-hide-button',
             id        = f'hikelist-hide-button-{self.id}'
         )
-
-        print(self.hide_button)
 
         self.colorpicker = dbc.Input(
             id        = f'hikelist-colorpicker-{self.id}',

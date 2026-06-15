@@ -33,7 +33,10 @@ def main() -> None:
 
     ui           = UI(app, translations, map_string_code_to_language(args.language))
     app.ui       = ui # type: ignore
-    app.layout   = dmc.MantineProvider(ui.layout)
+    app.layout   = dmc.MantineProvider(
+        ui.layout,
+        theme={"primaryColor": "blue"}
+    )
 
     app.run(debug=True)
 
