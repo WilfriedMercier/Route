@@ -7,6 +7,8 @@ hike_panel:
     tooltip: Show/hide hike on the map
   colorpicker:
     tooltip: Change the color of the hike on the map
+  share_button:
+    tooltip: Share this hike
 elevation_plot:
   xlabel: Distance (km)
   ylabel: Elevation (m)

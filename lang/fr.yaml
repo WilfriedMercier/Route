@@ -7,6 +7,8 @@ hike_panel:
     tooltip: Masquer/afficher la randonnée sur la carte
   colorpicker:
     tooltip: Modifier la couleur de la randonnée sur la carte
+  share_button:
+    tooltip: Partager cette randonnée
 elevation_plot:
   xlabel: Distance (km)
   ylabel: Altitude (m)

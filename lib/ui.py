@@ -100,15 +100,16 @@ class UI(BaseWidget):
                     dash.Output('hike-panel-button-tooltip', 'label'),
                     dash.Output('hall-of-fame-button-tooltip', 'label'),
                     dash.Output('hike-panel', 'title'),
-                    dash.Output({'type' : 'hikelist-hide-button-tooltip', 'index' : dash.ALL}, 'label'),
-                    dash.Output({'type' : 'hikelist-colorpicker-tooltip', 'index' : dash.ALL}, 'label')
+                    dash.Output({'type' : 'hikelist-hide-button-tooltip',  'index' : dash.ALL}, 'label'),
+                    dash.Output({'type' : 'hikelist-colorpicker-tooltip',  'index' : dash.ALL}, 'label'),
+                    dash.Output({'type' : 'hikelist-share-button-tooltip', 'index' : dash.ALL}, 'label')
                 ],
             dash.Input('language-dropdown', 'value'),
             prevent_initial_call=True
         )
         def language_selection_callback(
             value: str
-        ) -> tuple[str, str, str, str, list[str], list[str]]:
+        ) -> tuple[str, str, str, str, list[str], list[str], list[str]]:
 
             # Value in the dropdown is a string so we parse it to the right type
             lang = LanguageEnum.map_string_code_to_language(value)
@@ -126,5 +127,6 @@ class UI(BaseWidget):
                 self.app.lang['menubar']['hall_of_fame_button']['tooltip'],
                 self.app.lang['hike_panel']['title'],
                 [self.app.lang['hike_panel']['hide_button']['tooltip']] * n_buttons,
-                [self.app.lang['hike_panel']['colorpicker']['tooltip']] * n_buttons
+                [self.app.lang['hike_panel']['colorpicker']['tooltip']] * n_buttons,
+                [self.app.lang['hike_panel']['share_button']['tooltip']] * n_buttons
             )

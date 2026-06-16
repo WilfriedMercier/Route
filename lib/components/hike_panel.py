@@ -152,14 +152,21 @@ class HikeListElement(BaseWidget):
             id        = {'type' : 'hikelist-colorpicker-tooltip', 'index' : self.id}
         )
 
-        self._layout = dbc.Row(
+        share_button = dmc.Tooltip(
+            dmc.Button(
+                DashIconify(icon='material-symbols:share', width=20),
+                className = 'custom-button',
+                id        = {'type' : 'hikelist-share-button', 'index' : self.id}
+            ),
+            label     = self.app.lang['hike_panel']['share_button']['tooltip'],
+            openDelay = 1000,
+            id        = {'type' : 'hikelist-share-button-tooltip', 'index' : self.id}
+        )
+
+        self._layout = dmc.Space(
             [
-                dbc.Col(dash.html.Div(
-                    [colorpicker, button], 
-                    style = {'display' : 'flex', 'alignItems' : 'center', 'gap' : '5px'}), 
-                    width = 'auto'
-                ),
-                dbc.Col(hide_button, width='auto')
+                dmc.Group([colorpicker, button]),
+                dmc.Group([share_button, hide_button])
             ],
             className = 'hikelist-element',
             id        = f'hikelist-element-{self.id}'
@@ -207,6 +214,12 @@ class HikeListElement(BaseWidget):
             prevent_initial_call=True
         )
         def colorpicker_callback(color: str, map_dict: dict) -> go.Figure:
+            '''
+            Callback called whenever the given colorpicker is clicked.
+            
+            :param color: color selected by the colorpicker
+            :param map_dict: current state of the map plot 
+            '''
 
             map_figure = go.Figure(map_dict)
             map_figure.update_traces(
@@ -218,8 +231,9 @@ class HikeListElement(BaseWidget):
         
         @self.app.callback(
             [
-                dash.Output({'type' : 'hikelist-button',      'index' : self.id}, 'disabled'),
-                dash.Output({'type' : 'hikelist-colorpicker', 'index' : self.id}, 'disabled'),
+                dash.Output({'type' : 'hikelist-button',       'index' : self.id}, 'disabled'),
+                dash.Output({'type' : 'hikelist-colorpicker',  'index' : self.id}, 'disabled'),
+                dash.Output({'type' : 'hikelist-share-button', 'index' : self.id}, 'disabled'),
                 dash.Output('map', 'figure', allow_duplicate=True)
             ],
             dash.Input({'type' : 'hikelist-hide-button', 'index' : self.id}, 'checked'),
@@ -229,7 +243,7 @@ class HikeListElement(BaseWidget):
         )
         def hide_button_callback(
             checked: bool, map_dict: dict, color: str
-        ) -> tuple[bool, bool, go.Figure]:
+        ) -> tuple[bool, bool, bool, go.Figure]:
             r'''
             Callback used when the hide button is toggled.
 
@@ -246,7 +260,7 @@ class HikeListElement(BaseWidget):
                 selector = self.id + 1
             )
 
-            return (not checked, not checked, map_figure)
+            return (not checked, not checked, not checked, map_figure)
             
         
         return

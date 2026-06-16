@@ -39,3 +39,36 @@
 .mantine-Switch-root:hover {
     transform : scale(1.1);
 }
+
+.custom-button {
+    color            : light-dark(black, white);
+    background-color : transparent;
+    margin           : 0;
+    padding          : 0;
+    transition       : transform 0.2s ease-in;
+}
+
+@keyframes buttonPress {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+
+.custom-button:hover {
+    color            : var(--custom-theme-color);
+    background-color : transparent;
+    transform        : scale(1.1);
+}
+
+.custom-button:active {
+    animation: buttonPress 0.2s ease-in;
+}
+
+.custom-button:disabled {
+    opacity: 0.5;
+}
+
+.custom-button:disabled:hover {
+    transform : none;
+    color     : light-dark(black, white)
+}
