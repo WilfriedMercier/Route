@@ -28,10 +28,57 @@ class MapStyleButton(BaseWidget):
     
     def _init_layout(self) -> None:
 
-        self._layout = dmc.Button(self.style, id=f'map-style-button-{self.id}')
+        figure = go.Figure()
+        figure.update_layout(
+            template      = 'plotly_white',
+            paper_bgcolor = 'white',
+            plot_bgcolor  = 'white',
+            font          = {'color' : '#2c3e50', 'family' : 'Open Sans, sans-serif'},
+            margin        = {'l' : 0, 'r' : 0, 't' : 0, 'b' : 0},
+            width         = 50,
+            height        = 150,
+            mapbox        = {
+                'center' : {'lat' : 41.89860997999514, 'lon' : 12.477528109879714}, 
+                'zoom'   : 14,
+                'style'  : self.style
+            }
+        )
+
+        figure.add_trace(
+            go.Scattermapbox(
+                lat       = [41.89860997999514], 
+                lon       = [12.477528109879714],
+                mode      ='markers',
+                marker    = {'size' : 1, 'color' : 'rgba(0,0,0,0)'}, # Invisible dot to trigger render
+                hoverinfo = 'none'
+            )
+        )
+
+        graph =  dash.dcc.Graph(
+            id     = f'map-style-map-{self.id}',
+            figure = figure,
+            config = {'staticPlot' : True}
+        )
+
+        self._layout = dmc.Button(
+            graph, 
+            className = 'map-style-button',
+            id        = f'map-style-button-{self.id}'
+        )
+
         return
     
     def _register_callbacks(self) -> None:
+
+        def callback_map_style_change(_, figure_dict: go.Figure) -> go.Figure:
+
+            print(self.style)
+            figure = go.Figure(figure_dict)
+            figure.update_layout(
+                mapbox = {'style' : self.style}
+            )
+
+            return figure
 
         @self.app.callback(
             dash.Output('map', 'figure', allow_duplicate = True),
@@ -39,14 +86,17 @@ class MapStyleButton(BaseWidget):
             dash.State('map', 'figure'),
             prevent_initial_call = True
         )
-        def callback_map_style_change(n_clicks, figure_dict: go.Figure) -> go.Figure:
-
-            figure = go.Figure(figure_dict)
-            figure.update_layout(
-                mapbox = {'style' : self.style}
-            )
-
-            return figure
+        def callback_map_style_change_from_button(_, figure_dict: go.Figure) -> go.Figure:
+            return callback_map_style_change(_, figure_dict)
+        
+        @self.app.callback(
+            dash.Output('map', 'figure', allow_duplicate = True),
+            dash.Input(f'map-style-map-{self.id}', 'clickData'),
+            dash.State('map', 'figure'),
+            prevent_initial_call = True
+        )
+        def callback_map_style_change_from_map(_, figure_dict: go.Figure) -> go.Figure:
+            return callback_map_style_change(_, figure_dict)
 
         return
     
@@ -68,14 +118,15 @@ class MapStyleSelector(BaseWidget):
     def _init_layout(self) -> None:
 
         self.buttons = []
-        for pos, style in enumerate(('carto-positron', 'carto-darkmatter')):
+        for pos, style in enumerate(('carto-positron', 'carto-darkmatter', 'open-street-map')):
             self.buttons.append(MapStyleButton(self.app, style, pos))
 
         self._layout = dash.html.Div(
             dmc.HoverCard([
                     dmc.HoverCardTarget(DashIconify(icon='fluent-mdl2:map-layers', height=35, width=35)),
                     dmc.HoverCardDropdown(
-                        [button.layout for button in self.buttons]
+                        [button.layout for button in self.buttons],
+                        style={'height' : '75px'}
                     ),
                 ],
                 position = 'left'

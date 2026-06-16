@@ -31,5 +31,18 @@
     border-radius : 10px;
     border        : 1px solid black;
     box-shadow    : 0 2px 5px rgba(0,0,0,0.2);
-    z-index       : 1000;
+}
+
+.map-style-button {
+    height : 50px; 
+    margin-left: 5px;
+    margin-right: 5px;
+    padding-inline : 0px;
+    background-color : transparent; 
+    border : 1px solid var(--custom-theme-color);
+    transition: transform 0.2s ease;
+}
+
+.map-style-button:hover {
+    transform: scale(1.1);
 }
