@@ -5,6 +5,7 @@ import argparse
 import dash_bootstrap_components as     dbc
 import dash_mantine_components   as     dmc
 from   lib.ui                    import UI
+from   lib.io                    import load_hikes_from_directory
 from   lib.lang                  import load_languages, LanguageHandler, LanguageEnum
 
 def main() -> None:
@@ -42,7 +43,11 @@ def main() -> None:
         translations, default_language=default_language
     )
 
-    ui           = UI(app)
+    hikes_data     = load_hikes_from_directory() 
+
+    app.hikes_data = hikes_data # type: ignore
+
+    ui           = UI(app, hikes_data)
     app.ui       = ui # type: ignore
     app.layout   = dmc.MantineProvider(
         ui.layout,

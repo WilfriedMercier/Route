@@ -5,22 +5,22 @@ from   typing                  import Any
 
 from   .lang                   import LanguageEnum
 from   .io                     import load_hikes_from_directory
-from   .components             import TopBar, HikePanel, MapPage, MenuBar
+from   .components             import BaseWidget, TopBar, HikePanel, MapPage, MenuBar
 
-class UI:
+class UI(BaseWidget):
     r'''
     Class responsible for building the user interface of the application.
     
     :param app: The Dash application instance
+    :param hikes_data: dictionary containing the hike information to display
     '''
 
-    def __init__(self, app : dash.Dash) -> None:
+    def __init__(self, app : dash.Dash, hikes_data: dict) -> None:
 
-        self._app              = app
+        super().__init__(app)
 
-        self.hikes_data        = load_hikes_from_directory()
-        self.current_hike_name = next(iter(self.hikes_data.keys()), None)
-        current_hike           = self.hikes_data[self.current_hike_name] if self.current_hike_name else None
+        current_hike_name = next(iter(hikes_data.keys()), None)
+        current_hike      = hikes_data[current_hike_name] if current_hike_name else None
 
         if current_hike is not None:
             center_lat, center_lon = current_hike['center']
@@ -33,10 +33,10 @@ class UI:
             distances, elevations        = [], []
             color                        = 'black'
 
-        self._init_layout(center_lat, center_lon, zoom, color)
+        self._init_layout(hikes_data, center_lat, center_lon, zoom, color)
 
-        self._map_page.map.add_hikes_to_map(self.hikes_data)
-        self._map_page.elevation_plot.add_elevation_data_to_plot(distances, elevations, color)
+        self.map_page.map.add_hikes_to_map(hikes_data)
+        self.map_page.elevation_plot.add_elevation_data_to_plot(distances, elevations, color)
 
         self._register_callbacks()
 
@@ -56,10 +56,11 @@ class UI:
 
     def _init_layout(
             self, 
-            center_lat       : float, 
-            center_lon       : float,
-            zoom             : int,
-            color            : str   
+            hikes_data : dict,
+            center_lat : float, 
+            center_lon : float,
+            zoom       : int,
+            color      : str   
         ) -> None:
         r'''Build the main layout of the application.'''
 
@@ -69,7 +70,7 @@ class UI:
         
         self._hike_panel = HikePanel(
             self.app,
-            {hike_name : {'color' : properties['color']} for hike_name, properties in self.hikes_data.items()}
+            {hike_name : {'color' : properties['color']} for hike_name, properties in hikes_data.items()}
         )
 
         menubar = MenuBar(self.app)
@@ -93,6 +94,7 @@ class UI:
 
     def _register_callbacks(self) -> None:
 
+        """
         @self.app.callback(
             dash.Output('map', 'figure', allow_duplicate=True),
             dash.Input('elevation-plot', 'hoverData'),
@@ -126,10 +128,10 @@ class UI:
                 )
 
             return self.map_page.map.fig
-        
+        """
         @self.app.callback(
             dash.Output('map', 'figure', allow_duplicate=True),
-            dash.Input('map', 'relayoutData'),
+            dash.Input( 'map', 'relayoutData'),
             prevent_initial_call=True
         )
         def map_interaction_callback(relayoutData: dict) -> go.Figure:

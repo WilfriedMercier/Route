@@ -1,10 +1,11 @@
 import dash
-import dash_mantine_components as     dmc
-import dash_bootstrap_components as dbc
-from   typing                  import Any
-from   ..lang                  import LanguageEnum, LanguageHandler
+import dash_mantine_components   as     dmc
+import dash_bootstrap_components as     dbc
+import plotly.graph_objects      as     go
+
+from   .base                     import BaseWidget
     
-class HikeList:
+class HikeList(BaseWidget):
     r'''
     Widget containing the list of hikes.
     
@@ -14,19 +15,13 @@ class HikeList:
 
     def __init__(self, app: dash.Dash, hikes: dict[str, dict]) -> None:
 
-        self._app = app
+        super().__init__(app)
 
         self._init_layout(hikes)
         self._register_callbacks()
 
         return
     
-    @property
-    def app(self) -> dash.Dash: return self._app
-
-    @property
-    def layout(self): return self._layout
-
     @property
     def buttons(self): return self._buttons
     
@@ -84,7 +79,7 @@ class HikeList:
         
         return
 
-class HikeListElement:
+class HikeListElement(BaseWidget):
     r'''
     Widget containing a single hike shown in the sidebar.
 
@@ -97,7 +92,7 @@ class HikeListElement:
 
     def __init__(self, app: dash.Dash, hike_name: str, color: str, idd: int, is_selected: bool = False) -> None:
         
-        self._app        = app
+        super().__init__(app)
 
         self.hike_name   = hike_name
         self.color       = color
@@ -113,12 +108,6 @@ class HikeListElement:
     
     @property
     def id(self) -> int: return self._id
-
-    @property
-    def app(self) -> dash.Dash: return self._app
-
-    @property
-    def layout(self): return self._layout
     
     @property
     def icon_shown(self) -> dash.html.I:
@@ -209,33 +198,59 @@ class HikeListElement:
             else          : map_widget.show_hike_from_map(self.id)
 
             return icon, self.hidden, self.hidden, map_widget.fig
-        
+        """
         @self.app.callback([
-                dash.Output('elevation-plot', 'figure', allow_duplicate = True),
-                dash.Output('map',            'figure', allow_duplicate = True)
-        ],
-            dash.Input({'type' : 'hikelist-button', 'index' : self._id}, 'n_clicks'),
+                #dash.Output('elevation-plot', 'figure', allow_duplicate = True),
+                dash.Output('map', 'figure', allow_duplicate = True)
+            ],
+            dash.Input({'type' : 'hikelist-button', 'index' : self.id}, 'n_clicks'),
+            dash.State('map', 'figure'),
             prevent_initial_call = True
         )
-        def hike_button_callback(*args) -> tuple[Any, Any]:
-
-            map_widget = self.app.ui.map_page
+        def hike_button_callback(_, map_dict: dict) -> tuple[go.Figure]:
+            '''
+            Callback called whenver the given hike is clicked.
+            
+            :param map_dict: current state of the map plot 
+            '''
 
             # Get distances and elevations for the given hike
-            info = self.app.ui.hikes_data[self.hike_name]
+            info = self.app.hikes_data[self.hike_name]
 
-            # Update the elevation plot and the map
-            map_widget.update_layout_data(
-                info['distances'], info['elevations'], info['color'],
-                info['center'][0], info['center'][1], info['zoom']
+            #info['distances'], info['elevations'], info['color']
+
+            map_figure = go.Figure(map_dict)
+
+            map_figure.update_layout(
+                mapbox= {
+                    'center' : {'lat' : info['center'][0], 'lon' : info['center'][1]},
+                    'zoom'   : info['zoom']
+                }
             )
 
-            return map_widget.elevation_plot.fig, map_widget.map.fig
-        """
+            return map_figure,
+
+        @self.app.callback(
+            dash.Output('map', 'figure', allow_duplicate=True),
+            dash.Input(f'hikelist-colorpicker-{self.id}', 'value'),
+            dash.State('map', 'figure'),
+            prevent_initial_call=True
+        )
+        def colorpicker_callback(color: str, map_dict: dict) -> go.Figure:
+            
+            print(self.id)
+
+            map_figure = go.Figure(map_dict)
+            map_figure.update_traces(
+                line     = {'color' : color},
+                selector = self.id + 1
+            )
+
+            return map_figure
 
         return
 
-class HikePanel:
+class HikePanel(BaseWidget):
     r'''
     Class responsible for building the sidebar with the list of hikes.
     
@@ -245,18 +260,11 @@ class HikePanel:
 
     def __init__(self, app: dash.Dash, hikes: dict[str, dict]) -> None:
 
-        self._app = app
-
+        super().__init__(app)
         self._init_layout(hikes)
 
         return
     
-    @property
-    def layout(self): return self._layout
-    
-    @property
-    def app(self) -> dash.Dash: return self._app
-
     @property
     def hike_list(self) -> HikeList: return self._hike_list
 

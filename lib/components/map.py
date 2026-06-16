@@ -70,10 +70,10 @@ class MapStyleButton(BaseWidget):
     
     def _register_callbacks(self) -> None:
 
-        def callback_map_style_change(_, figure_dict: go.Figure) -> go.Figure:
+        def callback_map_style_change(_, map_dict: go.Figure) -> go.Figure:
 
             print(self.style)
-            figure = go.Figure(figure_dict)
+            figure = go.Figure(map_dict)
             figure.update_layout(
                 mapbox = {'style' : self.style}
             )
@@ -86,8 +86,8 @@ class MapStyleButton(BaseWidget):
             dash.State('map', 'figure'),
             prevent_initial_call = True
         )
-        def callback_map_style_change_from_button(_, figure_dict: go.Figure) -> go.Figure:
-            return callback_map_style_change(_, figure_dict)
+        def callback_map_style_change_from_button(_, map_dict: go.Figure) -> go.Figure:
+            return callback_map_style_change(_, map_dict)
         
         @self.app.callback(
             dash.Output('map', 'figure', allow_duplicate = True),
@@ -95,8 +95,8 @@ class MapStyleButton(BaseWidget):
             dash.State('map', 'figure'),
             prevent_initial_call = True
         )
-        def callback_map_style_change_from_map(_, figure_dict: go.Figure) -> go.Figure:
-            return callback_map_style_change(_, figure_dict)
+        def callback_map_style_change_from_map(_, map_dict: go.Figure) -> go.Figure:
+            return callback_map_style_change(_, map_dict)
 
         return
     
@@ -443,6 +443,7 @@ class MapPage(BaseWidget):
 
         return
     
+    """
     def update_layout_data(
             self,
             distances  : list[float], 
@@ -462,4 +463,5 @@ class MapPage(BaseWidget):
         )
 
         return
+    """
     
