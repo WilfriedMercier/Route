@@ -93,69 +93,6 @@ class UI(BaseWidget):
         return
 
     def _register_callbacks(self) -> None:
-
-        """
-        @self.app.callback(
-            dash.Output('map', 'figure', allow_duplicate=True),
-            dash.Input('elevation-plot', 'hoverData'),
-            prevent_initial_call=True,
-        )
-        def hovered_point_callback(hoverData: dict) -> go.Figure:
-            r'''Callback to update the display when a point is hovered on the elevation plot.'''
-            
-            if hoverData is None or self.current_hike_name is None: return self.map_page.map.fig
-
-            index  = hoverData['points'][0]['pointIndex']
-            coords = self.hikes_data[self.current_hike_name]['coords'][index]
-
-            for trace in self.map_page.map.fig.data:
-
-                if trace is None: continue
-                elif trace.name == 'point': # type: ignore
-                    trace.lat = [coords[0]] # type: ignore
-                    trace.lon = [coords[1]] # type: ignore
-
-                    break
-
-                self.map_page.map.fig.update_layout(
-                    mapbox = {
-                        'center' : {
-                            'lat' : self.map_page.map.center[0], 
-                            'lon' : self.map_page.map.center[1]
-                        },
-                        'zoom' : self.map_page.map.zoom
-                    }
-                )
-
-            return self.map_page.map.fig
-        """
-        @self.app.callback(
-            dash.Output('map', 'figure', allow_duplicate=True),
-            dash.Input( 'map', 'relayoutData'),
-            prevent_initial_call=True
-        )
-        def map_interaction_callback(relayoutData: dict) -> go.Figure:
-            r'''Callback triggered every time the user pans or zooms the map.'''
-            
-            if relayoutData is None or 'mapbox.center' not in relayoutData or 'mapbox.zoom' not in relayoutData: 
-                return self.map_page.map.fig
-            
-            # Update the map's center and zoom level based on the user's interaction
-            self.map_page.map.center = (relayoutData['mapbox.center']['lat'], relayoutData['mapbox.center']['lon'])
-            self.map_page.map.zoom   = relayoutData['mapbox.zoom']
-            
-            # This callback is triggered on any pan/zoom event
-            self.map_page.map.fig.update_layout(
-                mapbox = {
-                    'center' : {
-                        'lat' : self.map_page.map.center[0], 
-                        'lon' : self.map_page.map.center[1]
-                    },
-                    'zoom' : self.map_page.map.zoom
-                }
-            )
-
-            return self.map_page.map.fig
         
         @self.app.callback(
                 [

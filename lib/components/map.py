@@ -150,21 +150,29 @@ class Map(BaseWidget):
 
         super().__init__(app)
 
-        self._init_map_figure()
+        self._init_map_figure(lat, lon, zoom)
         self._init_layout()
-
-        self.set_zoom_and_center(lat, lon, zoom)
 
         return
     
-    def _init_map_figure(self) -> None:
-        r'''Initialize the map figure centered on the specified latitude and longitude.'''
+    def _init_map_figure(self, lat: float, lon: float, zoom: int) -> None:
+        r'''
+        Initialize the map figure centered on the specified latitude and longitude.
+        
+        :param lat: Latitude for the map center
+        :param lon: Longitude for the map center
+        :param zoom: Initial zoom level for the map
+        '''
 
         self.fig = go.Figure()
-
+        
         self.fig.update_layout(
             template      = 'plotly_white',
-            mapbox        = {'style' : 'open-street-map'},
+            mapbox        = {
+                 'style' : 'open-street-map', 
+                 'center' : {'lat' : lat, 'lon' : lon}, 
+                 'zoom' : zoom
+            },
             paper_bgcolor = 'white',
             plot_bgcolor  = 'white',
             font          = {'color' : '#2c3e50', 'family' : 'Open Sans, sans-serif'},
@@ -178,7 +186,7 @@ class Map(BaseWidget):
             showlegend = False,
             marker     = {'size' : 12, 'color' : 'black', 'symbol' : 'circle'},
             hoverinfo  = 'none',
-            name       = 'point'
+            name       = 'point',
         )
 
         self.fig.add_trace(self.highlighted_point)
@@ -199,27 +207,6 @@ class Map(BaseWidget):
                 style_selector.layout
             ],
             className = 'div-full-relative'
-        )
-
-        return
-    
-    def set_zoom_and_center(self, lat: float, lon: float, zoom: int) -> None:
-        r'''
-        Update the zoom and center values of the map.
-        
-        .. note:
-            To see the effect, the figure must be returned in a callback.
-
-        :param lat: Latitude for the map center.
-        :param lon: Longitude for the map center.
-        :param zoom: Zoom level for the map.
-        '''
-
-        self.zoom   = zoom
-        self.center = (lat, lon)
-
-        self.fig.update_layout(
-            mapbox = {'center' : {'lat' : lat, 'lon' : lon}, 'zoom' : self.zoom}
         )
 
         return
@@ -403,7 +390,7 @@ class MapPage(BaseWidget):
     :param lat: Latitude for the map center
     :param lon: Longitude for the map center
     :param zoom: Initial zoom level for the map
-    :param color: default color used for the line and the filled area in the elevation plot
+    :param color: default color
     '''
 
     def __init__(
@@ -442,26 +429,4 @@ class MapPage(BaseWidget):
         )
 
         return
-    
-    """
-    def update_layout_data(
-            self,
-            distances  : list[float], 
-            elevations : list[float],
-            color      : str,
-            lat        : float,
-            lon        : float,
-            zoom       : int
-        ) -> None:
-
-        self.elevation_plot.add_elevation_data_to_plot(distances, elevations, color)
-        self.map.fig.update_layout(
-            mapbox= {
-                'center' : {'lat' : lat, 'lon' : lon},
-                'zoom'   : zoom
-            }
-        )
-
-        return
-    """
     

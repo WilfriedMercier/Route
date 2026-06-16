@@ -31,3 +31,11 @@
     position : relative;
     height   : 100%;
 }
+
+.mantine-Switch-root {
+    transition: transform 0.2s ease-in;
+}
+
+.mantine-Switch-root:hover {
+    transform : scale(1.1);
+}

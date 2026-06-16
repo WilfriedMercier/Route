@@ -2,6 +2,7 @@ import dash
 import dash_mantine_components   as     dmc
 import dash_bootstrap_components as     dbc
 import plotly.graph_objects      as     go
+from   dash_iconify              import DashIconify
 
 from   .base                     import BaseWidget
     
@@ -41,7 +42,7 @@ class HikeList(BaseWidget):
                     HikeListElement(self._app, hike_name, properties['color'], pos, is_selected=pos==0)
                 )
 
-        self._layout = dash.html.Div([button.layout for button in self._buttons], id='hikelist')
+        self._layout = dash.html.Div([button.layout for button in self._buttons], className='hikelist-div')
 
         return
 
@@ -53,7 +54,7 @@ class HikeList(BaseWidget):
             dash.Input( {'type' : 'hikelist-button', 'index' : dash.ALL}, 'n_clicks'),
             prevent_initial_call = True
         )
-        def button_callback(*args):
+        def button_callback(*args) -> list[dict[str, str] | dash.NoUpdate]:
 
             ctx = dash.callback_context
 
@@ -65,19 +66,17 @@ class HikeList(BaseWidget):
                 ctx.triggered[0]['prop_id']
                 .split('.')[0]
                 .split('index', maxsplit=1)[1]
-                .split(',', maxsplit=1)[0]
-                .split('}', maxsplit=1)[0]
+                .split(',',     maxsplit=1)[0]
+                .split('}',     maxsplit=1)[0]
                 .strip(',:{}"\'')
             )
     
             # Update style
             return [
                 {'backgroundColor': 'var(--custom-theme-color)', 'color' : 'white'}
-                if button._id == clicked_id else {} 
+                if button.id == clicked_id else {} 
                 for button in self.buttons
             ]
-        
-        return
 
 class HikeListElement(BaseWidget):
     r'''
@@ -94,14 +93,11 @@ class HikeListElement(BaseWidget):
         
         super().__init__(app)
 
-        self.hike_name   = hike_name
-        self.color       = color
-        self._id         = idd
+        self._id             = idd
+        self._hike_name      = hike_name
+        self._selected_style = {'backgroundColor': '#0D6EFD', 'color' : 'white'} 
 
-        self.hidden      = False
-        self.highlighted = False
-
-        self._init_layout(is_selected)
+        self._init_layout(is_selected, hike_name, color)
         self._register_callbacks()
 
         return
@@ -110,21 +106,22 @@ class HikeListElement(BaseWidget):
     def id(self) -> int: return self._id
     
     @property
-    def icon_shown(self) -> dash.html.I:
-        return dash.html.I(className="bi bi-eye-fill")
-    
+    def selected_style(self) -> dict: return self._selected_style
+
     @property
-    def icon_hidden(self) -> dash.html.I:
-        return dash.html.I(className="bi bi-eye-slash")
+    def hike_name(self) -> str: return self._hike_name
     
-    @property
-    def selected_style(self) -> dict:
-        return {'backgroundColor': '#0D6EFD', 'color' : 'white'} 
-    
-    def _init_layout(self, is_selected: bool) -> None:
+    def _init_layout(self, is_selected: bool, hike_name: str, color: str) -> None:
+        r'''
+        Initialize the layout for this element.
+
+        :param is_selected: whether this element is selected at startup
+        :param hike_name: name of the hike
+        :param color: color shown in the colorpicker widget
+        '''
 
         button = dmc.Button(
-            self.hike_name,
+            hike_name,
             id        = {'type' : 'hikelist-button', 'index' : self.id},
             className = 'hikelist-button',
             color     = 'primary',
@@ -132,10 +129,11 @@ class HikeListElement(BaseWidget):
         )
 
         hide_button = dmc.Tooltip(
-            dash.dcc.Button(
-                self.icon_shown,
-                className = 'hikelist-hide-button',
-                id        = f'hikelist-hide-button-{self.id}'
+            dmc.Switch(
+                offLabel = DashIconify(icon="streamline:invisible-1", width=20),
+                onLabel  = DashIconify(icon="streamline:visible",     width=20),
+                checked  = True,
+                id        = {'type' : 'hikelist-hide-button', 'index' : self.id}
             ),
             label     = self.app.lang['hike_panel']['hide_button']['tooltip'],
             openDelay = 1000,
@@ -144,9 +142,9 @@ class HikeListElement(BaseWidget):
 
         colorpicker = dmc.Tooltip(
             dbc.Input(
-                id        = f'hikelist-colorpicker-{self.id}',
+                id        = {'type' : 'hikelist-colorpicker', 'index' : self.id},
                 className = 'hikelist-colorpicker',
-                value     = self.color,
+                value     = color,
                 type      = 'color' , # type: ignore
             ),
             label     = self.app.lang['hike_panel']['colorpicker']['tooltip'],
@@ -171,34 +169,6 @@ class HikeListElement(BaseWidget):
     
     def _register_callbacks(self) -> None:
 
-        """
-        @self.app.callback([
-                dash.Output(f'hikelist-hide-button-{self.id}', 'children'),
-                dash.Output(f'hikelist-colorpicker-{self.id}', 'disabled'),
-                dash.Output({'type' : 'hikelist-button', 'index' : self.id}, 'disabled'),
-                dash.Output('map', 'figure', allow_duplicate=True)
-            ],
-            dash.Input(f'hikelist-hide-button-{self.id}', 'n_clicks'),
-            prevent_initial_call=True
-        )
-        def hide_button_callback(*args) -> tuple[dash.html.I, bool, bool, Any]:
-            r'''Callback used whenever the hide button is triggered for this widget.'''
-
-            if self.hidden: 
-                icon = self.icon_shown
-            else:           
-                icon = self.icon_hidden
-
-            self.hidden = not self.hidden
-
-            # Hide hike on the map
-            map_widget = self.app.ui.map_page.map
-
-            if self.hidden: map_widget.hide_hike_from_map(self.id)
-            else          : map_widget.show_hike_from_map(self.id)
-
-            return icon, self.hidden, self.hidden, map_widget.fig
-        """
         @self.app.callback([
                 #dash.Output('elevation-plot', 'figure', allow_duplicate = True),
                 dash.Output('map', 'figure', allow_duplicate = True)
@@ -209,7 +179,7 @@ class HikeListElement(BaseWidget):
         )
         def hike_button_callback(_, map_dict: dict) -> tuple[go.Figure]:
             '''
-            Callback called whenver the given hike is clicked.
+            Callback called whenever the given hike is clicked.
             
             :param map_dict: current state of the map plot 
             '''
@@ -232,13 +202,11 @@ class HikeListElement(BaseWidget):
 
         @self.app.callback(
             dash.Output('map', 'figure', allow_duplicate=True),
-            dash.Input(f'hikelist-colorpicker-{self.id}', 'value'),
+            dash.Input({'type' : 'hikelist-colorpicker', 'index' : self.id}, 'value'),
             dash.State('map', 'figure'),
             prevent_initial_call=True
         )
         def colorpicker_callback(color: str, map_dict: dict) -> go.Figure:
-            
-            print(self.id)
 
             map_figure = go.Figure(map_dict)
             map_figure.update_traces(
@@ -247,6 +215,41 @@ class HikeListElement(BaseWidget):
             )
 
             return map_figure
+        
+        @self.app.callback(
+            [
+                dash.Output({'type' : 'hikelist-button',      'index' : self.id}, 'disabled'),
+                dash.Output({'type' : 'hikelist-colorpicker', 'index' : self.id}, 'disabled'),
+                dash.Output('map', 'figure', allow_duplicate=True)
+            ],
+            dash.Input({'type' : 'hikelist-hide-button', 'index' : self.id}, 'checked'),
+            dash.State('map', 'figure'),
+            dash.State({'type' : 'hikelist-colorpicker', 'index' : self.id}, 'value'),
+            prevent_initial_call = True
+        )
+        def hide_button_callback(
+            checked: bool, map_dict: dict, color: str
+        ) -> tuple[bool, bool, go.Figure]:
+            r'''
+            Callback used when the hide button is toggled.
+
+            :param checked: whether the hide button is checked
+            :param map_dict: current layout for the map
+            :param color: current color of the associated colorpicker
+            '''
+
+            map_figure = go.Figure(map_dict)
+            map_figure.update_traces(
+                line     = {
+                    'color' : 'rgba(0, 0, 0, 0)' if not checked else color
+                },
+                selector = self.id + 1
+            )
+
+            return (not checked, not checked, map_figure)
+            
+        
+        return
 
         return
 
