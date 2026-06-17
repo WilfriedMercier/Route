@@ -4,279 +4,163 @@ import dash_mantine_components   as     dmc
 import dash_bootstrap_components as     dbc
 from   dash_iconify              import DashIconify
 
-from   .base                     import BaseWidget
-
-class MapStyleButton(BaseWidget):
-
-    def __init__(self, app: dash.Dash, style: str, idd: int) -> None:
-        
-        super().__init__(app)
-
-        self._style = style
-        self._id    = idd
-
-        self._init_layout()
-        self._register_callbacks()
-
-        return
-    
-    @property
-    def id(self) -> int: return self._id
-
-    @property
-    def style(self) -> str: return self._style
-    
-    def _init_layout(self) -> None:
-
-        figure = go.Figure()
-        figure.update_layout(
-            template      = 'plotly_white',
-            paper_bgcolor = 'white',
-            plot_bgcolor  = 'white',
-            font          = {'color' : '#2c3e50', 'family' : 'Open Sans, sans-serif'},
-            margin        = {'l' : 0, 'r' : 0, 't' : 0, 'b' : 0},
-            width         = 50,
-            height        = 150,
-            mapbox        = {
-                'center' : {'lat' : 41.89860997999514, 'lon' : 12.477528109879714}, 
-                'zoom'   : 14,
-                'style'  : self.style
-            }
-        )
-
-        figure.add_trace(
-            go.Scattermapbox(
-                lat       = [41.89860997999514], 
-                lon       = [12.477528109879714],
-                mode      ='markers',
-                marker    = {'size' : 1, 'color' : 'rgba(0,0,0,0)'}, # Invisible dot to trigger render
-                hoverinfo = 'none'
-            )
-        )
-
-        graph =  dash.dcc.Graph(
-            id     = f'map-style-map-{self.id}',
-            figure = figure,
-            config = {'staticPlot' : True}
-        )
-
-        self._layout = dmc.Button(
-            graph, 
-            className = 'map-style-button',
-            id        = f'map-style-button-{self.id}'
-        )
-
-        return
-    
-    def _register_callbacks(self) -> None:
-
-        def callback_map_style_change(_, map_dict: go.Figure) -> go.Figure:
-
-            print(self.style)
-            figure = go.Figure(map_dict)
-            figure.update_layout(
-                mapbox = {'style' : self.style}
-            )
-
-            return figure
-
-        @self.app.callback(
-            dash.Output('map', 'figure', allow_duplicate = True),
-            dash.Input(f'map-style-button-{self.id}', 'n_clicks'),
-            dash.State('map', 'figure'),
-            prevent_initial_call = True
-        )
-        def callback_map_style_change_from_button(_, map_dict: go.Figure) -> go.Figure:
-            return callback_map_style_change(_, map_dict)
-        
-        @self.app.callback(
-            dash.Output('map', 'figure', allow_duplicate = True),
-            dash.Input(f'map-style-map-{self.id}', 'clickData'),
-            dash.State('map', 'figure'),
-            prevent_initial_call = True
-        )
-        def callback_map_style_change_from_map(_, map_dict: go.Figure) -> go.Figure:
-            return callback_map_style_change(_, map_dict)
-
-        return
-    
-class MapStyleSelector(BaseWidget):
+def map_style_button_layout(style: str, index: int) -> dmc.Button:
     r'''
-    A widget that allows to select different map styles.
-    
-    :param app: The Dash application instance
+    Custom button widget used in the widget allowing to switch map styles.
+
+    :param style: default style
+    :param index: index of the button
     '''
 
-    def __init__(self, app: dash.Dash) -> None:
+    figure = go.Figure()
+    figure.update_layout(
+        template      = 'plotly_white',
+        paper_bgcolor = 'white',
+        plot_bgcolor  = 'white',
+        font          = {'color' : '#2c3e50', 'family' : 'Open Sans, sans-serif'},
+        margin        = {'l' : 0, 'r' : 0, 't' : 0, 'b' : 0},
+        width         = 50,
+        height        = 150,
+        mapbox        = {
+            'center' : {'lat' : 41.89860997999514, 'lon' : 12.477528109879714}, 
+            'zoom'   : 14,
+            'style'  : style
+        }
+    )
 
-        super().__init__(app)
+    figure.add_trace(
+        go.Scattermapbox(
+            lat       = [41.89860997999514], 
+            lon       = [12.477528109879714],
+            mode      ='markers',
+            marker    = {'size' : 1, 'color' : 'rgba(0,0,0,0)'}, # Invisible dot to trigger render
+            hoverinfo = 'none'
+        )
+    )
 
-        self._init_layout()
+    graph =  dash.dcc.Graph(
+        id     = {'type' : 'map-style-map', 'index' : style},
+        figure = figure,
+        config = {'staticPlot' : True}
+    )
 
-        return
+    return dmc.Button(
+        graph, 
+        className = 'map-style-button',
+        id        = {'type' : 'map-style-button', 'index' : style}
+    )
     
-    def _init_layout(self) -> None:
+def map_style_selector_layout() -> dash.html.Div:
+    r'''A widget that allows to select different map styles.'''
 
-        self.buttons = []
-        for pos, style in enumerate(('carto-positron', 'carto-darkmatter', 'open-street-map')):
-            self.buttons.append(MapStyleButton(self.app, style, pos))
+    buttons = []
 
-        self._layout = dash.html.Div(
-            dmc.HoverCard([
-                    dmc.HoverCardTarget(DashIconify(icon='fluent-mdl2:map-layers', height=35, width=35)),
-                    dmc.HoverCardDropdown(
-                        [button.layout for button in self.buttons],
-                        style={'height' : '75px'}
-                    ),
-                ],
-                position = 'left'
-            ),
-            className = 'div-map-style-selector'
+    for pos, style in enumerate(('carto-positron', 'carto-darkmatter', 'open-street-map')):
+        buttons.append(
+            map_style_button_layout(style, pos)
         )
 
-        return
-
-class Map(BaseWidget):
-    r'''
-    Class responsible for building the map figure and adding hikes to it.
-    
-    :param app: The Dash application instance
-    :param lat: Latitude for the map center.
-    :param lon: Longitude for the map center.
-    :param zoom: Initial zoom level for the map.
-    '''
-
-    def __init__(self, app: dash.Dash, lat: float, lon: float, zoom: int) -> None:
-
-        super().__init__(app)
-
-        self._init_map_figure(lat, lon, zoom)
-        self._init_layout()
-
-        return
-    
-    def _init_map_figure(self, lat: float, lon: float, zoom: int) -> None:
-        r'''
-        Initialize the map figure centered on the specified latitude and longitude.
-        
-        :param lat: Latitude for the map center
-        :param lon: Longitude for the map center
-        :param zoom: Initial zoom level for the map
-        '''
-
-        self.fig = go.Figure()
-        
-        self.fig.update_layout(
-            template      = 'plotly_white',
-            mapbox        = {
-                 'style' : 'open-street-map', 
-                 'center' : {'lat' : lat, 'lon' : lon}, 
-                 'zoom' : zoom
-            },
-            paper_bgcolor = 'white',
-            plot_bgcolor  = 'white',
-            font          = {'color' : '#2c3e50', 'family' : 'Open Sans, sans-serif'},
-            margin        = {'l' : 0, 'r' : 0, 't' : 0, 'b' : 0},
-        )
-        
-        self.highlighted_point = go.Scattermapbox(
-            mode       = "markers",
-            lon        = [4.773566],
-            lat        = [45.736296],
-            showlegend = False,
-            marker     = {'size' : 12, 'color' : 'black', 'symbol' : 'circle'},
-            hoverinfo  = 'none',
-            name       = 'point',
-        )
-
-        self.fig.add_trace(self.highlighted_point)
-
-        return
-    
-    def _init_layout(self) -> None:
-        r"""Initialize the map container with the figure."""
-
-        style_selector = MapStyleSelector(self.app)
-
-        self._layout = dash.html.Div([
-                dash.dcc.Graph(
-                    id     = 'map',
-                    figure = self.fig,
-                    config = {'displayModeBar': False, 'scrollZoom': True}
-                ),
-                style_selector.layout
+    return dash.html.Div(
+        dmc.HoverCard([
+                dmc.HoverCardTarget(DashIconify(icon='fluent-mdl2:map-layers', height=35, width=35)),
+                dmc.HoverCardDropdown(buttons, style={'height' : '75px'}),
             ],
-            className = 'div-full-relative'
-        )
+            position = 'left'
+        ),
+        className = 'div-map-style-selector'
+    )
 
-        return
+def map_layout(lat: float, lon: float, zoom: int, hikes_data: dict):
+    r'''
+    Widget containing the map figure.
     
-    def add_hikes_to_map(self, hikes_data: dict[str, dict]) -> None:
-        r'''
-        Add all hikes from the loaded data to the map figure.
+    :param lat: Latitude for the map center
+    :param lon: Longitude for the map center
+    :param zoom: Initial zoom level for the map
+    :param hikes_data: hike information to add to the figures
+    '''
+
+    highlighted_point = go.Scattermapbox(
+        mode       = "markers",
+        lon        = [4.773566],
+        lat        = [45.736296],
+        showlegend = False,
+        marker     = {'size' : 12, 'color' : 'black', 'symbol' : 'circle'},
+        hoverinfo  = 'none',
+        name       = 'point',
+    )
+
+    fig = go.Figure(
+        highlighted_point,
+        layout = {
+            'template'      : 'plotly_white',
+            'mapbox'        : {
+                    'style' : 'open-street-map', 
+                    'center' : {'lat' : lat, 'lon' : lon}, 
+                    'zoom' : zoom
+            },
+            'paper_bgcolor' : 'white',
+            'plot_bgcolor'  : 'white',
+            'font'          : {'color' : '#2c3e50', 'family' : 'Open Sans, sans-serif'},
+            'margin'        : {'l' : 0, 'r' : 0, 't' : 0, 'b' : 0},
+        }
+    )
+
+    add_hikes_to_map(fig, hikes_data)
+    
+    style_selector = map_style_selector_layout()
+
+    return dash.html.Div([
+            dash.dcc.Graph(
+                id     = 'map',
+                figure = fig,
+                config = {'displayModeBar': False, 'scrollZoom': True}
+            ),
+            style_selector
+        ],
+        className = 'div-full-relative'
+    )
+    
+def add_hikes_to_map(fig: go.Figure, hikes_data: dict[str, dict]) -> None:
+    r'''
+    Add all hikes from the loaded data to the map figure.
+    
+    :param fig: map figure
+    :param hikes_data: dictionary containing as key the name of the hike and as values a dictionary with hike properties
+    '''
+
+    for name, data in hikes_data.items(): add_hike_to_map(fig, name, data)
         
-        :param hikes_data: dictionary containing as key the name of the hike and as values a dictionary with hike properties
-        '''
-
-        for name, data in hikes_data.items():
-            self.add_hike_to_map(name, data)
-            
-        return
+    return
     
-    def add_hike_to_map(self, hike_name: str, hike_data: dict) -> None:
-        r'''
-        Add a single hike to the map figure.
-        
-        :param hike_name: name of the hike
-        :param hike_data: dictionary with hike properties
-        '''
-
-        lats  = [coord[0] for coord in hike_data['coords']]
-        lons  = [coord[1] for coord in hike_data['coords']]
-        color = hike_data['color']
-
-        # Use Scattermapbox for Plotly mapbox-based figures
-        self.fig.add_trace(go.Scattermapbox(
-            mode       = "lines",
-            lon        = lons,
-            lat        = lats,
-            showlegend = False,
-            line       = {'width' : 4, 'color' : color},
-            opacity    = 1,
-            hoverinfo  = 'none',
-            name       = hike_name
-        ))
-
-        return
+def add_hike_to_map(fig: go.Figure, hike_name: str, hike_data: dict) -> None:
+    r'''
+    Add a single hike to the map figure.
     
-    def hide_hike_from_map(self, index: int) -> None:
-        r'''
-        Hide the hike with the given index from the map.
+    :param fig: map figure
+    :param hike_name: name of the hike
+    :param hike_data: dictionary with hike properties
+    '''
 
-        .. note:: 
-            
-            The first trace is the highlight marker, so the index is increased by 1
+    lats  = [coord[0] for coord in hike_data['coords']]
+    lons  = [coord[1] for coord in hike_data['coords']]
+    color = hike_data['color']
 
-        :param index: index of the hike in the hike list
-        '''
+    # Use Scattermapbox for Plotly mapbox-based figures
+    fig.add_trace(go.Scattermapbox(
+        mode       = "lines",
+        lon        = lons,
+        lat        = lats,
+        showlegend = False,
+        line       = {'width' : 4, 'color' : color},
+        opacity    = 1,
+        hoverinfo  = 'none',
+        name       = hike_name
+    ))
 
-        self.fig.data[index + 1].visible = False
-        return
+    return
 
-    def show_hike_from_map(self, index: int) -> None:
-        r'''
-        Show the hike with the given index from the map.
-
-        .. note:: 
-            
-            The first trace is the highlight marker, so the index is increased by 1
-
-        :param index: index of the hike in the hike list
-        '''
-
-        self.fig.data[index + 1].visible = True
-        return
-
+"""
 class ElevationPlot(BaseWidget):
     r'''
     Class responsible for building the elevation profile plot.
@@ -381,52 +265,18 @@ class ElevationPlot(BaseWidget):
         )
 
         return
-    
-class MapPage(BaseWidget):
+"""
+
+def map_page_layout(lat: float, lon: float, zoom: int, hikes_data: dict) -> dbc.Stack:
     r'''
-    Class responsible for building the main content area of the application which contains the map and the elevation plot.
+    Widget containing the main content area of the application which contains the map and the elevation plot.
     
-    :param app: The Dash application instance
     :param lat: Latitude for the map center
     :param lon: Longitude for the map center
     :param zoom: Initial zoom level for the map
-    :param color: default color
+    :param hikes_data: hike information to add to the figures
     '''
 
-    def __init__(
-            self,
-            app   : dash.Dash,
-            lat   : float, 
-            lon   : float, 
-            zoom  : int,
-            color : str
-        ) -> None:
-    
-        super().__init__(app)
-
-        self._map            = Map(app, lat, lon, zoom)
-        self._elevation_plot = ElevationPlot(app, color = color)
-
-        self._init_layout()
-
-        return
-    
-    @property
-    def map(self) -> Map: return self._map
-
-    @property
-    def elevation_plot(self) -> ElevationPlot: return self._elevation_plot
-    
-    def _init_layout(self) -> None:
-        r'''Initialize the main content area containing the map and elevation plot.'''
-
-        self._layout = dbc.Stack(
-            [
-                self._map.layout
-                #dash.html.Div(self._elevation_plot.layout) #, id='elevation-plot-flex-div')
-            ],
-            id = 'map-page'
-        )
-
-        return
-    
+    map = map_layout(lat, lon, zoom, hikes_data)
+       
+    return dbc.Stack(map, id = 'map-page') #dash.html.Div(self._elevation_plot.layout) #, id='elevation-plot-flex-div')

@@ -4,11 +4,19 @@ import pathlib
 import argparse
 import dash_bootstrap_components as     dbc
 import dash_mantine_components   as     dmc
-from   lib.ui                    import UI
-from   lib.io                    import load_hikes_from_directory
+
 from   lib.lang                  import load_languages, LanguageHandler, LanguageEnum
+from   lib.callbacks             import register_callbacks
+from   lib.components import ui_layout
+from   lib.io import load_hikes_from_directory
+
+TOKEN_DB = {
+    "share-endpoint": ['Lyon-Miribel', 'Lamure-Belleville'],
+}
 
 def main() -> None:
+
+    global app
 
     parser = argparse.ArgumentParser(
         prog='Route',
@@ -38,23 +46,29 @@ def main() -> None:
     ]
 
     translations     = load_languages(languages)
+    language_handler = LanguageHandler(translations, default_language=default_language)
 
-    app.lang     = LanguageHandler( # type: ignore
-        translations, default_language=default_language
-    )
+    hikes_data = load_hikes_from_directory()
+    hikes_data_for_store = {
+        name : {
+            'zoom'   : data['zoom'],
+            'center' : [data['center'][0], data['center'][1]]
+        } for name, data in hikes_data.items()
+    }
 
-    hikes_data     = load_hikes_from_directory() 
-
-    app.hikes_data = hikes_data # type: ignore
-
-    ui           = UI(app, hikes_data)
-    app.ui       = ui # type: ignore
     app.layout   = dmc.MantineProvider(
-        ui.layout,
+        dash.html.Div([
+            dash.dcc.Location(id='url', refresh=False),
+            dash.dcc.Store(id='number_hikes', data=len(hikes_data)),
+            dash.dcc.Store(id='hikes_info', data = hikes_data_for_store),
+            dash.html.Div(
+                ui_layout(hikes_data, language_handler),
+                id = 'content-display')
+        ]),
         theme={"primaryColor": "blue"}
     )
 
-    
+    register_callbacks(app, language_handler, TOKEN_DB)
 
     app.run(debug=True)
 

@@ -3,10 +3,12 @@
   --custom-primary-color    : var(--custom-theme-color);
   --custom-highlight-color  : #8bb6f6;
   --custom-background-color : white;
+  --custom-text-color       : black;
 }
 
 :root[data-mantine-color-scheme="dark"] {
   --custom-primary-color    : white;
   --custom-highlight-color  : #8bb6f6;
   --custom-background-color : #363636;
+  --custom-text-color       : white;
 }
