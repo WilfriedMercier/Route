@@ -12,7 +12,6 @@ def register_callbacks(
         token_db         : dict
     ) -> None:
 
-    """
     @app.callback(
         [
             dash.Output('content-display', 'children'),
@@ -43,7 +42,6 @@ def register_callbacks(
             hikes_data = {name : hikes_data[name] for name in hike_names}
             
         return dash.html.Div(ui_layout(hikes_data, language_handler)), len(hikes_data)
-    """
     
     @app.callback(
         [

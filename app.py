@@ -19,9 +19,9 @@ def main() -> None:
     global app
 
     parser = argparse.ArgumentParser(
-        prog='Route',
-        description='A small web app that displays hike routes.',
-        add_help=True
+        prog        = 'Route',
+        description = 'A small web app that displays hike routes.',
+        add_help    = True
     )
 
     parser.add_argument('-l', '--language', dest='language', default='en', choices=['en', 'fr'], help='Language of the application.')
