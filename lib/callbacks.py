@@ -1,16 +1,42 @@
 import dash
-import plotly.graph_objects as go
-from   urllib.parse import urlparse, parse_qs
+import plotly.graph_objects as     go
+from   urllib.parse         import urlparse, parse_qs
 
-from   .lang        import LanguageEnum, LanguageHandler
-from   .io          import load_hikes_from_directory
-from   .components  import ui_layout
+from   .lang                import LanguageEnum, LanguageHandler
+from   .io                  import load_hikes_from_directory
+from   .components          import ui_layout
 
 def register_callbacks(
         app              : dash.Dash, 
         language_handler : LanguageHandler,
         token_db         : dict
     ) -> None:
+    r'''
+    Register all callbacks.
+
+    :param app: dash application
+    :param language_handler: object containing the default text for UI elements
+    :param token_db: token used to set up the UI with a magic link
+    '''
+    
+    register_ui_init_callbacks(app, language_handler, token_db)
+    register_language_callacks(app, language_handler)
+    register_menubar_callbacks(app)
+    register_hike_drawer_callbacks(app)
+    register_login_modal_callbacks(app)
+
+    return
+
+def register_ui_init_callbacks(
+        app: dash.Dash, language_handler: LanguageHandler, token_db: dict
+    ) -> None:
+    r'''
+    Register all callbacks that initialize the UI based on the input token.
+
+    :param app: dash application
+    :param language_handler: object containing the default text for UI elements
+    :param token_db: token used to set up the UI with a magic link
+    '''
 
     @app.callback(
         [
@@ -43,6 +69,16 @@ def register_callbacks(
             
         return dash.html.Div(ui_layout(hikes_data, language_handler)), len(hikes_data)
     
+    return
+
+def register_language_callacks(app: dash.Dash, language_handler: LanguageHandler) -> None:
+    r'''
+    Register all callbacks that update the language of the UI
+
+    :param app: dash application
+    :param language_handler: object containing the default text for UI elements
+    '''
+
     @app.callback(
         [
             dash.Output('theme-toggle-tooltip', 'label'),
@@ -51,13 +87,27 @@ def register_callbacks(
             dash.Output('hike-panel', 'title'),
             dash.Output({'type' : 'hikelist-hide-button-tooltip',  'index' : dash.ALL}, 'label'),
             dash.Output({'type' : 'hikelist-colorpicker-tooltip',  'index' : dash.ALL}, 'label'),
-            dash.Output({'type' : 'hikelist-share-button-tooltip', 'index' : dash.ALL}, 'label')
+            dash.Output({'type' : 'hikelist-share-button-tooltip', 'index' : dash.ALL}, 'label'),
+            dash.Output('login-button', 'children'),
+            dash.Output('login-button-tooltip', 'label'),
+            dash.Output('login-modal', 'title'),
+            dash.Output('login-modal-id-input', 'label'),
+            dash.Output('login-modal-id-input', 'placeholder'),
+            dash.Output('login-modal-password-input', 'label'),
+            dash.Output('login-modal-password-input', 'placeholder'),
+            dash.Output('send-login-button', 'children')
         ],
         dash.Input('language-dropdown', 'value'),
         dash.State('number_hikes', 'data'),
         prevent_initial_call=True,
     )
-    def language_selection_callback(value: str, n_hikes: int) -> tuple[str, str, str, str, list[str], list[str], list[str]]:
+    def language_selection_callback(
+        value: str, n_hikes: int
+    ) -> tuple[
+        str, str, str, str, 
+        list[str], list[str], list[str],
+        str, str, str, str, str, str, str, str
+    ]:
 
         # Value in the dropdown is a string so we parse it to the right type
         lang = LanguageEnum.map_string_code_to_language(value)
@@ -70,10 +120,29 @@ def register_callbacks(
             language_handler['menubar']['hike_panel_button']['tooltip'],
             language_handler['menubar']['hall_of_fame_button']['tooltip'],
             language_handler['hike_panel']['title'],
+
             [language_handler['hike_panel']['hide_button']['tooltip']]  * n_hikes,
             [language_handler['hike_panel']['colorpicker']['tooltip']]  * n_hikes,
-            [language_handler['hike_panel']['share_button']['tooltip']] * n_hikes
+            [language_handler['hike_panel']['share_button']['tooltip']] * n_hikes,
+
+            language_handler['topbar']['login_button']['text'],
+            language_handler['topbar']['login_button']['tooltip'],
+            language_handler['login_modal']['title']['text'],
+            language_handler['login_modal']['user_id_input']['label'],
+            language_handler['login_modal']['user_id_input']['placeholder'],
+            language_handler['login_modal']['user_password_input']['label'],
+            language_handler['login_modal']['user_password_input']['placeholder'],
+            language_handler['login_modal']['send_login_button']['text'],
         )
+    
+    return
+
+def register_menubar_callbacks(app: dash.Dash) -> None:
+    r'''
+    Register all callbacks associated to widgets in the menubar.
+
+    :param app: dash application
+    '''
 
     @app.callback(
         dash.Output('hike-panel', 'opened'),
@@ -85,6 +154,15 @@ def register_callbacks(
         if n_clicks is None: return False
 
         return True
+    
+    return
+
+def register_hike_drawer_callbacks(app: dash.Dash) -> None:
+    r'''
+    Register all callbacks associated to widgets in the hike drawer.
+
+    :param app: dash application
+    '''
 
     @app.callback(
         [
@@ -211,6 +289,32 @@ def register_callbacks(
 
         return output, output, output, map_figure
 
+    return
+
+def register_login_modal_callbacks(app: dash.Dash) -> None:
+    r'''
+    Register all callbacks associated to widgets in the login modal.
+
+    :param app: dash application
+    '''
+
+    @app.callback(
+        dash.Output('login-modal', 'opened'),
+        dash.Input('login-button', 'n_clicks'),
+        dash.State('login-modal', 'opened'),
+        prevent_initial_call=True
+    )
+    def login_button_callback(_, opened: bool) -> bool: return not opened
+
+    return
+
+def register_map_callbacks(app: dash.Dash) -> None:
+    r'''
+    Register all callbacks associated to the map.
+
+    :param app: dash application
+    '''
+
     @app.callback(
         dash.Output('map', 'figure', allow_duplicate = True),
         dash.Input({'type' : 'map-style-button', 'index' : dash.ALL}, 'n_clicks'),
@@ -231,5 +335,5 @@ def register_callbacks(
         )
 
         return figure
-
+    
     return

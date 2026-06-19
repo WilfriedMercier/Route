@@ -1,6 +1,9 @@
 topbar:
   theme_switcher:
     tooltip: Changer entre mode jour et nuit
+  login_button:
+    text: 'Connexion'
+    tooltip: 'Connexion à son compte'
 hike_panel:
   title: Randonnées disponibles
   hide_button:
@@ -21,3 +24,14 @@ menubar:
     tooltip: Ouvrir le panneau des randonnées
   hall_of_fame_button: 
     tooltip: Ouvrir le panneau des statistiques
+login_modal:
+  title: 
+    text: 'Connexion'
+  user_id_input:
+    label: Entrez votre identifiant
+    placeholder: MonIdentifiant
+  user_password_input:
+    label: Entrez votre mot de passe
+    placeholder: MonMotDePasse
+  send_login_button:
+    text: 'Se connecter'

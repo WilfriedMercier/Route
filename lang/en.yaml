@@ -1,6 +1,9 @@
 topbar:
   theme_switcher:
     tooltip: Switch between light/dark modes
+  login_button:
+    text: 'Login'
+    tooltip: 'Login to your account'
 hike_panel:
   title: Available Hikes
   hide_button:
@@ -21,3 +24,14 @@ menubar:
     tooltip: Toggle the hike list panel
   hall_of_fame_button: 
     tooltip: Toggle the hall of fame panel
+login_modal:
+  title: 
+    text: 'Login'
+  user_id_input:
+    label: Enter your user ID
+    placeholder: YourUserID
+  user_password_input:
+    label: Enter your password
+    placeholder: Password
+  send_login_button:
+    text: Login

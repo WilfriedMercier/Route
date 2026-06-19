@@ -1,7 +1,7 @@
 import dash_mantine_components as     dmc
 
 from   ..lang                  import LanguageHandler
-from   .                       import topbar_layout, hike_panel_layout, map_page_layout, menubar_layout
+from   .                       import topbar_layout, hike_panel_layout, map_page_layout, menubar_layout, login_modal_layout
 
 def ui_layout(hikes_data: dict, language_handler: LanguageHandler):
     r'''
@@ -36,15 +36,15 @@ def ui_layout(hikes_data: dict, language_handler: LanguageHandler):
 
     menubar = menubar_layout(language_handler['menubar'])
 
+    login_modal = login_modal_layout(language_handler['login_modal'])
+
     #map_page.elevation_plot.add_elevation_data_to_plot(distances, elevations, color)
 
     return dmc.Stack(
         [
             topbar, 
-            dmc.Group(
-                [map_page, menubar, hike_panel],
-                id = 'main-group'
-            )
+            dmc.Group([map_page, menubar, hike_panel], id = 'main-group'),
+            login_modal
         ],
         id = 'main-stack',
     )

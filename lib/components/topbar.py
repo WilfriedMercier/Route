@@ -41,8 +41,22 @@ def topbar_layout(language_dict: dict, language: LanguageEnum) -> dmc.Group:
         searchable = False
     )
 
+    login_button = dmc.Button(
+        language_dict['login_button']['text'],
+        id           = 'login-button',
+        rightSection = DashIconify(icon='mdi:user'),
+        variant      = 'outline'
+    )
+
+    login_button_tooltip = dmc.Tooltip(
+        login_button,
+        id        = 'login-button-tooltip',
+        label     = language_dict['login_button']['tooltip'],
+        openDelay = 1000
+    )
+
     button_group = dmc.Group(
-        [language_selector, theme_switcher_tooltip],
+        [login_button_tooltip, language_selector, theme_switcher_tooltip],
         id = 'topbar-buttongroup'
     )
 
