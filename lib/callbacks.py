@@ -1,10 +1,13 @@
+import os
 import dash
+import psycopg2
 import plotly.graph_objects as     go
 from   urllib.parse         import urlparse, parse_qs
 
 from   .lang                import LanguageEnum, LanguageHandler
 from   .io                  import load_hikes_from_directory
 from   .components          import ui_layout
+from   .database            import hash_password
 
 def register_callbacks(
         app              : dash.Dash, 
@@ -46,6 +49,11 @@ def register_ui_init_callbacks(
         dash.Input('url', 'href')
     )
     def render_ui(url: str) -> tuple[dash.html.Div, int]:
+        r'''
+        Callback used at startup to define how the UI is rendered.
+
+        :param url: url of the page
+        '''
 
         parsed_url   = urlparse(url)
         query_params = parse_qs(parsed_url.query)
@@ -101,13 +109,17 @@ def register_language_callacks(app: dash.Dash, language_handler: LanguageHandler
         dash.State('number_hikes', 'data'),
         prevent_initial_call=True,
     )
-    def language_selection_callback(
-        value: str, n_hikes: int
-    ) -> tuple[
+    def language_selection(value: str, n_hikes: int) -> tuple[
         str, str, str, str, 
         list[str], list[str], list[str],
         str, str, str, str, str, str, str, str
     ]:
+        r'''
+        Callback used when the language of the application is changed.
+
+        :param value: new selected language
+        :param n_hikes: total number of hike elements
+        '''
 
         # Value in the dropdown is a string so we parse it to the right type
         lang = LanguageEnum.map_string_code_to_language(value)
@@ -149,9 +161,8 @@ def register_menubar_callbacks(app: dash.Dash) -> None:
         dash.Input('hike-panel-button', 'n_clicks'),
         prevent_initial_call=True
     )
-    def hike_panel_button_callback(n_clicks: int | None) -> bool:
-
-        if n_clicks is None: return False
+    def hike_panel_button(_: int) -> bool:
+        r'''Callback used when the hike panel button is clicked.'''
 
         return True
     
@@ -175,10 +186,16 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.State('map', 'figure'),
         prevent_initial_call = True
     )
-    def hike_button_callback(
+    def hike_button(
         _, n_hikes: int, hikes_info: dict, map_dict: dict
     ) -> tuple[list[dict[str, str]] | list[dash.NoUpdate], go.Figure | dash.NoUpdate]:
+        r'''
+        Callback used when a hike is selected in the hike list.
 
+        :param n_hikes: total number of hike list components
+        :param hikes_info: hike properties containing information such as center and zoom level
+        :param map_dict: current state of the map plot 
+        '''
 
         ctx = dash.callback_context
 
@@ -212,11 +229,11 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.State('map', 'figure'),
         prevent_initial_call=True
     )
-    def colorpicker_callback(colors: str, map_dict: dict) -> go.Figure | dash.NoUpdate:
+    def colorpicker(colors: str, map_dict: dict) -> go.Figure | dash.NoUpdate:
         '''
         Callback called whenever the given colorpicker is clicked.
         
-        :param color: color selected by the colorpicker
+        :param colors: colors selected by the colorpickers
         :param map_dict: current state of the map plot 
         '''
 
@@ -248,7 +265,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.State('number_hikes', 'data'),
         prevent_initial_call = True
     )
-    def hide_button_callback(
+    def hide_button(
         checked_list: list[bool], map_dict: dict, colors: list[str], number_hikes: int
     ) -> (
             tuple[list[bool], list[bool], list[bool], go.Figure] | 
@@ -257,9 +274,10 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         r'''
         Callback used when the hide button is toggled.
 
-        :param checked: whether the hide buttons are checked
+        :param checked_list: whether the hide buttons are checked
         :param map_dict: current layout for the map
-        :param color: current color of each colorpicker
+        :param colors: current colors for each colorpicker
+        :param number_hikes: total number of hike elements
         '''
 
         ctx = dash.callback_context
@@ -304,7 +322,47 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         dash.State('login-modal', 'opened'),
         prevent_initial_call=True
     )
-    def login_button_callback(_, opened: bool) -> bool: return not opened
+    def topbar_login_button(_, opened: bool) -> bool:
+        r'''
+        Callback used when the login button on the topbar is clicked.
+
+        :param opened: whether the login modal is opened or not
+        '''
+        
+        return not opened
+
+    @app.callback(
+        dash.Output('login-modal', 'opened', allow_duplicate=True),
+        dash.Input('send-login-button', 'n_clicks'),
+        dash.State('login-modal-id-input', 'value'),
+        dash.State('login-modal-password-input', 'value'),
+        prevent_initial_call=True
+    )
+    def modal_login_button(_, username: str, password: str) -> bool:
+
+        hash = hash_password(password)
+        print('from me', username, password, hash)
+
+        conn = psycopg2.connect(
+            dbname   = os.getenv('DB_NAME'),
+            host     = os.getenv('DB_HOST'),
+            port     = os.getenv('DB_PORT'),
+            user     = os.getenv('DB_USER'),
+            password = os.getenv('DB_PASSWORD')
+
+        )
+
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT * FROM users LIMIT 10')
+        rows = cursor.fetchall()  # Returns list of tuples
+
+        print(rows)
+        
+        cursor.close()
+        conn.close()
+
+        return False
 
     return
 
@@ -321,7 +379,12 @@ def register_map_callbacks(app: dash.Dash) -> None:
         dash.State('map', 'figure'),
         prevent_initial_call = True
     )
-    def callback_map_style_change_from_button(_, map_dict: go.Figure) -> go.Figure | dash.NoUpdate:
+    def map_style_change_from_button(_, map_dict: go.Figure) -> go.Figure | dash.NoUpdate:
+        r'''
+        Callback used whenever the user clicks one of the buttons allowing to change the style of the map.
+
+        :param map_dict: dictionary containing the current design of the map
+        '''
 
         ctx = dash.callback_context# Extract the ID of the clicked button
 

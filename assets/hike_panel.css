@@ -48,9 +48,27 @@
 }
 
 #hike-panel-title {
-    color: light-dark(black, white);
+    color: var(--custom-text-color);
+}
+
+#hike-panel-body {
+    height: 100%;
 }
 
 .hikelist-div {
     padding: 10px;
+}
+
+.custom-upload {
+    border     : 1px dotted var(--custom-text-color);
+    color      : var(--custom-text-color);
+    padding    : 15px;
+    text-align : center;
+    cursor     : pointer;
+}
+
+.mantine-Drawer-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }

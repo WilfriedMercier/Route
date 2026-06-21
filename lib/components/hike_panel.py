@@ -101,5 +101,12 @@ def hike_panel_layout(hikes: dict[str, dict], language_dict: dict) -> dmc.Drawer
     '''
 
     hike_list = hikelist_layout(hikes, language_dict)
+    upload_button = dash.dcc.Upload(
+        ['Drag and drop or click to upload a hike'], 
+        className = 'custom-upload',
+        multiple  = True
+    )
 
-    return dmc.Drawer(hike_list, title = language_dict['title'], id = 'hike-panel')
+    container = dmc.Stack([hike_list, upload_button], style={'height' : '100%', 'justify-content' : 'space-between'})
+
+    return dmc.Drawer(container, title = language_dict['title'], id = 'hike-panel', style={'height' : '100vh'})
