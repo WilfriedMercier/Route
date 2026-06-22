@@ -69,9 +69,11 @@ app.layout   = dmc.MantineProvider(
         dash.dcc.Location(id='url', refresh=False),
         dash.dcc.Store(id='number_hikes', data=len(hikes_data)),
         dash.dcc.Store(id='hikes_info', data = hikes_data_for_store),
+        dmc.NotificationContainer(id="notification-container"),
         dash.html.Div(
             ui_layout(hikes_data, language_handler),
-            id = 'content-display')
+            id = 'content-display'
+        )
     ]),
     theme={"primaryColor": "blue"}
 )

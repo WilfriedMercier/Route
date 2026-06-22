@@ -2,12 +2,13 @@ import os
 import dash
 import psycopg2
 import plotly.graph_objects as     go
+from   dash_iconify         import DashIconify
 from   urllib.parse         import urlparse, parse_qs
 
 from   .lang                import LanguageEnum, LanguageHandler
 from   .io                  import load_hikes_from_directory
 from   .components          import ui_layout
-from   .database            import hash_password
+from   .database            import hash_password, compare_passwords
 
 def register_callbacks(
         app              : dash.Dash, 
@@ -27,6 +28,7 @@ def register_callbacks(
     register_menubar_callbacks(app)
     register_hike_drawer_callbacks(app)
     register_login_modal_callbacks(app)
+    register_map_callbacks(app)
 
     return
 
@@ -332,13 +334,19 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         return not opened
 
     @app.callback(
-        dash.Output('login-modal', 'opened', allow_duplicate=True),
+        [
+            dash.Output('login-modal', 'opened', allow_duplicate=True),
+            dash.Output('notification-container', 'sendNotifications')
+        ],
         dash.Input('send-login-button', 'n_clicks'),
         dash.State('login-modal-id-input', 'value'),
         dash.State('login-modal-password-input', 'value'),
         prevent_initial_call=True
     )
-    def modal_login_button(_, username: str, password: str) -> bool:
+    def modal_login_button(_, username: str, password: str) -> tuple[bool, list[dict] | dash.NoUpdate]:
+
+        if password is None or username is None:
+            return False, dash.no_update
 
         hash = hash_password(password)
         print('from me', username, password, hash)
@@ -349,20 +357,53 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
             port     = os.getenv('DB_PORT'),
             user     = os.getenv('DB_USER'),
             password = os.getenv('DB_PASSWORD')
-
         )
 
         cursor = conn.cursor()
         
-        cursor.execute('SELECT * FROM users LIMIT 10')
-        rows = cursor.fetchall()  # Returns list of tuples
+        cursor.execute(f"SELECT password_hash FROM users WHERE username = '{username}'")
+        rows = cursor.fetchall()
 
-        print(rows)
-        
         cursor.close()
         conn.close()
 
-        return False
+        # Handle case if the username is wrong
+        if len(rows) == 0:
+
+            return True, [{
+                'title'     : 'Error',
+                'position'  : 'top-center',
+                'action'    : 'show',
+                'message'   : 'Wrong username.',
+                'color'     : 'red',
+                'autoClose' : 4000,
+                'icon'      : DashIconify(icon='si:error-duotone')
+            }]
+        
+        # Check if the provided password matches the hash
+        hash = rows[0][0]
+        if not compare_passwords(password, hash):
+
+            return True, [{
+                'title'     : 'Error',
+                'position'  : 'top-center',
+                'action'    : 'show',
+                'message'   : 'Invalid password.',
+                'color'     : 'red',
+                'autoClose' : 4000,
+                'icon'      : DashIconify(icon='si:error-duotone')
+            }]
+
+        # Otherwise, sends a login success notification
+        return False, [{
+                'title'     : 'Login successful !',
+                'position'  : 'top-center',
+                'action'    : 'show',
+                #'message'   : f'Welcome {username}',
+                'color'     : 'green',
+                'autoClose' : 4000,
+                'icon'      : DashIconify(icon='icon-park-outline:success')
+            }]
 
     return
 
@@ -375,7 +416,7 @@ def register_map_callbacks(app: dash.Dash) -> None:
 
     @app.callback(
         dash.Output('map', 'figure', allow_duplicate = True),
-        dash.Input({'type' : 'map-style-button', 'index' : dash.ALL}, 'n_clicks'),
+        dash.Input({'type' : 'map-style-button',    'index' : dash.ALL}, 'n_clicks'),
         dash.State('map', 'figure'),
         prevent_initial_call = True
     )

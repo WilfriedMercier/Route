@@ -4,16 +4,15 @@ import dash_mantine_components   as     dmc
 import dash_bootstrap_components as     dbc
 from   dash_iconify              import DashIconify
 
-def map_style_button_layout(style: str, index: int) -> dmc.Button:
+def map_style_button_layout(style: str) -> dmc.Button:
     r'''
     Custom button widget used in the widget allowing to switch map styles.
 
     :param style: default style
-    :param index: index of the button
     '''
 
     figure = go.Figure()
-    figure.update_layout(
+    figure.update_layout(   
         template      = 'plotly_white',
         paper_bgcolor = 'white',
         plot_bgcolor  = 'white',
@@ -38,8 +37,7 @@ def map_style_button_layout(style: str, index: int) -> dmc.Button:
         )
     )
 
-    graph =  dash.dcc.Graph(
-        id     = {'type' : 'map-style-map', 'index' : style},
+    graph = dash.dcc.Graph(
         figure = figure,
         config = {'staticPlot' : True}
     )
@@ -56,9 +54,7 @@ def map_style_selector_layout() -> dash.html.Div:
     buttons = []
 
     for pos, style in enumerate(('carto-positron', 'carto-darkmatter', 'open-street-map')):
-        buttons.append(
-            map_style_button_layout(style, pos)
-        )
+        buttons.append(map_style_button_layout(style))
 
     return dash.html.Div(
         dmc.HoverCard([

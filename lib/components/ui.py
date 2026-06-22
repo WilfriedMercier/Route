@@ -43,7 +43,8 @@ def ui_layout(hikes_data: dict, language_handler: LanguageHandler):
     return dmc.Stack(
         [
             topbar, 
-            dmc.Group([map_page, menubar, hike_panel], id = 'main-group'),
+            dmc.Group([map_page, menubar, hike_panel
+            ], id = 'main-group'),
             login_modal
         ],
         id = 'main-stack',
