@@ -4,6 +4,8 @@ topbar:
   login_button:
     text: 'Login'
     tooltip: 'Login to your account'
+  logout_button:
+    tooltip: 'Logout'
 hike_panel:
   title: Available Hikes
   hide_button:
@@ -35,3 +37,14 @@ login_modal:
     placeholder: Password
   send_login_button:
     text: Login
+notifications:
+  login:
+    fail:
+      title: Login failed
+      username: Wrong username
+      password: Wrong password
+    success:
+      title: Login successful
+  logout:
+    success:
+      title: Logout successful

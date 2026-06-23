@@ -6,11 +6,12 @@ import dotenv
 import pathlib
 import argparse
 import dash_mantine_components   as     dmc
+from   dash_iconify              import DashIconify
 
 from   lib.lang                  import load_languages, LanguageHandler, LanguageEnum
 from   lib.callbacks             import register_callbacks
-from   lib.components            import ui_layout
 from   lib.io                    import load_hikes_from_directory
+from   lib.components            import ui_layout
 
 TOKEN_DB = {
     "share-endpoint": ['Lyon-Miribel', 'Lamure-Belleville'],
@@ -67,8 +68,54 @@ hikes_data_for_store = {
 app.layout   = dmc.MantineProvider(
     dash.html.Div([
         dash.dcc.Location(id='url', refresh=False),
-        dash.dcc.Store(id='number_hikes', data=len(hikes_data)),
-        dash.dcc.Store(id='hikes_info', data = hikes_data_for_store),
+        dash.dcc.Store(id='number_hikes', data = len(hikes_data)),
+        dash.dcc.Store(id='hikes_info',   data = hikes_data_for_store),
+        dash.dcc.Store(
+            id   = 'login-success-notification', 
+            data = {
+                'title'     : language_handler['notifications']['login']['success']['title'],
+                'position'  : 'top-center',
+                'action'    : 'show',
+                'color'     : 'green',
+                'autoClose' : 4000,
+                'icon'      : DashIconify(icon='icon-park-outline:success')
+            }
+        ),
+        dash.dcc.Store(
+            id   = 'login-username-fail-notification', 
+            data = {
+                'title'     : language_handler['notifications']['login']['fail']['title'],
+                'position'  : 'top-center',
+                'action'    : 'show',
+                'message'   : language_handler['notifications']['login']['fail']['username'],
+                'color'     : 'red',
+                'autoClose' : 4000,
+                'icon'      : DashIconify(icon='si:error-duotone')
+            }
+        ),
+        dash.dcc.Store(
+            id   = 'login-password-fail-notification', 
+            data = {
+                'title'     : language_handler['notifications']['login']['fail']['title'],
+                'position'  : 'top-center',
+                'action'    : 'show',
+                'message'   : language_handler['notifications']['login']['fail']['password'],
+                'color'     : 'red',
+                'autoClose' : 4000,
+                'icon'      : DashIconify(icon='si:error-duotone')
+            }
+        ),
+        dash.dcc.Store(
+            id   = 'logout-success-notification', 
+            data = {
+                'title'     : language_handler['notifications']['logout']['success']['title'],
+                'position'  : 'top-center',
+                'action'    : 'show',
+                'color'     : 'green',
+                'autoClose' : 4000,
+                'icon'      : DashIconify(icon='icon-park-outline:success')
+            }
+        ),
         dmc.NotificationContainer(id="notification-container"),
         dash.html.Div(
             ui_layout(hikes_data, language_handler),

@@ -1,14 +1,13 @@
-import os
 import dash
-import psycopg2
 import plotly.graph_objects as     go
 from   dash_iconify         import DashIconify
 from   urllib.parse         import urlparse, parse_qs
+from   flask                import session
 
 from   .lang                import LanguageEnum, LanguageHandler
 from   .io                  import load_hikes_from_directory
 from   .components          import ui_layout
-from   .database            import hash_password, compare_passwords
+from   .database            import validate_credentials
 
 def register_callbacks(
         app              : dash.Dash, 
@@ -26,6 +25,7 @@ def register_callbacks(
     register_ui_init_callbacks(app, language_handler, token_db)
     register_language_callacks(app, language_handler)
     register_menubar_callbacks(app)
+    register_topbar_callbacks(app)
     register_hike_drawer_callbacks(app)
     register_login_modal_callbacks(app)
     register_map_callbacks(app)
@@ -100,12 +100,17 @@ def register_language_callacks(app: dash.Dash, language_handler: LanguageHandler
             dash.Output({'type' : 'hikelist-share-button-tooltip', 'index' : dash.ALL}, 'label'),
             dash.Output('login-button', 'children'),
             dash.Output('login-button-tooltip', 'label'),
+            dash.Output('logout-button-tooltip', 'label'),
             dash.Output('login-modal', 'title'),
             dash.Output('login-modal-id-input', 'label'),
             dash.Output('login-modal-id-input', 'placeholder'),
             dash.Output('login-modal-password-input', 'label'),
             dash.Output('login-modal-password-input', 'placeholder'),
-            dash.Output('send-login-button', 'children')
+            dash.Output('send-login-button', 'children'),
+            dash.Output('login-success-notification', 'data'),
+            dash.Output('login-username-fail-notification', 'data'),
+            dash.Output('login-password-fail-notification', 'data'),
+            dash.Output('logout-success-notification', 'data')
         ],
         dash.Input('language-dropdown', 'value'),
         dash.State('number_hikes', 'data'),
@@ -114,7 +119,9 @@ def register_language_callacks(app: dash.Dash, language_handler: LanguageHandler
     def language_selection(value: str, n_hikes: int) -> tuple[
         str, str, str, str, 
         list[str], list[str], list[str],
-        str, str, str, str, str, str, str, str
+        str, str, str, 
+        str, str, str, str, str, str,
+        dict, dict, dict, dict
     ]:
         r'''
         Callback used when the language of the application is changed.
@@ -129,6 +136,44 @@ def register_language_callacks(app: dash.Dash, language_handler: LanguageHandler
         # Update the language of the language handler object
         language_handler.language = lang
 
+        login_success_notification = {
+            'title'     : language_handler['notifications']['login']['success']['title'],
+            'position'  : 'top-center',
+            'action'    : 'show',
+            'color'     : 'green',
+            'autoClose' : 4000,
+            'icon'      : DashIconify(icon='icon-park-outline:success')
+        }
+
+        login_username_fail_notification = {
+            'title'     : language_handler['notifications']['login']['fail']['title'],
+            'position'  : 'top-center',
+            'action'    : 'show',
+            'message'   : language_handler['notifications']['login']['fail']['username'],
+            'color'     : 'red',
+            'autoClose' : 4000,
+            'icon'      : DashIconify(icon='si:error-duotone')
+        }
+
+        login_password_fail_notification = {
+            'title'     : language_handler['notifications']['login']['fail']['title'],
+            'position'  : 'top-center',
+            'action'    : 'show',
+            'message'   : language_handler['notifications']['login']['fail']['password'],
+            'color'     : 'red',
+            'autoClose' : 4000,
+            'icon'      : DashIconify(icon='si:error-duotone')
+        }
+
+        logout_success_notification = {
+            'title'     : language_handler['notifications']['logout']['success']['title'],
+            'position'  : 'top-center',
+            'action'    : 'show',
+            'color'     : 'green',
+            'autoClose' : 4000,
+            'icon'      : DashIconify(icon='icon-park-outline:success')
+        }
+
         return (
             language_handler['topbar']['theme_switcher']['tooltip'],
             language_handler['menubar']['hike_panel_button']['tooltip'],
@@ -141,12 +186,19 @@ def register_language_callacks(app: dash.Dash, language_handler: LanguageHandler
 
             language_handler['topbar']['login_button']['text'],
             language_handler['topbar']['login_button']['tooltip'],
+            language_handler['topbar']['logout_button']['tooltip'],
+
             language_handler['login_modal']['title']['text'],
             language_handler['login_modal']['user_id_input']['label'],
             language_handler['login_modal']['user_id_input']['placeholder'],
             language_handler['login_modal']['user_password_input']['label'],
             language_handler['login_modal']['user_password_input']['placeholder'],
             language_handler['login_modal']['send_login_button']['text'],
+
+            login_success_notification,
+            login_username_fail_notification,
+            login_password_fail_notification,
+            logout_success_notification
         )
     
     return
@@ -311,9 +363,9 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
 
     return
 
-def register_login_modal_callbacks(app: dash.Dash) -> None:
-    r'''
-    Register all callbacks associated to widgets in the login modal.
+def register_topbar_callbacks(app: dash.Dash) -> None:
+    '''
+    Register all callbacks associated to widgets in the topbar.
 
     :param app: dash application
     '''
@@ -332,78 +384,77 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         '''
         
         return not opened
+    
+    @app.callback(
+        [
+            dash.Output('logout-button', 'style', allow_duplicate=True),
+            dash.Output('login-button', 'style', allow_duplicate=True),
+            dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
+        ],
+        dash.Input('logout-button', 'n_clicks'),
+        dash.State('logout-success-notification', 'data'),
+        prevent_initial_call=True
+    )
+    def logout_button(_, success_notification: dict) -> tuple[dict, dict, list[dict]]:
+        r'''
+        Callback used when the user clicks the logout button.
+        '''
+
+        session.clear()
+
+        return {'display' : 'none'}, {'display' : 'flex'}, [success_notification], 
+    
+    return
+
+def register_login_modal_callbacks(app: dash.Dash) -> None:
+    r'''
+    Register all callbacks associated to widgets in the login modal.
+
+    :param app: dash application
+    '''
 
     @app.callback(
         [
             dash.Output('login-modal', 'opened', allow_duplicate=True),
-            dash.Output('notification-container', 'sendNotifications')
+            dash.Output('notification-container', 'sendNotifications'),
+            dash.Output('logout-button', 'style'),
+            dash.Output('logout-button', 'children'),
+            dash.Output('login-button', 'style'),
         ],
         dash.Input('send-login-button', 'n_clicks'),
         dash.State('login-modal-id-input', 'value'),
         dash.State('login-modal-password-input', 'value'),
+        dash.State('login-success-notification', 'data'),
+        dash.State('login-username-fail-notification', 'data'),
+        dash.State('login-password-fail-notification', 'data'),
         prevent_initial_call=True
     )
-    def modal_login_button(_, username: str, password: str) -> tuple[bool, list[dict] | dash.NoUpdate]:
+    def secure_login(
+        _, 
+        username                   : str, 
+        password                   : str,
+        success_notification       : dict,
+        username_fail_notification : dict,
+        password_fail_notification : dict
+        ) -> tuple[bool, list[dict] | dash.NoUpdate, dict, str | dash.NoUpdate, dict]:
 
         if password is None or username is None:
-            return False, dash.no_update
+            return False, dash.no_update, {'display' : 'none'}, dash.no_update, {}
 
-        hash = hash_password(password)
-        print('from me', username, password, hash)
-
-        conn = psycopg2.connect(
-            dbname   = os.getenv('DB_NAME'),
-            host     = os.getenv('DB_HOST'),
-            port     = os.getenv('DB_PORT'),
-            user     = os.getenv('DB_USER'),
-            password = os.getenv('DB_PASSWORD')
-        )
-
-        cursor = conn.cursor()
-        
-        cursor.execute(f"SELECT password_hash FROM users WHERE username = '{username}'")
-        rows = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
+        res = validate_credentials(username, password)
 
         # Handle case if the username is wrong
-        if len(rows) == 0:
-
-            return True, [{
-                'title'     : 'Error',
-                'position'  : 'top-center',
-                'action'    : 'show',
-                'message'   : 'Wrong username.',
-                'color'     : 'red',
-                'autoClose' : 4000,
-                'icon'      : DashIconify(icon='si:error-duotone')
-            }]
+        if res is None:
+            return True, [username_fail_notification], {'display' : 'none'}, dash.no_update, {}
         
         # Check if the provided password matches the hash
-        hash = rows[0][0]
-        if not compare_passwords(password, hash):
-
-            return True, [{
-                'title'     : 'Error',
-                'position'  : 'top-center',
-                'action'    : 'show',
-                'message'   : 'Invalid password.',
-                'color'     : 'red',
-                'autoClose' : 4000,
-                'icon'      : DashIconify(icon='si:error-duotone')
-            }]
+        if not res:
+            return True, [password_fail_notification], {'display' : 'none'}, dash.no_update, {}
+        
+        session['user_id'] = username
 
         # Otherwise, sends a login success notification
-        return False, [{
-                'title'     : 'Login successful !',
-                'position'  : 'top-center',
-                'action'    : 'show',
-                #'message'   : f'Welcome {username}',
-                'color'     : 'green',
-                'autoClose' : 4000,
-                'icon'      : DashIconify(icon='icon-park-outline:success')
-            }]
+        return False, [success_notification], {'display' : 'flex'}, username, {'display' : 'none'}
 
     return
 
@@ -416,7 +467,7 @@ def register_map_callbacks(app: dash.Dash) -> None:
 
     @app.callback(
         dash.Output('map', 'figure', allow_duplicate = True),
-        dash.Input({'type' : 'map-style-button',    'index' : dash.ALL}, 'n_clicks'),
+        dash.Input({'type' : 'map-style-button', 'index' : dash.ALL}, 'n_clicks'),
         dash.State('map', 'figure'),
         prevent_initial_call = True
     )
@@ -434,9 +485,7 @@ def register_map_callbacks(app: dash.Dash) -> None:
         clicked_index = ctx.triggered_id['index'] # type: ignore
 
         figure = go.Figure(map_dict)
-        figure.update_layout(
-            mapbox = {'style' : clicked_index}
-        )
+        figure.update_layout(mapbox = {'style' : clicked_index})
 
         return figure
     

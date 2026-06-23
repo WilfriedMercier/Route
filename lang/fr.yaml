@@ -4,6 +4,8 @@ topbar:
   login_button:
     text: 'Connexion'
     tooltip: 'Connexion à son compte'
+  logout_button:
+    tooltip: 'Se déconnecter'
 hike_panel:
   title: Randonnées disponibles
   hide_button:
@@ -35,3 +37,14 @@ login_modal:
     placeholder: MonMotDePasse
   send_login_button:
     text: 'Se connecter'
+notifications:
+  login:
+    fail:
+      title: Connexion échouée
+      username: Mauvais identifiant
+      password: Mauvais mot de passe
+    success:
+      title: Connexion réussie
+  logout:
+    success:
+      title: Déconnexion réussie
