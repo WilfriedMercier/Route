@@ -14,6 +14,8 @@ hike_panel:
     tooltip: Modifier la couleur de la randonnée sur la carte
   share_button:
     tooltip: Partager cette randonnée
+  upload_button:
+    text: 'Cliquez ou déposez pour charger des randonnées'
 elevation_plot:
   xlabel: Distance (km)
   ylabel: Altitude (m)

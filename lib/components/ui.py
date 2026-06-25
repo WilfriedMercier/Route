@@ -1,42 +1,33 @@
-import dash_mantine_components as     dmc
+import dash_mantine_components as dmc
 
-from   ..lang                  import LanguageHandler
-from   .                       import topbar_layout, hike_panel_layout, map_page_layout, menubar_layout, login_modal_layout
+from ..lang import LANGUAGE, LanguageHandler
+from .      import (
+    topbar_layout, 
+    hike_panel_layout, 
+    map_page_layout, 
+    menubar_layout, 
+    login_modal_layout
+)
 
-def ui_layout(hikes_data: dict, language_handler: LanguageHandler):
+def ui_layout(language_handler: LanguageHandler, language: LANGUAGE):
     r'''
     Class responsible for building the user interface of the application.
     
-    :param hikes_data: dictionary containing the hike information to display
-    :param language_handler: object containing the translations for all the UI components
+    :param langauge_handler: object handling the translation of the UI elements
     '''
 
-    current_hike_name = next(iter(hikes_data.keys()), None)
-    current_hike      = hikes_data[current_hike_name] if current_hike_name else None
-
-    if current_hike is not None:
-        center_lat, center_lon = current_hike['center']
-        zoom                   = current_hike['zoom']
-        distances              = current_hike['distances']
-        elevations             = current_hike['elevations']
-        color                  = current_hike['color']
-    else:
-        center_lat, center_lon, zoom = 45.7640, 4.8357, 10  # Default to Lyon if no hikes are loaded
-        distances, elevations        = [], []
-        color                        = 'black'
-
-    topbar     = topbar_layout(language_handler['topbar'], language_handler.language)
+    # Default to Lyon if no hikes are loaded
+    center_lat, center_lon, zoom = 45.7640, 4.8357, 10
+    distances, elevations        = [], []
+    color                        = 'black'
     
-    map_page   = map_page_layout(center_lat, center_lon, zoom, hikes_data)
+    translation                  = language_handler[language]
 
-    hike_panel = hike_panel_layout(
-        {hike_name : {'color' : properties['color']} for hike_name, properties in hikes_data.items()},
-        language_handler['hike_panel']
-    )
-
-    menubar = menubar_layout(language_handler['menubar'])
-
-    login_modal = login_modal_layout(language_handler['login_modal'])
+    topbar      = topbar_layout(language_handler, language)
+    map_page    = map_page_layout(center_lat, center_lon, zoom)
+    hike_panel  = hike_panel_layout(translation['hike_panel'])
+    menubar     = menubar_layout(translation['menubar'])
+    login_modal = login_modal_layout(translation['login_modal'])
 
     #map_page.elevation_plot.add_elevation_data_to_plot(distances, elevations, color)
 

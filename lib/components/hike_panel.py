@@ -3,23 +3,14 @@ import dash_mantine_components   as     dmc
 import dash_bootstrap_components as     dbc
 from   dash_iconify              import DashIconify
 
-def hikelist_layout(hikes: dict[str, dict], language_dict : dict) -> dash.html.Div:
+def hikelist_layout(language_dict : dict) -> dash.html.Div:
     r'''
     Widget containing the list of hikes.
     
-    :param hikes: dictionary where the keys are hike names and the values are dictionaries with associated values (e.g. color)
+    :param language_dict: dictionary containing the translation for the default language
     '''
-
-    buttons = []
-
-    if hikes is not None: 
-            
-        for pos, (hike_name, properties) in enumerate(hikes.items()):
-            buttons.append(
-                hikelist_element_layout(hike_name, properties['color'], pos, pos==0, language_dict)
-            )
                
-    return dash.html.Div(buttons, className='hikelist-div')
+    return dash.html.Div([], className='hikelist-div', id='hikelist-div')
 
 def hikelist_element_layout(
         hike_name     : str, 
@@ -56,7 +47,6 @@ def hikelist_element_layout(
             id        = {'type' : 'hikelist-hide-button', 'index' : index}
         ),
         label     = language_dict['hide_button']['tooltip'],
-        openDelay = 1000,
         id        = {'type' : 'hikelist-hide-button-tooltip', 'index' : index}
     )
 
@@ -68,7 +58,6 @@ def hikelist_element_layout(
             type      = 'color' , # type: ignore
         ),
         label     = language_dict['colorpicker']['tooltip'],
-        openDelay = 1000,
         id        = {'type' : 'hikelist-colorpicker-tooltip', 'index' : index}
     )
 
@@ -79,7 +68,6 @@ def hikelist_element_layout(
             id        = {'type' : 'hikelist-share-button', 'index' : index}
         ),
         label     = language_dict['share_button']['tooltip'],
-        openDelay = 1000,
         id        = {'type' : 'hikelist-share-button-tooltip', 'index' : index}
     )
 
@@ -92,18 +80,18 @@ def hikelist_element_layout(
         id        = f'hikelist-element-{index}'
     )
 
-def hike_panel_layout(hikes: dict[str, dict], language_dict: dict) -> dmc.Drawer:
+def hike_panel_layout(language_dict: dict) -> dmc.Drawer:
     r'''
     Sidebar widget with the list of hikes.
     
-    :param hikes: dictionary where the keys are hike names and the values are dictionaries with associated values (e.g. color)
     :param language_dict: dictionary containing the translation for the default language
     '''
 
-    hike_list = hikelist_layout(hikes, language_dict)
+    hike_list = hikelist_layout(language_dict)
     upload_button = dash.dcc.Upload(
-        ['Drag and drop or click to upload a hike'], 
+        (language_dict['upload_button']['text'],),
         className = 'custom-upload',
+        id        = 'upload-hike-button',
         multiple  = True
     )
 

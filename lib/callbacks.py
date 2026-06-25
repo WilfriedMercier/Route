@@ -1,17 +1,26 @@
 import dash
+import pathlib
 import plotly.graph_objects as     go
-from   dash_iconify         import DashIconify
 from   urllib.parse         import urlparse, parse_qs
 from   flask                import session
+from   plotly.colors        import qualitative
 
-from   .lang                import LanguageEnum, LanguageHandler
-from   .io                  import load_hikes_from_directory
-from   .components          import ui_layout
+from   .lang                import LANGUAGE
+from   .io                  import parse_uploaded_file
+from   .components          import ui_layout, hikelist_element_layout
+from   .components.map      import line_for_map
 from   .database            import validate_credentials
+from   .components          import (
+    login_success_notification,
+    login_username_fail_notification,
+    login_password_fail_notification,
+    logout_success_notification
+)
+
+COLOR_PALETTE = qualitative.Plotly
 
 def register_callbacks(
         app              : dash.Dash, 
-        language_handler : LanguageHandler,
         token_db         : dict
     ) -> None:
     r'''
@@ -22,8 +31,8 @@ def register_callbacks(
     :param token_db: token used to set up the UI with a magic link
     '''
     
-    register_ui_init_callbacks(app, language_handler, token_db)
-    register_language_callacks(app, language_handler)
+    #register_ui_init_callbacks(app, token_db)
+    register_language_callacks(app)
     register_menubar_callbacks(app)
     register_topbar_callbacks(app)
     register_hike_drawer_callbacks(app)
@@ -33,13 +42,12 @@ def register_callbacks(
     return
 
 def register_ui_init_callbacks(
-        app: dash.Dash, language_handler: LanguageHandler, token_db: dict
+        app: dash.Dash, token_db: dict
     ) -> None:
     r'''
     Register all callbacks that initialize the UI based on the input token.
 
     :param app: dash application
-    :param language_handler: object containing the default text for UI elements
     :param token_db: token used to set up the UI with a magic link
     '''
 
@@ -48,9 +56,10 @@ def register_ui_init_callbacks(
             dash.Output('content-display', 'children'),
             dash.Output('number_hikes', 'data')
         ],
-        dash.Input('url', 'href')
+        dash.Input('url', 'href'),
+        dash.State('language', 'data')
     )
-    def render_ui(url: str) -> tuple[dash.html.Div, int]:
+    def render_ui(url: str, language: LANGUAGE) -> tuple[dash.html.Div, int]:
         r'''
         Callback used at startup to define how the UI is rendered.
 
@@ -61,27 +70,30 @@ def register_ui_init_callbacks(
         query_params = parse_qs(parsed_url.query)
         token_list   = query_params.get('token')
 
+        '''
         if (
             token_list is None   or 
             len(token_list) > 1  or 
             len(token_list) == 0 or
             (token := token_list[0]) not in token_db
         ): 
+        '''
             
-            hikes_data = {}
+        hikes_data = {}
 
+        '''
         else:
 
             # Select the sub-sample of hikes provided by the token key
             hike_names = token_db[token]
             hikes_data = load_hikes_from_directory()
             hikes_data = {name : hikes_data[name] for name in hike_names}
-            
-        return dash.html.Div(ui_layout(hikes_data, language_handler)), len(hikes_data)
+        '''
+        return dash.html.Div(ui_layout(app.language_handler, language)), len(hikes_data)
     
     return
 
-def register_language_callacks(app: dash.Dash, language_handler: LanguageHandler) -> None:
+def register_language_callacks(app: dash.Dash) -> None:
     r'''
     Register all callbacks that update the language of the UI
 
@@ -91,6 +103,7 @@ def register_language_callacks(app: dash.Dash, language_handler: LanguageHandler
 
     @app.callback(
         [
+            dash.Output('language', 'data'),
             dash.Output('theme-toggle-tooltip', 'label'),
             dash.Output('hike-panel-button-tooltip', 'label'),
             dash.Output('hall-of-fame-button-tooltip', 'label'),
@@ -98,6 +111,7 @@ def register_language_callacks(app: dash.Dash, language_handler: LanguageHandler
             dash.Output({'type' : 'hikelist-hide-button-tooltip',  'index' : dash.ALL}, 'label'),
             dash.Output({'type' : 'hikelist-colorpicker-tooltip',  'index' : dash.ALL}, 'label'),
             dash.Output({'type' : 'hikelist-share-button-tooltip', 'index' : dash.ALL}, 'label'),
+            dash.Output('upload-hike-button', 'children'),
             dash.Output('login-button', 'children'),
             dash.Output('login-button-tooltip', 'label'),
             dash.Output('logout-button-tooltip', 'label'),
@@ -116,9 +130,10 @@ def register_language_callacks(app: dash.Dash, language_handler: LanguageHandler
         dash.State('number_hikes', 'data'),
         prevent_initial_call=True,
     )
-    def language_selection(value: str, n_hikes: int) -> tuple[
+    def language_selection(lang: LANGUAGE, n_hikes: int) -> tuple[
+        LANGUAGE,
         str, str, str, str, 
-        list[str], list[str], list[str],
+        list[str], list[str], list[str], tuple[str],
         str, str, str, 
         str, str, str, str, str, str,
         dict, dict, dict, dict
@@ -130,75 +145,41 @@ def register_language_callacks(app: dash.Dash, language_handler: LanguageHandler
         :param n_hikes: total number of hike elements
         '''
 
-        # Value in the dropdown is a string so we parse it to the right type
-        lang = LanguageEnum.map_string_code_to_language(value)
+        translation = app.language_handler[lang]
 
-        # Update the language of the language handler object
-        language_handler.language = lang
-
-        login_success_notification = {
-            'title'     : language_handler['notifications']['login']['success']['title'],
-            'position'  : 'top-center',
-            'action'    : 'show',
-            'color'     : 'green',
-            'autoClose' : 4000,
-            'icon'      : DashIconify(icon='icon-park-outline:success')
-        }
-
-        login_username_fail_notification = {
-            'title'     : language_handler['notifications']['login']['fail']['title'],
-            'position'  : 'top-center',
-            'action'    : 'show',
-            'message'   : language_handler['notifications']['login']['fail']['username'],
-            'color'     : 'red',
-            'autoClose' : 4000,
-            'icon'      : DashIconify(icon='si:error-duotone')
-        }
-
-        login_password_fail_notification = {
-            'title'     : language_handler['notifications']['login']['fail']['title'],
-            'position'  : 'top-center',
-            'action'    : 'show',
-            'message'   : language_handler['notifications']['login']['fail']['password'],
-            'color'     : 'red',
-            'autoClose' : 4000,
-            'icon'      : DashIconify(icon='si:error-duotone')
-        }
-
-        logout_success_notification = {
-            'title'     : language_handler['notifications']['logout']['success']['title'],
-            'position'  : 'top-center',
-            'action'    : 'show',
-            'color'     : 'green',
-            'autoClose' : 4000,
-            'icon'      : DashIconify(icon='icon-park-outline:success')
-        }
+        login_sn    = login_success_notification(translation)
+        login_ufn   = login_username_fail_notification(translation)
+        login_pfn   = login_password_fail_notification(translation)
+        logout_sn   = logout_success_notification(translation)
 
         return (
-            language_handler['topbar']['theme_switcher']['tooltip'],
-            language_handler['menubar']['hike_panel_button']['tooltip'],
-            language_handler['menubar']['hall_of_fame_button']['tooltip'],
-            language_handler['hike_panel']['title'],
+            lang,
 
-            [language_handler['hike_panel']['hide_button']['tooltip']]  * n_hikes,
-            [language_handler['hike_panel']['colorpicker']['tooltip']]  * n_hikes,
-            [language_handler['hike_panel']['share_button']['tooltip']] * n_hikes,
+            translation['topbar']['theme_switcher']['tooltip'],
+            translation['menubar']['hike_panel_button']['tooltip'],
+            translation['menubar']['hall_of_fame_button']['tooltip'],
+            translation['hike_panel']['title'],
 
-            language_handler['topbar']['login_button']['text'],
-            language_handler['topbar']['login_button']['tooltip'],
-            language_handler['topbar']['logout_button']['tooltip'],
+            [translation['hike_panel']['hide_button']['tooltip']]  * n_hikes,
+            [translation['hike_panel']['colorpicker']['tooltip']]  * n_hikes,
+            [translation['hike_panel']['share_button']['tooltip']] * n_hikes,
+            (translation['hike_panel']['upload_button']['text'],),
 
-            language_handler['login_modal']['title']['text'],
-            language_handler['login_modal']['user_id_input']['label'],
-            language_handler['login_modal']['user_id_input']['placeholder'],
-            language_handler['login_modal']['user_password_input']['label'],
-            language_handler['login_modal']['user_password_input']['placeholder'],
-            language_handler['login_modal']['send_login_button']['text'],
+            translation['topbar']['login_button']['text'],
+            translation['topbar']['login_button']['tooltip'],
+            translation['topbar']['logout_button']['tooltip'],
 
-            login_success_notification,
-            login_username_fail_notification,
-            login_password_fail_notification,
-            logout_success_notification
+            translation['login_modal']['title']['text'],
+            translation['login_modal']['user_id_input']['label'],
+            translation['login_modal']['user_id_input']['placeholder'],
+            translation['login_modal']['user_password_input']['label'],
+            translation['login_modal']['user_password_input']['placeholder'],
+            translation['login_modal']['send_login_button']['text'],
+
+            login_sn,
+            login_ufn,
+            login_pfn,
+            logout_sn
         )
     
     return
@@ -242,7 +223,10 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
     )
     def hike_button(
         _, n_hikes: int, hikes_info: dict, map_dict: dict
-    ) -> tuple[list[dict[str, str]] | list[dash.NoUpdate], go.Figure | dash.NoUpdate]:
+    ) -> tuple[
+            list[dict[str, str]] | list[dash.NoUpdate], 
+            go.Figure | dash.NoUpdate
+    ]:
         r'''
         Callback used when a hike is selected in the hike list.
 
@@ -270,7 +254,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
 
         map_figure.update_layout(
             mapbox= {
-                'center' : {'lat' : info['center'][0], 'lon' : info['center'][1]},
+                'center' : {'lat' : info['lat'], 'lon' : info['lon']},
                 'zoom'   : info['zoom']
             }
         )
@@ -311,6 +295,8 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             dash.Output({'type' : 'hikelist-button',       'index' : dash.ALL}, 'disabled'),
             dash.Output({'type' : 'hikelist-colorpicker',  'index' : dash.ALL}, 'disabled'),
             dash.Output({'type' : 'hikelist-share-button', 'index' : dash.ALL}, 'disabled'),
+            dash.Output({'type' : 'hikelist-colorpicker-tooltip',  'index' : dash.ALL}, 'disabled'),
+            dash.Output({'type' : 'hikelist-share-button-tooltip', 'index' : dash.ALL}, 'disabled'),
             dash.Output('map', 'figure', allow_duplicate=True)
         ],
         dash.Input({'type' : 'hikelist-hide-button', 'index' : dash.ALL}, 'checked'),
@@ -322,8 +308,8 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
     def hide_button(
         checked_list: list[bool], map_dict: dict, colors: list[str], number_hikes: int
     ) -> (
-            tuple[list[bool], list[bool], list[bool], go.Figure] | 
-            tuple[list[dash.NoUpdate], list[dash.NoUpdate], list[dash.NoUpdate], dash.NoUpdate]
+            tuple[list[bool], list[bool], list[bool], list[bool], list[bool], go.Figure] | 
+            tuple[list[dash.NoUpdate], list[dash.NoUpdate], list[dash.NoUpdate], list[dash.NoUpdate], list[dash.NoUpdate], dash.NoUpdate]
         ):
         r'''
         Callback used when the hide button is toggled.
@@ -338,6 +324,8 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
 
         if ctx is None or not ctx.triggered: 
             return (
+                [dash.no_update] * number_hikes,
+                [dash.no_update] * number_hikes,
                 [dash.no_update] * number_hikes,
                 [dash.no_update] * number_hikes,
                 [dash.no_update] * number_hikes,
@@ -359,8 +347,89 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         output                = [not i for i in checked_list]
         output[clicked_index] = not checked
 
-        return output, output, output, map_figure
+        return output, output, output, output, output, map_figure
 
+    @app.callback(
+        [
+            dash.Output('hikelist-div', 'children'),
+            dash.Output('number_hikes', 'data'),
+            dash.Output('hikes_info', 'data'),
+            dash.Output('map', 'figure', allow_duplicate=True)
+        ],
+        dash.Input('upload-hike-button', 'contents'),
+        dash.State('upload-hike-button', 'filename'),
+        dash.State('hikelist-div', 'children'),
+        dash.State('map', 'figure'),
+        dash.State('language', 'data'),
+        dash.State('hikes_info', 'data'),
+        prevent_initial_call = True
+    )
+    def upload_hike(
+        file_contents : list[str] | None, 
+        filenames     : list[str], 
+        hike_widgets  : list,
+        map_dict      : dict,
+        language      : LANGUAGE,
+        hikes_info    : dict
+    ) -> tuple[
+            list | dash.NoUpdate, 
+            int | dash.NoUpdate, 
+            dict | dash.NoUpdate,
+            go.Figure | dash.NoUpdate
+        ]:
+
+        if file_contents is None or len(file_contents) == 0: 
+            return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+
+        figure        = go.Figure(map_dict)
+
+        language_dict = app.language_handler[language]['hike_panel']
+        pos_init      = len(hike_widgets)
+
+        new_hike_widgets = []
+        for pos, (content, filename) in enumerate(zip(file_contents, filenames)):
+
+            pos_absolute = pos_init + pos
+
+            # Get the name of the file and parse its content
+            filename, properties = parse_uploaded_file(content, filename)
+
+            # None means the parsing failed
+            if properties is None: continue
+
+            hike_name            = pathlib.Path(filename).stem
+            color                = COLOR_PALETTE[pos_absolute]
+
+            # Create a hike widget in the hike list
+            widget   = hikelist_element_layout(
+                hike_name,
+                color,
+                pos_absolute,
+                False if pos_absolute > 0 else True,
+                language_dict
+            )
+
+            new_hike_widgets.append(widget)
+
+            # Add a trace to the figure
+            figure.add_trace(line_for_map(
+                hike_name,
+                properties['lon'],
+                properties['lat'],
+                color
+            ))
+
+            # Add hike information to the Store component
+            hikes_info[hike_name] = {
+                'lat'  : properties['center'][0],
+                'lon'  : properties['center'][1],
+                'zoom' : properties['zoom']
+            }
+
+        hike_widgets.extend(new_hike_widgets)
+
+        return hike_widgets, len(hike_widgets), hikes_info, figure
+    
     return
 
 def register_topbar_callbacks(app: dash.Dash) -> None:

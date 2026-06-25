@@ -14,6 +14,8 @@ hike_panel:
     tooltip: Change the color of the hike on the map
   share_button:
     tooltip: Share this hike
+  upload_button:
+    text: 'Drag and drop or click to upload hikes'
 elevation_plot:
   xlabel: Distance (km)
   ylabel: Elevation (m)

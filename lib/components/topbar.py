@@ -2,14 +2,16 @@ import dash
 import dash_mantine_components as     dmc
 from   dash_iconify            import DashIconify
 
-from   ..lang                  import LanguageEnum
+from   ..lang                  import LANGUAGE, LanguageHandler
 
-def topbar_layout(language_dict: dict, language: LanguageEnum) -> dmc.Group:
+def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.Group:
     r'''
     Widget containing the top navigation bar of the application.
     
-    :param language_dict: dictionary containing the translation for the default language
+    :param language_handler: object containing the translation for topbar ui elements
     '''
+
+    translation = language_handler[language]['topbar']
 
     theme_switcher_button = dmc.ColorSchemeToggle(
         lightIcon = DashIconify(icon="radix-icons:sun",  width=25, color = 'darkorange'),
@@ -20,28 +22,30 @@ def topbar_layout(language_dict: dict, language: LanguageEnum) -> dmc.Group:
 
     theme_switcher_tooltip = dmc.Tooltip(
         theme_switcher_button,
-        label     = language_dict['theme_switcher']['tooltip'],
+        label     = translation['theme_switcher']['tooltip'],
         id        = 'theme-toggle-tooltip'
     )
 
     logo = dash.html.Img(src="/assets/logo.svg", className='logo')
 
-    language_selector = dash.dcc.Dropdown(
+    language_selector = dmc.Select(
         id         = 'language-dropdown',
-        options    = [
+        data       = [
             {
-                'label': LanguageEnum.map_language_to_dropdown_text(lang),
-                'value': lang.value
+                'label': language_handler.map_language_to_dropdown_text(lang),
+                'value': lang
             }
-            for lang in LanguageEnum
+            for lang in language_handler.languages
         ],
-        value      = language.value,  # Default selected value
-        clearable  = False,
-        searchable = False
+        value      = language,  # Default selected value
+        clearable         = False,
+        searchable        = False,
+        autoSelectOnBlur  = False,
+        checkIconPosition = "right"
     )
 
     login_button = dmc.Button(
-        language_dict['login_button']['text'],
+        translation['login_button']['text'],
         id           = 'login-button',
         rightSection = DashIconify(icon='mdi:user'),
         variant      = 'outline',
@@ -50,7 +54,7 @@ def topbar_layout(language_dict: dict, language: LanguageEnum) -> dmc.Group:
     login_button_tooltip = dmc.Tooltip(
         login_button,
         id        = 'login-button-tooltip',
-        label     = language_dict['login_button']['tooltip'],
+        label     = translation['login_button']['tooltip'],
     )
 
     user_widget = dmc.Tooltip(
@@ -61,7 +65,7 @@ def topbar_layout(language_dict: dict, language: LanguageEnum) -> dmc.Group:
             style        = {'display' : 'none'},
             id           = 'logout-button'
         ),
-        label = language_dict['logout_button']['tooltip'],
+        label = translation['logout_button']['tooltip'],
         id    = 'logout-button-tooltip'
     )
 

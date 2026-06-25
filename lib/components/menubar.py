@@ -19,7 +19,6 @@ def menubar_layout(language_dict: dict) -> dmc.Stack:
     hike_panel_button_tooltip = dmc.Tooltip(
         hike_panel_button,
         label     = language_dict['hike_panel_button']['tooltip'],
-        openDelay = 1000,
         id        = 'hike-panel-button-tooltip'
     )
 

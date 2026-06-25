@@ -66,14 +66,13 @@ def map_style_selector_layout() -> dash.html.Div:
         className = 'div-map-style-selector'
     )
 
-def map_layout(lat: float, lon: float, zoom: int, hikes_data: dict):
+def map_layout(lat: float, lon: float, zoom: int):
     r'''
     Widget containing the map figure.
     
     :param lat: Latitude for the map center
     :param lon: Longitude for the map center
     :param zoom: Initial zoom level for the map
-    :param hikes_data: hike information to add to the figures
     '''
 
     highlighted_point = go.Scattermapbox(
@@ -81,7 +80,7 @@ def map_layout(lat: float, lon: float, zoom: int, hikes_data: dict):
         lon        = [4.773566],
         lat        = [45.736296],
         showlegend = False,
-        marker     = {'size' : 12, 'color' : 'black', 'symbol' : 'circle'},
+        marker     = {'size' : 12, 'color' : 'rgba(0, 0, 0, 1)', 'symbol' : 'circle'},
         hoverinfo  = 'none',
         name       = 'point',
     )
@@ -102,8 +101,6 @@ def map_layout(lat: float, lon: float, zoom: int, hikes_data: dict):
         }
     )
 
-    add_hikes_to_map(fig, hikes_data)
-    
     style_selector = map_style_selector_layout()
 
     return dash.html.Div([
@@ -117,18 +114,6 @@ def map_layout(lat: float, lon: float, zoom: int, hikes_data: dict):
         className = 'div-full-relative'
     )
     
-def add_hikes_to_map(fig: go.Figure, hikes_data: dict[str, dict]) -> None:
-    r'''
-    Add all hikes from the loaded data to the map figure.
-    
-    :param fig: map figure
-    :param hikes_data: dictionary containing as key the name of the hike and as values a dictionary with hike properties
-    '''
-
-    for name, data in hikes_data.items(): add_hike_to_map(fig, name, data)
-        
-    return
-    
 def add_hike_to_map(fig: go.Figure, hike_name: str, hike_data: dict) -> None:
     r'''
     Add a single hike to the map figure.
@@ -138,21 +123,12 @@ def add_hike_to_map(fig: go.Figure, hike_name: str, hike_data: dict) -> None:
     :param hike_data: dictionary with hike properties
     '''
 
-    lats  = [coord[0] for coord in hike_data['coords']]
-    lons  = [coord[1] for coord in hike_data['coords']]
+    lat   = [coord[0] for coord in hike_data['coords']]
+    lon   = [coord[1] for coord in hike_data['coords']]
     color = hike_data['color']
 
     # Use Scattermapbox for Plotly mapbox-based figures
-    fig.add_trace(go.Scattermapbox(
-        mode       = "lines",
-        lon        = lons,
-        lat        = lats,
-        showlegend = False,
-        line       = {'width' : 4, 'color' : color},
-        opacity    = 1,
-        hoverinfo  = 'none',
-        name       = hike_name
-    ))
+    fig.add_trace(line_for_map(hike_name, lon, lat, color))
 
     return
 
@@ -263,16 +239,33 @@ class ElevationPlot(BaseWidget):
         return
 """
 
-def map_page_layout(lat: float, lon: float, zoom: int, hikes_data: dict) -> dbc.Stack:
+def map_page_layout(lat: float, lon: float, zoom: int) -> dbc.Stack:
     r'''
     Widget containing the main content area of the application which contains the map and the elevation plot.
     
     :param lat: Latitude for the map center
     :param lon: Longitude for the map center
     :param zoom: Initial zoom level for the map
-    :param hikes_data: hike information to add to the figures
     '''
 
-    map = map_layout(lat, lon, zoom, hikes_data)
+    map = map_layout(lat, lon, zoom)
        
     return dbc.Stack(map, id = 'map-page') #dash.html.Div(self._elevation_plot.layout) #, id='elevation-plot-flex-div')
+
+def line_for_map(
+        name  : str,
+        lon   : list[float], 
+        lat   : list[float],
+        color : str
+    ) -> go.Scattermapbox:
+    
+    return go.Scattermapbox(
+        mode       = "lines",
+        lon        = lon,
+        lat        = lat,
+        showlegend = False,
+        line       = {'width' : 4, 'color' : color},
+        opacity    = 1,
+        hoverinfo  = 'none',
+        name       = name
+    )
