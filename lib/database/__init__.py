@@ -1,3 +1,6 @@
 from .hashing import hash_password, compare_passwords
 from .logging import validate_credentials
-from .queries import execute_query
+from .queries import (
+    execute_query,
+    is_hike_in_db
+)

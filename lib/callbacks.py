@@ -6,6 +6,7 @@ from   urllib.parse            import urlparse, parse_qs
 from   flask                   import session
 from   plotly.colors           import qualitative
 
+from   .database               import is_hike_in_db
 from   .lang                   import LANGUAGE
 from   .io                     import parse_uploaded_file
 from   .components             import ui_layout, hikelist_element_layout
@@ -341,8 +342,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             dash.Output('number_hikes', 'data'),
             dash.Output('hikes_info', 'data'),
             dash.Output('map', 'figure', allow_duplicate=True),
-            dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
-            dash.Output('upload-hike-button', 'filename')
+            dash.Output('notification-container', 'sendNotifications', allow_duplicate=True)
         ],
         dash.Input('upload-hike-button', 'contents'),
         dash.State('upload-hike-button', 'filename'),
@@ -385,11 +385,19 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
                 notification['message'] += filename
                 break
 
-            # We do not allow to load a hike if its name already appears twice
-            if (
-                (hike_name := pathlib.Path(filename).stem) in hike_properties or
-                hike_name in hikes_info
-            ):
+            # Check if the hike is in the database is the user is logged in
+            if 'user_id' in session: 
+                is_in_db = is_hike_in_db(session['user_id'])
+
+            # If not logged in, we check if it appears in the list of already loaded hikes
+            else:
+                is_in_db = (
+                    (hike_name := pathlib.Path(filename).stem) in hike_properties or
+                    hike_name in hikes_info
+                )
+
+            # We do not allow to load a hike twice
+            if is_in_db:
                 notification = hike_upload_already_there_fail_notification(app.language_handler[language])
                 notification['message'] += filename
                 break

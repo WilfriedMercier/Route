@@ -45,6 +45,12 @@ def execute_query(query: str, values: tuple | None = None):
         
     except Exception as e: raise e
 
+def is_hike_in_db(user_id: int) -> bool:
+
+    res = execute_query(f"SELECT name FROM hikes WHERE user_id = '{user_id}'")
+    print(res)
+    return True
+
 def insert_hike_into_db(
         user_id   : int,
         hike_name : str,
