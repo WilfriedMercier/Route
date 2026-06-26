@@ -8,5 +8,8 @@ from .notifications import (
     login_success_notification, 
     login_password_fail_notification,
     login_username_fail_notification,
-    logout_success_notification
+    logout_success_notification,
+    hike_upload_success_notification,
+    hike_upload_format_fail_notification,
+    hike_upload_already_there_fail_notification
 )

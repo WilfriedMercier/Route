@@ -1,20 +1,24 @@
 import dash
 import pathlib
-import plotly.graph_objects as     go
-from   urllib.parse         import urlparse, parse_qs
-from   flask                import session
-from   plotly.colors        import qualitative
+import dash_mantine_components as     dmc
+import plotly.graph_objects    as     go
+from   urllib.parse            import urlparse, parse_qs
+from   flask                   import session
+from   plotly.colors           import qualitative
 
-from   .lang                import LANGUAGE
-from   .io                  import parse_uploaded_file
-from   .components          import ui_layout, hikelist_element_layout
-from   .components.map      import line_for_map
-from   .database            import validate_credentials
-from   .components          import (
+from   .lang                   import LANGUAGE
+from   .io                     import parse_uploaded_file
+from   .components             import ui_layout, hikelist_element_layout
+from   .components.map         import line_for_map
+from   .database               import validate_credentials
+from   .components             import (
     login_success_notification,
     login_username_fail_notification,
     login_password_fail_notification,
-    logout_success_notification
+    logout_success_notification,
+    hike_upload_success_notification,
+    hike_upload_format_fail_notification,
+    hike_upload_already_there_fail_notification
 )
 
 COLOR_PALETTE = qualitative.Plotly
@@ -31,7 +35,7 @@ def register_callbacks(
     :param token_db: token used to set up the UI with a magic link
     '''
     
-    #register_ui_init_callbacks(app, token_db)
+    register_ui_init_callbacks(app)
     register_language_callacks(app)
     register_menubar_callbacks(app)
     register_topbar_callbacks(app)
@@ -41,25 +45,17 @@ def register_callbacks(
 
     return
 
-def register_ui_init_callbacks(
-        app: dash.Dash, token_db: dict
-    ) -> None:
+def register_ui_init_callbacks(app: dash.Dash) -> None:
     r'''
     Register all callbacks that initialize the UI based on the input token.
 
     :param app: dash application
-    :param token_db: token used to set up the UI with a magic link
     '''
 
     @app.callback(
-        [
-            dash.Output('content-display', 'children'),
-            dash.Output('number_hikes', 'data')
-        ],
-        dash.Input('url', 'href'),
-        dash.State('language', 'data')
+        dash.Input('url', 'href')
     )
-    def render_ui(url: str, language: LANGUAGE) -> tuple[dash.html.Div, int]:
+    def render_ui(url: str) -> None:
         r'''
         Callback used at startup to define how the UI is rendered.
 
@@ -70,27 +66,17 @@ def register_ui_init_callbacks(
         query_params = parse_qs(parsed_url.query)
         token_list   = query_params.get('token')
 
-        '''
+        # No token in the url means the user is not asking to access a magic link
         if (
-            token_list is None   or 
-            len(token_list) > 1  or 
-            len(token_list) == 0 or
-            (token := token_list[0]) not in token_db
-        ): 
-        '''
+            token_list is None or 
+            len(token_list) != 1
+        ):
             
-        hikes_data = {}
+            print('Empty url')
+            return
 
-        '''
-        else:
-
-            # Select the sub-sample of hikes provided by the token key
-            hike_names = token_db[token]
-            hikes_data = load_hikes_from_directory()
-            hikes_data = {name : hikes_data[name] for name in hike_names}
-        '''
-        return dash.html.Div(ui_layout(app.language_handler, language)), len(hikes_data)
-    
+        print(token_list)
+        
     return
 
 def register_language_callacks(app: dash.Dash) -> None:
@@ -354,7 +340,9 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             dash.Output('hikelist-div', 'children'),
             dash.Output('number_hikes', 'data'),
             dash.Output('hikes_info', 'data'),
-            dash.Output('map', 'figure', allow_duplicate=True)
+            dash.Output('map', 'figure', allow_duplicate=True),
+            dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
+            dash.Output('upload-hike-button', 'filename')
         ],
         dash.Input('upload-hike-button', 'contents'),
         dash.State('upload-hike-button', 'filename'),
@@ -371,64 +359,55 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         map_dict      : dict,
         language      : LANGUAGE,
         hikes_info    : dict
-    ) -> tuple[
-            list | dash.NoUpdate, 
-            int | dash.NoUpdate, 
-            dict | dash.NoUpdate,
-            go.Figure | dash.NoUpdate
-        ]:
+    ) -> (tuple[list, int, dict, go.Figure, list[dict]] |  
+          tuple[dash.NoUpdate, dash.NoUpdate, dash.NoUpdate, dash.NoUpdate, list[dash.NoUpdate]] |
+          tuple[dash.NoUpdate, dash.NoUpdate, dash.NoUpdate, dash.NoUpdate, list[dict]]):
+
+        ui_elements = (dash.no_update, dash.no_update, dash.no_update, dash.no_update)
 
         if file_contents is None or len(file_contents) == 0: 
-            return dash.no_update, dash.no_update, dash.no_update, dash.no_update
+            return *ui_elements, [dash.no_update]
+        
+        # Default notification is success
+        notification = hike_upload_success_notification(app.language_handler[language])
 
-        figure        = go.Figure(map_dict)
+        # Extract the properties of the loaded hikes
+        hike_properties = {}
 
-        language_dict = app.language_handler[language]['hike_panel']
-        pos_init      = len(hike_widgets)
+        for content, filename in zip(file_contents, filenames):
 
-        new_hike_widgets = []
-        for pos, (content, filename) in enumerate(zip(file_contents, filenames)):
-
-            pos_absolute = pos_init + pos
-
-            # Get the name of the file and parse its content
-            filename, properties = parse_uploaded_file(content, filename)
+            filename, properties  = parse_uploaded_file(content, filename)
 
             # None means the parsing failed
-            if properties is None: continue
+            if properties is None: 
+                
+                notification = hike_upload_format_fail_notification(app.language_handler[language])
+                notification['message'] += filename
+                break
 
-            hike_name            = pathlib.Path(filename).stem
-            color                = COLOR_PALETTE[pos_absolute]
+            # We do not allow to load a hike if its name already appears twice
+            if (
+                (hike_name := pathlib.Path(filename).stem) in hike_properties or
+                hike_name in hikes_info
+            ):
+                notification = hike_upload_already_there_fail_notification(app.language_handler[language])
+                notification['message'] += filename
+                break
 
-            # Create a hike widget in the hike list
-            widget   = hikelist_element_layout(
-                hike_name,
-                color,
-                pos_absolute,
-                False if pos_absolute > 0 else True,
-                language_dict
+            hike_properties[hike_name] = properties
+
+        else:
+
+            ui_elements = update_ui_after_multiple_hike_loads(
+                app, 
+                hike_properties,
+                hike_widgets,
+                map_dict,
+                language,
+                hikes_info
             )
 
-            new_hike_widgets.append(widget)
-
-            # Add a trace to the figure
-            figure.add_trace(line_for_map(
-                hike_name,
-                properties['lon'],
-                properties['lat'],
-                color
-            ))
-
-            # Add hike information to the Store component
-            hikes_info[hike_name] = {
-                'lat'  : properties['center'][0],
-                'lon'  : properties['center'][1],
-                'zoom' : properties['zoom']
-            }
-
-        hike_widgets.extend(new_hike_widgets)
-
-        return hike_widgets, len(hike_widgets), hikes_info, figure
+        return *ui_elements, [notification] # pyright: ignore[reportReturnType]
     
     return
 
@@ -559,3 +538,108 @@ def register_map_callbacks(app: dash.Dash) -> None:
         return figure
     
     return
+
+def update_ui_after_single_hike_load(
+        pos_absolute  : int,
+        hike_name     : str,
+        properties    : dict | None,
+        language_dict : dict
+    ) -> tuple[dmc.Space, go.Scattermapbox, dict[str, float | int]] | None:
+    r'''
+    Generate the new UI components that must be updated after a new hike has been loaded.
+
+    :param pos_absolute: absolute index of the hike in the hike list
+    :param hike_name: name of the hike
+    :param properties: properties of the hike store in the Store
+    :param language_dict: dictionary for the hikelist element
+
+    :returns:
+
+    - hikelist element widget
+    - scatterboxmap object containing the trace for the map
+    - dictionary with hike information
+    '''
+
+    # None means the parsing failed
+    if properties is None: return
+
+    color    = COLOR_PALETTE[pos_absolute]
+
+    # Create a hike widget in the hike list
+    widget   = hikelist_element_layout(
+        hike_name,
+        color,
+        pos_absolute,
+        False if pos_absolute > 0 else True,
+        language_dict
+    )
+
+    # Add a trace to the figure
+    line = line_for_map(
+        hike_name,
+        properties['lon'],
+        properties['lat'],
+        color
+    )
+
+    # Add hike information to the Store component
+    hike_info = {
+        'lat'  : properties['center'][0],
+        'lon'  : properties['center'][1],
+        'zoom' : properties['zoom']
+    }
+
+    return widget, line, hike_info
+
+def update_ui_after_multiple_hike_loads(
+    app           : dash.Dash,
+    property_dict : dict[str, dict | None],
+    hike_widgets  : list,
+    map_dict      : dict,
+    language      : LANGUAGE,
+    hikes_info    : dict
+) -> tuple[list, int, dict, go.Figure]:
+    r'''
+    Generate the new UI components that must be updated after many new hike have been loaded.
+
+    :param app: dash app
+    :param property_dict: dictionary containing hike names as keys and dictionaries with hike properties as values
+    :param hike_widgets: current widgets holding hikes in the hike list
+    :param map_dict: dictionary representing the current state of the hike
+    :param language_dict: dictionary for the hikelist element
+
+    :returns:
+    - list of hike element widgets
+    - number of hikes
+    - dictionary with hike names as keys and dictionaries with hike information as values
+    - map figure
+    '''
+
+    figure        = go.Figure(map_dict)
+
+    language_dict = app.language_handler[language]['hike_panel']
+    pos_init      = len(hike_widgets)
+
+    new_hike_widgets = []
+    for pos, (hike_name, properties) in enumerate(property_dict.items()):
+
+        out = update_ui_after_single_hike_load(
+            pos_init + pos,
+            hike_name,
+            properties,
+            language_dict
+        )
+
+        if out is None: continue
+
+        new_hike_widgets.append(out[0])
+
+        # Add a trace to the figure
+        figure.add_trace(out[1])
+
+        # Add hike information to the Store component
+        hikes_info[hike_name] = out[2]
+
+    hike_widgets.extend(new_hike_widgets)
+
+    return hike_widgets, len(hike_widgets), hikes_info, figure

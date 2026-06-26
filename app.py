@@ -2,7 +2,6 @@ import dash
 import flask
 import glob
 import secrets
-import dotenv
 import pathlib
 import argparse
 import dash_mantine_components   as     dmc
@@ -14,15 +13,15 @@ from   lib.components            import (
     login_success_notification,
     login_username_fail_notification,
     login_password_fail_notification,
-    logout_success_notification
+    logout_success_notification,
+    hike_upload_success_notification,
+    hike_upload_format_fail_notification,
+    hike_upload_already_there_fail_notification
 )
 
 TOKEN_DB = {
     "share-endpoint": ['Lyon-Miribel', 'Lamure-Belleville'],
 }
-
-# Load environment variables for database
-dotenv.load_dotenv()
 
 '''
 external_stylesheets = [
@@ -80,6 +79,9 @@ notification_store = [
     dash.dcc.Store(id = 'login-username-fail-notification', data = login_username_fail_notification(translation)),
     dash.dcc.Store(id = 'login-password-fail-notification', data = login_password_fail_notification(translation)),
     dash.dcc.Store(id = 'logout-success-notification',      data = logout_success_notification(translation)),
+    dash.dcc.Store(id = 'hike-load-success-notification',   data = hike_upload_success_notification(translation)),
+    dash.dcc.Store(id = 'hike-load-format-fail-notification', data = hike_upload_format_fail_notification(translation)),
+    dash.dcc.Store(id = 'hike-load-already-there-fail-notification', data = hike_upload_already_there_fail_notification(translation))
 ]
 
 # Define layout of the application

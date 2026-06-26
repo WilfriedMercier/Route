@@ -50,3 +50,12 @@ notifications:
   logout:
     success:
       title: Logout successful
+  hike_upload:
+    success:
+      title: All hikes properly loaded
+    fail:
+      title: 'Hike loading failed'
+      format_error:
+        text: 'The following file could not be parsed: '
+      already_loaded_error:
+        text: 'The following file is already loaded: '

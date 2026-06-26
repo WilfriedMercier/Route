@@ -50,3 +50,12 @@ notifications:
   logout:
     success:
       title: Déconnexion réussie
+  hike_upload:
+    success:
+      title: Chargement des randonnées réussi
+    fail:
+      title: 'Erreur de chargement des randonnées'
+      format_error:
+        text: 'Le fichier suivant ne peut pas être lu: '
+      already_loaded_error:
+        text: 'Le fichier suivant est déjà chargé: '

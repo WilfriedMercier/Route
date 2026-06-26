@@ -61,7 +61,7 @@ def process_hike(filename: str, content: str) -> dict[str, dict] | None:
 
     return hike_data
                 
-def parse_uploaded_file(content: str, filename: str) -> tuple[str, dict | None]:
+def parse_uploaded_file(content: str, filename: str) -> tuple[str, dict[str, dict] | None]:
 
     _, content_string = content.split(',')
     decoded           = base64.b64decode(content_string).decode('utf-8')
