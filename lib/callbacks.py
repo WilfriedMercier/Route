@@ -6,12 +6,12 @@ from   urllib.parse            import urlparse, parse_qs
 from   flask                   import session
 from   plotly.colors           import qualitative
 
-from   .database               import is_hike_in_db
 from   .lang                   import LANGUAGE
 from   .io                     import parse_uploaded_file
 from   .components             import ui_layout, hikelist_element_layout
-from   .components.map         import line_for_map
-from   .database               import validate_credentials
+from   .components.map         import line_for_map, generate_map_figure
+from   .misc                   import check_if_hike_is_loaded
+from   .database               import validate_credentials, get_user_id
 from   .components             import (
     login_success_notification,
     login_username_fail_notification,
@@ -371,6 +371,9 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         # Default notification is success
         notification = hike_upload_success_notification(app.language_handler[language])
 
+        # List of hike names updated as we load the new hikes below
+        hike_names = list(hikes_info.keys())
+
         # Extract the properties of the loaded hikes
         hike_properties = {}
 
@@ -385,22 +388,16 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
                 notification['message'] += filename
                 break
 
-            # Check if the hike is in the database is the user is logged in
-            if 'user_id' in session: 
-                is_in_db = is_hike_in_db(session['user_id'])
+            hike_name = pathlib.Path(filename).stem
 
-            # If not logged in, we check if it appears in the list of already loaded hikes
-            else:
-                is_in_db = (
-                    (hike_name := pathlib.Path(filename).stem) in hike_properties or
-                    hike_name in hikes_info
-                )
+            # If the hike is loaded, we do not load any hikes. Users must only provide files that are not loaded yet
+            if check_if_hike_is_loaded(hike_name, hike_names):
 
-            # We do not allow to load a hike twice
-            if is_in_db:
                 notification = hike_upload_already_there_fail_notification(app.language_handler[language])
                 notification['message'] += filename
                 break
+            
+            else: hike_names.append(hike_name)
 
             hike_properties[hike_name] = properties
 
@@ -476,6 +473,10 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
             dash.Output('logout-button', 'style'),
             dash.Output('logout-button', 'children'),
             dash.Output('login-button', 'style'),
+            dash.Output('hikelist-div', 'children', allow_duplicate=True),
+            dash.Output('number_hikes', 'data', allow_duplicate=True),
+            dash.Output('hikes_info', 'data', allow_duplicate=True),
+            dash.Output('map', 'figure', allow_duplicate=True)
         ],
         dash.Input('send-login-button', 'n_clicks'),
         dash.State('login-modal-id-input', 'value'),
@@ -492,25 +493,58 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         success_notification       : dict,
         username_fail_notification : dict,
         password_fail_notification : dict
-        ) -> tuple[bool, list[dict] | dash.NoUpdate, dict, str | dash.NoUpdate, dict]:
+        ) -> tuple[
+            bool, 
+            list[dict] | dash.NoUpdate, 
+            dict, 
+            str | dash.NoUpdate, 
+            dict,
+            list | dash.NoUpdate,
+            int | dash.NoUpdate,
+            dict | dash.NoUpdate,
+            go.Figure | dash.NoUpdate
+        ]:
 
         if password is None or username is None:
-            return False, dash.no_update, {'display' : 'none'}, dash.no_update, {}
+            return (
+                False, dash.no_update, {'display' : 'none'}, 
+                dash.no_update, {}, dash.no_update,
+                dash.no_update, dash.no_update
+            )
 
         res = validate_credentials(username, password)
 
-        # Handle case if the username is wrong
+        # res is None means the username does not exist
         if res is None:
-            return True, [username_fail_notification], {'display' : 'none'}, dash.no_update, {}
+            return (
+                True, [username_fail_notification], {'display' : 'none'}, 
+                dash.no_update, {}, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update
+            )
         
-        # Check if the provided password matches the hash
+        # res is False means the password is wrong
         if not res:
-            return True, [password_fail_notification], {'display' : 'none'}, dash.no_update, {}
+            return (
+                True, [password_fail_notification], {'display' : 'none'}, 
+                dash.no_update, {}, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update
+            )
         
-        session['user_id'] = username
+        # Password and username are both correct, we store the user ID for later queries to the db
+        session['user_id'] = get_user_id(username)
+
+        # Clear the hikelist ui elements (including store values)
+        hike_list_ui_elements = clear_ui_after_login()
 
         # Otherwise, sends a login success notification
-        return False, [success_notification], {'display' : 'flex'}, username, {'display' : 'none'}
+        return (
+            False, 
+            [success_notification], 
+            {'display' : 'flex'}, 
+            username, 
+            {'display' : 'none'},
+            *hike_list_ui_elements
+        )
 
     return
 
@@ -651,3 +685,17 @@ def update_ui_after_multiple_hike_loads(
     hike_widgets.extend(new_hike_widgets)
 
     return hike_widgets, len(hike_widgets), hikes_info, figure
+
+def clear_ui_after_login() -> tuple[list, int, dict, go.Figure]:
+    r'''
+    Perform all actions that clear the ui elements (including associated store values) and return the cleared elements.
+
+    :returns: a tuple with
+        - an empty list for the children of the Div elements containing the hike list
+        - 0 for number_hikes store value
+        - an empty dictionary for the hikes_info store value
+    '''
+
+    figure = generate_map_figure()
+
+    return [], 0, {}, figure

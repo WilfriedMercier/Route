@@ -16,15 +16,13 @@ def ui_layout(language_handler: LanguageHandler, language: LANGUAGE):
     :param langauge_handler: object handling the translation of the UI elements
     '''
 
-    # Default to Lyon if no hikes are loaded
-    center_lat, center_lon, zoom = 45.7640, 4.8357, 10
     distances, elevations        = [], []
     color                        = 'black'
     
     translation                  = language_handler[language]
 
     topbar      = topbar_layout(language_handler, language)
-    map_page    = map_page_layout(center_lat, center_lon, zoom)
+    map_page    = map_page_layout()
     hike_panel  = hike_panel_layout(translation['hike_panel'])
     menubar     = menubar_layout(translation['menubar'])
     login_modal = login_modal_layout(translation['login_modal'])

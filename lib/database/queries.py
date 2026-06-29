@@ -45,11 +45,21 @@ def execute_query(query: str, values: tuple | None = None):
         
     except Exception as e: raise e
 
-def is_hike_in_db(user_id: int) -> bool:
+def get_user_id(username: str) -> int: 
+    return execute_query(f"SELECT id FROM users WHERE username = '{username}'")[0][0]
 
-    res = execute_query(f"SELECT name FROM hikes WHERE user_id = '{user_id}'")
-    print(res)
-    return True
+def is_hike_in_db(user_id: int, hike_name: str) -> bool:
+    r'''
+    Check if the hike is in the user's db.
+
+    :param user_id: identifier for the user
+    
+    :returns: True if in the db, False otherwise
+    '''
+
+    res = execute_query(f"SELECT name FROM hikes WHERE user_id = '{user_id}' AND name = '{hike_name}'")
+
+    return len(res) > 0
 
 def insert_hike_into_db(
         user_id   : int,

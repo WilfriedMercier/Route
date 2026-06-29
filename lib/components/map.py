@@ -66,40 +66,10 @@ def map_style_selector_layout() -> dash.html.Div:
         className = 'div-map-style-selector'
     )
 
-def map_layout(lat: float, lon: float, zoom: int):
-    r'''
-    Widget containing the map figure.
-    
-    :param lat: Latitude for the map center
-    :param lon: Longitude for the map center
-    :param zoom: Initial zoom level for the map
-    '''
+def map_layout():
+    r'''Widget containing the map figure.'''
 
-    highlighted_point = go.Scattermapbox(
-        mode       = "markers",
-        lon        = [4.773566],
-        lat        = [45.736296],
-        showlegend = False,
-        marker     = {'size' : 12, 'color' : 'rgba(0, 0, 0, 1)', 'symbol' : 'circle'},
-        hoverinfo  = 'none',
-        name       = 'point',
-    )
-
-    fig = go.Figure(
-        highlighted_point,
-        layout = {
-            'template'      : 'plotly_white',
-            'mapbox'        : {
-                    'style' : 'open-street-map', 
-                    'center' : {'lat' : lat, 'lon' : lon}, 
-                    'zoom' : zoom
-            },
-            'paper_bgcolor' : 'white',
-            'plot_bgcolor'  : 'white',
-            'font'          : {'color' : '#2c3e50', 'family' : 'Open Sans, sans-serif'},
-            'margin'        : {'l' : 0, 'r' : 0, 't' : 0, 'b' : 0},
-        }
-    )
+    fig = generate_map_figure()
 
     style_selector = map_style_selector_layout()
 
@@ -239,16 +209,10 @@ class ElevationPlot(BaseWidget):
         return
 """
 
-def map_page_layout(lat: float, lon: float, zoom: int) -> dbc.Stack:
-    r'''
-    Widget containing the main content area of the application which contains the map and the elevation plot.
-    
-    :param lat: Latitude for the map center
-    :param lon: Longitude for the map center
-    :param zoom: Initial zoom level for the map
-    '''
+def map_page_layout() -> dbc.Stack:
+    r'''Widget containing the main content area of the application which contains the map and the elevation plot.'''
 
-    map = map_layout(lat, lon, zoom)
+    map = map_layout()
        
     return dbc.Stack(map, id = 'map-page') #dash.html.Div(self._elevation_plot.layout) #, id='elevation-plot-flex-div')
 
@@ -258,6 +222,14 @@ def line_for_map(
         lat   : list[float],
         color : str
     ) -> go.Scattermapbox:
+    r'''
+    Create a Scattermapbox line plot with a predefined style to add to the map figure.
+
+    :param name: name of the trace
+    :param lon: longitudes to plot
+    :param lat: latitudes to plot
+    :param color: color of the line
+    '''
     
     return go.Scattermapbox(
         mode       = "lines",
@@ -269,3 +241,39 @@ def line_for_map(
         hoverinfo  = 'none',
         name       = name
     )
+
+def generate_map_figure(
+        lon  : float | None = None, 
+        lat  : float | None = None,
+        zoom : int   | None = None
+    ) -> go.Figure:
+    r'''
+    Generate an empty figure serving as baseline every time the map has to be updated.
+
+    :param lon: center's longitude
+    :param lat: center's latitude
+    :param zoom: zoom level
+    '''
+
+    if lon is None  : lon  = 4.8357
+    if lat is None  : lat  = 45.7640
+    if zoom is None : zoom = 10
+
+    figure = go.Figure(
+        layout = {
+            'template'      : 'plotly_white',
+            'mapbox'        : {
+                    'style' : 'open-street-map', 
+                    'center' : {'lat' : lat, 'lon' : lon}, 
+                    'zoom' : zoom
+            },
+            'paper_bgcolor' : 'white',
+            'plot_bgcolor'  : 'white',
+            'font'          : {'color' : '#2c3e50', 'family' : 'Open Sans, sans-serif'},
+            'margin'        : {'l' : 0, 'r' : 0, 't' : 0, 'b' : 0},
+        }
+    )
+
+    figure.add_trace(go.Scattermapbox(lon=[], lat=[]))
+
+    return figure
