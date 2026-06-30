@@ -2,7 +2,7 @@ import os
 import psycopg2
 
 from   .hashing   import compare_passwords
-from   .queries   import execute_query
+from   .queries   import execute_get_query
 
 def validate_credentials(username: str, password: str) -> bool | None:
     r'''
@@ -16,7 +16,7 @@ def validate_credentials(username: str, password: str) -> bool | None:
         - True if credentials are valid, False otherwise.
     '''
     
-    rows = execute_query(f"SELECT password_hash FROM users WHERE username = '{username}'")
+    rows = execute_get_query(f"SELECT password_hash FROM users WHERE username = '{username}'")
     
     if len(rows) == 0: return None
     else: return compare_passwords(password, rows[0][0])

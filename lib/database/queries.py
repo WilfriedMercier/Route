@@ -3,6 +3,7 @@ import atexit
 import dotenv
 from   contextlib    import contextmanager
 from   psycopg2.pool import ThreadedConnectionPool
+from   psycopg2      import extras
 
 # Load environment variables for database
 dotenv.load_dotenv()
@@ -29,24 +30,61 @@ def get_db_connection():
 @atexit.register
 def close_pool(): DB_POOL.closeall()
 
-def execute_query(query: str, values: tuple | None = None):
+def execute_get_query(query: str) -> list[tuple]:
+    r'''
+    Execute a fetch query given some values.
+
+    :param query: query to execute
+    '''
+
+    try:
+        with get_db_connection() as conn:
+
+            cur = conn.cursor()
+            cur.execute(query)
+            results = cur.fetchall()
+
+        return results
+        
+    except Exception as e: raise e
+
+def execute_insert_query(
+        query         : str, 
+        values        : tuple | list[tuple], 
+        multiple_rows : bool = False,
+        template      : str | None = None
+    ) -> None:
+    r'''
+    Execute an insert query given some values.
+
+    :param query: query to execute
+    :param values: values to pass to the query
+    :param multiple_rows: whether multiple rows are passed (True) or just a single row (False) when inserting values
+    '''
 
     try:
         with get_db_connection() as conn:
 
             cur = conn.cursor()
 
-            if values is None : cur.execute(query)
-            else              : cur.execute(query, values)
+            if multiple_rows : extras.execute_values(cur, query, values, template=template)
+            else             : cur.execute(query, values, template=template)
 
-            results = cur.fetchall()
+            conn.commit()
 
-            return results
+        return
+    
         
     except Exception as e: raise e
 
 def get_user_id(username: str) -> int: 
-    return execute_query(f"SELECT id FROM users WHERE username = '{username}'")[0][0]
+    '''
+    Return the identifier of the user.
+
+    :param username: name of the user as it appears in the database
+    '''
+
+    return execute_get_query(f"SELECT id FROM users WHERE username = '{username}'")[0][0]
 
 def is_hike_in_db(user_id: int, hike_name: str) -> bool:
     r'''
@@ -57,37 +95,45 @@ def is_hike_in_db(user_id: int, hike_name: str) -> bool:
     :returns: True if in the db, False otherwise
     '''
 
-    res = execute_query(f"SELECT name FROM hikes WHERE user_id = '{user_id}' AND name = '{hike_name}'")
+    res = execute_get_query(f"SELECT name FROM hikes WHERE user_id = '{user_id}' AND name = '{hike_name}'")
 
     return len(res) > 0
 
-def insert_hike_into_db(
-        user_id   : int,
-        hike_name : str,
-        hike_dict : dict[str, float | int | list[float]]
+def insert_hikes_into_db(
+        user_id         : int,
+        hike_properties : dict[str, dict[str, float | int | list[float]]],
     ) -> None:
+    r'''
+    Insert multiple hikes into the database.
 
-    lat        = hike_dict['lat']
-    lon        = hike_dict['lon']
-    zoom       = hike_dict['zoom']
-    distances  = hike_dict['distances']
-    elevations = hike_dict['elevations']
+    :param user_id: identifier of the user associated to the hikes
+    :param hike_properties: dictionary with the hike name as key and a dictionary containing hike properties as values
+    '''
 
     query      = '''
         INSERT INTO hikes (name, latitude, longitude, zoom, distances, elevations, user_id)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        VALUES %s;
     '''
 
-    values    = (
-        hike_name,
-        lat,
-        lon,
-        zoom,
-        distances,  # Array of floats
-        elevations,  # Array of floats
-        user_id
-    )
+    template = "(%s, %s, %s, %s, %s::double precision[], %s::double precision[], %s)"
 
-    execute_query(query, values)
+    values = []
+
+    for hike_name, hike_dict in hike_properties.items():
+
+        values.append((
+            hike_name,
+            hike_dict['lat'],
+            hike_dict['lon'],
+            hike_dict['zoom'],
+            hike_dict['distances'],
+            hike_dict['elevations'],
+            user_id
+        ))
+
+    execute_insert_query(query, values, multiple_rows=True, template=template)
+
+    print('Here is the db')
+    print(execute_get_query('SELECT * FROM hikes;'))
 
     return

@@ -5,13 +5,18 @@ import plotly.graph_objects    as     go
 from   urllib.parse            import urlparse, parse_qs
 from   flask                   import session
 from   plotly.colors           import qualitative
+from   copy                    import deepcopy
 
 from   .lang                   import LANGUAGE
 from   .io                     import parse_uploaded_file
 from   .components             import ui_layout, hikelist_element_layout
 from   .components.map         import line_for_map, generate_map_figure
 from   .misc                   import check_if_hike_is_loaded
-from   .database               import validate_credentials, get_user_id
+from   .database               import (
+    validate_credentials, 
+    get_user_id, 
+    insert_hikes_into_db
+)
 from   .components             import (
     login_success_notification,
     login_username_fail_notification,
@@ -411,6 +416,18 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
                 language,
                 hikes_info
             )
+
+            # If logged in, we send hikes to the db
+            if 'user_id' in session: 
+
+                print('Inserting hikes for user', session['user_id'])
+                
+                properties_for_db = deepcopy(ui_elements[2])
+                for hike_name, hike_dict in hike_properties.items():
+                    properties_for_db[hike_name]['distances']  = hike_dict['distances']
+                    properties_for_db[hike_name]['elevations'] = hike_dict['elevations']
+                
+                insert_hikes_into_db(session['user_id'], properties_for_db)
 
         return *ui_elements, [notification] # pyright: ignore[reportReturnType]
     
