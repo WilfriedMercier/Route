@@ -15,7 +15,8 @@ from   .misc                   import check_if_hike_is_loaded
 from   .database               import (
     validate_credentials, 
     get_user_id, 
-    insert_hikes_into_db
+    insert_hikes_into_db,
+    execute_get_query
 )
 from   .components             import (
     login_success_notification,
@@ -408,6 +409,10 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
 
         else:
 
+            # If logged in, we send hikes to the db
+            if 'user_id' in session: 
+                insert_hikes_into_db(session['user_id'], hike_properties)
+
             ui_elements = update_ui_after_multiple_hike_loads(
                 app, 
                 hike_properties,
@@ -416,18 +421,6 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
                 language,
                 hikes_info
             )
-
-            # If logged in, we send hikes to the db
-            if 'user_id' in session: 
-
-                print('Inserting hikes for user', session['user_id'])
-                
-                properties_for_db = deepcopy(ui_elements[2])
-                for hike_name, hike_dict in hike_properties.items():
-                    properties_for_db[hike_name]['distances']  = hike_dict['distances']
-                    properties_for_db[hike_name]['elevations'] = hike_dict['elevations']
-                
-                insert_hikes_into_db(session['user_id'], properties_for_db)
 
         return *ui_elements, [notification] # pyright: ignore[reportReturnType]
     
@@ -501,6 +494,7 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         dash.State('login-success-notification', 'data'),
         dash.State('login-username-fail-notification', 'data'),
         dash.State('login-password-fail-notification', 'data'),
+        dash.State('language-dropdown', 'value'),
         prevent_initial_call=True
     )
     def secure_login(
@@ -509,7 +503,8 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         password                   : str,
         success_notification       : dict,
         username_fail_notification : dict,
-        password_fail_notification : dict
+        password_fail_notification : dict,
+        language                   : LANGUAGE
         ) -> tuple[
             bool, 
             list[dict] | dash.NoUpdate, 
@@ -550,8 +545,8 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         # Password and username are both correct, we store the user ID for later queries to the db
         session['user_id'] = get_user_id(username)
 
-        # Clear the hikelist ui elements (including store values)
-        hike_list_ui_elements = clear_ui_after_login()
+        # Load the hike list ui elements based on the data from the db
+        hike_list_ui_elements = generate_hike_ui_elements_after_login(app, language)
 
         # Otherwise, sends a login success notification
         return (
@@ -674,6 +669,7 @@ def update_ui_after_multiple_hike_loads(
     - map figure
     '''
 
+    # Create empty figure
     figure        = go.Figure(map_dict)
 
     language_dict = app.language_handler[language]['hike_panel']
@@ -713,6 +709,37 @@ def clear_ui_after_login() -> tuple[list, int, dict, go.Figure]:
         - an empty dictionary for the hikes_info store value
     '''
 
+    # Create empty figure
     figure = generate_map_figure()
 
     return [], 0, {}, figure
+
+def generate_hike_ui_elements_after_login(
+        app: dash.Dash, language: LANGUAGE
+    ) -> tuple[list, int, dict, go.Figure]:
+
+    # Query hikes database associated to the user
+    hike_properties = execute_get_query(f'''
+        SELECT name, latitude, longitude, center_lat, center_lon, zoom, distances, elevations
+        FROM hikes
+        WHERE user_id = '{session["user_id"]}';
+    ''')
+
+    # Build the dictionary with hike properties
+    property_dict = {}
+    for hike in hike_properties:
+
+        property_dict[hike[0]]               = {}
+        property_dict[hike[0]]['lat']        = hike[1]
+        property_dict[hike[0]]['lon']        = hike[2]
+        property_dict[hike[0]]['center']     = (hike[3], hike[4])
+        property_dict[hike[0]]['zoom']       = hike[5]
+        property_dict[hike[0]]['distances']  = hike[6]
+        property_dict[hike[0]]['elevations'] = hike[7]
+
+    # Create a new figure and update all ui elements related to hikes
+    return update_ui_after_multiple_hike_loads(
+        app, property_dict, [],
+        generate_map_figure().to_dict(), 
+        language, {}
+    )

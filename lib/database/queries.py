@@ -111,24 +111,28 @@ def insert_hikes_into_db(
     '''
 
     query      = '''
-        INSERT INTO hikes (name, latitude, longitude, zoom, distances, elevations, user_id)
+        INSERT INTO hikes (user_id, name, center_lat, center_lon, zoom, latitude, longitude, distances, elevations)
         VALUES %s;
     '''
 
-    template = "(%s, %s, %s, %s, %s::double precision[], %s::double precision[], %s)"
+    template = "(%s, %s, %s, %s, %s, %s::double precision[], %s::double precision[], %s::double precision[], %s::double precision[])"
 
     values = []
 
     for hike_name, hike_dict in hike_properties.items():
 
+        center: list[float] = hike_dict['center'] # type: ignore
+
         values.append((
+            user_id,
             hike_name,
+            center[0],
+            center[1],
+            hike_dict['zoom'],
             hike_dict['lat'],
             hike_dict['lon'],
-            hike_dict['zoom'],
             hike_dict['distances'],
             hike_dict['elevations'],
-            user_id
         ))
 
     execute_insert_query(query, values, multiple_rows=True, template=template)
