@@ -453,19 +453,30 @@ def register_topbar_callbacks(app: dash.Dash) -> None:
             dash.Output('logout-button', 'style', allow_duplicate=True),
             dash.Output('login-button', 'style', allow_duplicate=True),
             dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
+            dash.Output('hikelist-div', 'children', allow_duplicate=True),
+            dash.Output('number_hikes', 'data', allow_duplicate=True),
+            dash.Output('hikes_info', 'data', allow_duplicate=True),
+            dash.Output('map', 'figure', allow_duplicate=True)
         ],
         dash.Input('logout-button', 'n_clicks'),
         dash.State('logout-success-notification', 'data'),
         prevent_initial_call=True
     )
-    def logout_button(_, success_notification: dict) -> tuple[dict, dict, list[dict]]:
+    def logout_button(_, success_notification: dict
+    ) -> tuple[dict, dict, list[dict], list, int, dict, go.Figure]:
         r'''
         Callback used when the user clicks the logout button.
         '''
 
+        ui_elements = clear_ui_after_login()
+
         session.clear()
 
-        return {'display' : 'none'}, {'display' : 'flex'}, [success_notification], 
+        return (
+            {'display' : 'none'}, {'display' : 'flex'}, 
+            [success_notification], 
+            *ui_elements
+        )
     
     return
 
@@ -661,6 +672,7 @@ def update_ui_after_multiple_hike_loads(
     :param hike_widgets: current widgets holding hikes in the hike list
     :param map_dict: dictionary representing the current state of the hike
     :param language_dict: dictionary for the hikelist element
+    :param hikes_info: dictionary in Store with hike information such as center and zoom level
 
     :returns:
     - list of hike element widgets
@@ -707,6 +719,7 @@ def clear_ui_after_login() -> tuple[list, int, dict, go.Figure]:
         - an empty list for the children of the Div elements containing the hike list
         - 0 for number_hikes store value
         - an empty dictionary for the hikes_info store value
+        - a default empty figure for the map
     '''
 
     # Create empty figure
