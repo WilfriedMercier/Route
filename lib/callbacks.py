@@ -487,6 +487,23 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
     :param app: dash application
     '''
 
+    # Focus to username field when modal opens
+    app.clientside_callback(
+        """
+        function(is_open) {
+            if (is_open) {
+                setTimeout(function() {
+                    var el = document.getElementById('login-modal-id-input');
+                    if (el) { el.focus(); }
+                }, 100);
+            }
+            return window.dash_clientside.no_update;
+        }
+        """,
+        dash.Output("login-modal-id-input", "key"),  # dummy output
+        dash.Input("login-button", "n_clicks"),
+    )
+
     @app.callback(
         [
             dash.Output('login-modal', 'opened', allow_duplicate=True),
@@ -500,6 +517,8 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
             dash.Output('map', 'figure', allow_duplicate=True)
         ],
         dash.Input('send-login-button', 'n_clicks'),
+        dash.Input('login-modal-id-input', 'n_submit'),
+        dash.Input('login-modal-password-input', 'n_submit'),
         dash.State('login-modal-id-input', 'value'),
         dash.State('login-modal-password-input', 'value'),
         dash.State('login-success-notification', 'data'),
@@ -509,7 +528,7 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         prevent_initial_call=True
     )
     def secure_login(
-        _, 
+        _1, _2, _3,
         username                   : str, 
         password                   : str,
         success_notification       : dict,
@@ -528,11 +547,14 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
             go.Figure | dash.NoUpdate
         ]:
 
-        if password is None or username is None:
+        print(password, username)
+
+        # If one of the fields is empty, we let the page as is
+        if password is None or username is None or password == '' or username == '':
             return (
-                False, dash.no_update, {'display' : 'none'}, 
+                True, dash.no_update, {'display' : 'none'}, 
                 dash.no_update, {}, dash.no_update,
-                dash.no_update, dash.no_update
+                dash.no_update, dash.no_update, dash.no_update
             )
 
         res = validate_credentials(username, password)
