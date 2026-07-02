@@ -71,7 +71,7 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
             dash.Output('map', 'figure', allow_duplicate=True)
         ],
         dash.Input('url', 'href'),
-        dash.State('language-dropdown', 'value'),
+        dash.State('language', 'data'),
         prevent_initial_call = True
     )
     def render_ui(url: str, language: LANGUAGE
@@ -121,6 +121,7 @@ def register_language_callacks(app: dash.Dash) -> None:
 
     @app.callback(
         [
+            dash.Output('language', 'data', allow_duplicate=True),
             dash.Output('theme-toggle-tooltip', 'label'),
             dash.Output('hike-panel-button-tooltip', 'label'),
             dash.Output('hall-of-fame-button-tooltip', 'label'),
@@ -143,23 +144,35 @@ def register_language_callacks(app: dash.Dash) -> None:
             dash.Output('login-password-fail-notification', 'data'),
             dash.Output('logout-success-notification', 'data')
         ],
-        dash.Input('language-dropdown', 'value'),
+        dash.Input({'type': 'language-button', 'index': dash.ALL}, 'n_clicks'),
         dash.State('number_hikes', 'data'),
         prevent_initial_call=True,
     )
-    def language_selection(lang: LANGUAGE, n_hikes: int) -> tuple[
-        str, str, str, str, 
+    def language_selection(_, n_hikes: int) -> tuple[
+        str, str, str, str, str,
         list[str], list[str], list[str], tuple[str],
         str, str, str, 
         str, str, str, str, str, str,
         dict, dict, dict, dict
-    ]:
+    ] | dash.NoUpdate:
         r'''
         Callback used when the language of the application is changed.
 
         :param value: new selected language
         :param n_hikes: total number of hike elements
         '''
+
+        ctx = dash.callback_context
+
+        if ctx is None or not ctx.triggered:
+            raise dash.exceptions.PreventUpdate
+
+        triggered_id = ctx.triggered_id
+
+        if not isinstance(triggered_id, dict):
+            raise dash.exceptions.PreventUpdate
+
+        lang = triggered_id['index']
 
         translation = app.language_handler[lang]
 
@@ -169,6 +182,7 @@ def register_language_callacks(app: dash.Dash) -> None:
         logout_sn   = logout_success_notification(translation)
 
         return (
+            lang,
             translation['topbar']['theme_switcher']['tooltip'],
             translation['menubar']['hike_panel_button']['tooltip'],
             translation['menubar']['hall_of_fame_button']['tooltip'],
@@ -375,7 +389,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.State('upload-hike-button', 'filename'),
         dash.State('hikelist-div', 'children'),
         dash.State('map', 'figure'),
-        dash.State('language-dropdown', 'value'),
+        dash.State('language', 'data'),
         dash.State('hikes_info', 'data'),
         prevent_initial_call = True
     )
@@ -545,7 +559,7 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         dash.State('login-success-notification', 'data'),
         dash.State('login-username-fail-notification', 'data'),
         dash.State('login-password-fail-notification', 'data'),
-        dash.State('language-dropdown', 'value'),
+        dash.State('language', 'data'),
         prevent_initial_call=True
     )
     def secure_login(

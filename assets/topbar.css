@@ -37,3 +37,26 @@
 #theme-toggle:hover {
     transform: scale(1.2);
 }
+
+#language-dropdown-hovercard-target {
+    cursor: pointer;
+}
+
+.language-element {
+    cursor: pointer;
+    margin: 0px;
+    padding: 5px;
+}
+
+.language-element:hover {
+    background-color: var(--custom-highlight-color);
+}
+
+#language-dropdown-hovercard-dropdown {
+    padding: 0;
+    gap: 0;
+}
+
+#language-dropdown {
+    gap: 0;
+}

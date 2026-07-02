@@ -31,21 +31,7 @@ def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.
 
     logo = dash.html.Img(src="/assets/logo.svg", className='logo')
 
-    language_selector = dmc.Select(
-        id         = 'language-dropdown',
-        data       = [
-            {
-                'label': language_handler.map_language_to_dropdown_text(lang),
-                'value': lang
-            }
-            for lang in language_handler.languages
-        ],
-        value      = language,  # Default selected value
-        clearable         = False,
-        searchable        = False,
-        autoSelectOnBlur  = False,
-        checkIconPosition = "right"
-    )
+    language_selector = language_selector_widget(language_handler, language)
 
     login_button = dmc.Button(
         translation['login_button']['text'],
@@ -89,3 +75,47 @@ def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.
         ],
         id = 'topbar'
     )
+
+def language_element(text: str, lang: LANGUAGE, checkmark: bool) -> dash.html.Div:
+    r'''
+    UI element in the custom language dropdown menu representing one language.
+
+    :param text: text to display (i.e. name of the language)
+    :param lang: language represented by the element
+    :param checkmark: whether to display a checkmark (True if selected)
+    '''
+
+    return dash.html.Div(
+        dmc.Button(
+            dmc.Group([
+                dmc.Text(text),
+                DashIconify(icon='material-symbols:check', style={'display' : 'flex' if checkmark else 'none'})]
+            ),
+            variant = 'subtle',
+            id      = {'type': 'language-button', 'index': lang},
+        ),
+        className = 'language-element',
+    )
+        
+
+def language_selector_widget(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.HoverCard:
+
+    language_elements = []
+    for lang in language_handler.languages:
+        language_elements.append(language_element(
+            language_handler.map_language_to_dropdown_text(lang),
+            lang,
+            language == lang
+        ))
+
+    stack_languages = dmc.Stack(language_elements, id = 'language-dropdown')
+
+    hover_card = dmc.HoverCard(
+        [
+            dmc.HoverCardTarget(DashIconify(icon='mdi:language', width=20)),
+            dmc.HoverCardDropdown(stack_languages)
+        ],
+        id = 'language-dropdown-hovercard'
+    )
+
+    return hover_card
