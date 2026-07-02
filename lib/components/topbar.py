@@ -1,10 +1,8 @@
 import dash
 import dash_mantine_components as     dmc
-from   flask                   import session
 from   dash_iconify            import DashIconify
 
 from   ..lang                  import LANGUAGE, LanguageHandler
-from   ..database              import get_username
 
 def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.Group:
     r'''
@@ -89,7 +87,11 @@ def language_element(text: str, lang: LANGUAGE, checkmark: bool) -> dash.html.Di
         dmc.Button(
             dmc.Group([
                 dmc.Text(text),
-                DashIconify(icon='material-symbols:check', style={'display' : 'flex' if checkmark else 'none'})]
+                DashIconify(
+                    icon   = 'material-symbols:check', 
+                    style  = {'display' : 'flex' if checkmark else 'none'},
+                    id     = {'type' : 'language-button-checkmark', 'index' : lang}
+                )]
             ),
             variant = 'subtle',
             id      = {'type': 'language-button', 'index': lang},

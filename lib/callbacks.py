@@ -9,6 +9,7 @@ from   plotly.colors           import qualitative
 from   .lang                   import LANGUAGE
 from   .io                     import parse_uploaded_file
 from   .components             import ui_layout, hikelist_element_layout
+from   .components.topbar      import language_element
 from   .components.map         import line_for_map, generate_map_figure
 from   .misc                   import check_if_hike_is_loaded
 from   .database               import (
@@ -142,7 +143,8 @@ def register_language_callacks(app: dash.Dash) -> None:
             dash.Output('login-success-notification', 'data'),
             dash.Output('login-username-fail-notification', 'data'),
             dash.Output('login-password-fail-notification', 'data'),
-            dash.Output('logout-success-notification', 'data')
+            dash.Output('logout-success-notification', 'data'),
+            dash.Output('language-dropdown', 'children', allow_duplicate=True)
         ],
         dash.Input({'type': 'language-button', 'index': dash.ALL}, 'n_clicks'),
         dash.State('number_hikes', 'data'),
@@ -153,7 +155,7 @@ def register_language_callacks(app: dash.Dash) -> None:
         list[str], list[str], list[str], tuple[str],
         str, str, str, 
         str, str, str, str, str, str,
-        dict, dict, dict, dict
+        dict, dict, dict, dict, list
     ] | dash.NoUpdate:
         r'''
         Callback used when the language of the application is changed.
@@ -207,7 +209,16 @@ def register_language_callacks(app: dash.Dash) -> None:
             login_sn,
             login_ufn,
             login_pfn,
-            logout_sn
+            logout_sn,
+
+            [
+                language_element(
+                    app.language_handler.map_language_to_dropdown_text(selected_lang),
+                    selected_lang,
+                    selected_lang == lang
+                )
+                for selected_lang in app.language_handler.languages
+            ]
         )
     
     return
