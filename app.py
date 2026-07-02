@@ -4,6 +4,7 @@ import glob
 import secrets
 import pathlib
 import argparse
+import datetime
 import dash_mantine_components   as     dmc
 
 from   lib.lang                  import load_languages, LanguageHandler, LANGUAGE, are_languages_correct
@@ -43,6 +44,12 @@ args = parser.parse_args()
 # Setup flask server and dash application
 server            = flask.Flask(__name__)
 server.secret_key = secrets.token_hex(32)  # Strong secret key
+server.config["SESSION_COOKIE_HTTPONLY"]      = True
+server.config["SESSION_COOKIE_SAMESITE"]      = "Lax"
+server.config["SESSION_PERMANENT"]            = True
+server.config["SESSION_REFRESH_EACH_REQUEST"] = True
+server.config["PERMANENT_SESSION_LIFETIME"]   = datetime.timedelta(hours=1)  # Session expires after 1 hour of inactivity
+
 app               = dash.Dash(__name__, server=server, external_stylesheets=None)
 
 default_language: LANGUAGE = args.language.lower()
@@ -53,17 +60,6 @@ translations     = load_languages(languages)
 
 app.language_handler = LanguageHandler(translations) # type: ignore
 
-# XXX Load hikes (temporary)
-'''
-hikes_data = load_hikes_from_directory()
-hikes_data_for_store = {
-    name : {
-        'zoom'   : data['zoom'],
-        'center' : [data['center'][0], data['center'][1]]
-    } for name, data in hikes_data.items()
-}
-'''
-
 language = dash.dcc.Store(id='language', data=default_language)
 
 language_store = [
@@ -72,7 +68,7 @@ language_store = [
 ]
 
 # Default translation at startup
-translation          = app.language_handler[default_language]
+translation = app.language_handler[default_language]
 
 notification_store = [
     dash.dcc.Store(id = 'login-success-notification',       data = login_success_notification(translation)),

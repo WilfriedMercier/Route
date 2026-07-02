@@ -5,7 +5,6 @@ import plotly.graph_objects    as     go
 from   urllib.parse            import urlparse, parse_qs
 from   flask                   import session
 from   plotly.colors           import qualitative
-from   copy                    import deepcopy
 
 from   .lang                   import LANGUAGE
 from   .io                     import parse_uploaded_file
@@ -15,6 +14,7 @@ from   .misc                   import check_if_hike_is_loaded
 from   .database               import (
     validate_credentials, 
     get_user_id, 
+    get_username,
     insert_hikes_into_db,
     execute_get_query
 )
@@ -60,13 +60,27 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
     '''
 
     @app.callback(
-        dash.Input('url', 'href')
+        [
+            dash.Output('login-button',  'style',    allow_duplicate=True),
+            dash.Output('logout-button', 'style',    allow_duplicate=True),
+            dash.Output('logout-button', 'children', allow_duplicate=True),
+
+            dash.Output('hikelist-div', 'children', allow_duplicate=True),
+            dash.Output('number_hikes', 'data', allow_duplicate=True),
+            dash.Output('hikes_info', 'data', allow_duplicate=True),
+            dash.Output('map', 'figure', allow_duplicate=True)
+        ],
+        dash.Input('url', 'href'),
+        dash.State('language-dropdown', 'value'),
+        prevent_initial_call = True
     )
-    def render_ui(url: str) -> None:
+    def render_ui(url: str, language: LANGUAGE
+        ) -> tuple[dict, dict, str, list, int, dict, go.Figure]:
         r'''
         Callback used at startup to define how the UI is rendered.
 
         :param url: url of the page
+        :param language: selected language
         '''
 
         parsed_url   = urlparse(url)
@@ -74,15 +88,26 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         token_list   = query_params.get('token')
 
         # No token in the url means the user is not asking to access a magic link
-        if (
-            token_list is None or 
-            len(token_list) != 1
-        ):
+        if (token_list is None or len(token_list) != 1):
             
-            print('Empty url')
-            return
+            # User session still active in the cookies
+            if 'user_id' in session:
 
-        print(token_list)
+                username = get_username(session['user_id'])
+
+                # All ui elements associated to the hikes
+                ui_elements = generate_hike_ui_elements_after_login(app, language)
+
+                return (
+                    {'display' : 'none'}, {'display' : 'flex'}, username,
+                    *ui_elements
+                )
+
+            # User session not active in the cookies
+            return ({'display' : 'flex'}, {'display' : 'none'}, '', [], 0, {}, generate_map_figure())
+        
+        # Magic link
+        return ({'display' : 'flex'}, {'display' : 'none'}, '', [], 0, {}, generate_map_figure())
         
     return
 
@@ -96,7 +121,6 @@ def register_language_callacks(app: dash.Dash) -> None:
 
     @app.callback(
         [
-            dash.Output('language', 'data'),
             dash.Output('theme-toggle-tooltip', 'label'),
             dash.Output('hike-panel-button-tooltip', 'label'),
             dash.Output('hall-of-fame-button-tooltip', 'label'),
@@ -124,7 +148,6 @@ def register_language_callacks(app: dash.Dash) -> None:
         prevent_initial_call=True,
     )
     def language_selection(lang: LANGUAGE, n_hikes: int) -> tuple[
-        LANGUAGE,
         str, str, str, str, 
         list[str], list[str], list[str], tuple[str],
         str, str, str, 
@@ -146,8 +169,6 @@ def register_language_callacks(app: dash.Dash) -> None:
         logout_sn   = logout_success_notification(translation)
 
         return (
-            lang,
-
             translation['topbar']['theme_switcher']['tooltip'],
             translation['menubar']['hike_panel_button']['tooltip'],
             translation['menubar']['hall_of_fame_button']['tooltip'],
@@ -354,7 +375,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.State('upload-hike-button', 'filename'),
         dash.State('hikelist-div', 'children'),
         dash.State('map', 'figure'),
-        dash.State('language', 'data'),
+        dash.State('language-dropdown', 'value'),
         dash.State('hikes_info', 'data'),
         prevent_initial_call = True
     )
@@ -546,8 +567,6 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
             dict | dash.NoUpdate,
             go.Figure | dash.NoUpdate
         ]:
-
-        print(password, username)
 
         # If one of the fields is empty, we let the page as is
         if password is None or username is None or password == '' or username == '':

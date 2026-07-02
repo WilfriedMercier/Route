@@ -1,14 +1,17 @@
 import dash
 import dash_mantine_components as     dmc
+from   flask                   import session
 from   dash_iconify            import DashIconify
 
 from   ..lang                  import LANGUAGE, LanguageHandler
+from   ..database              import get_username
 
 def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.Group:
     r'''
     Widget containing the top navigation bar of the application.
     
     :param language_handler: object containing the translation for topbar ui elements
+    :param language: language of the application
     '''
 
     translation = language_handler[language]['topbar']
@@ -54,23 +57,25 @@ def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.
     login_button_tooltip = dmc.Tooltip(
         login_button,
         id        = 'login-button-tooltip',
-        label     = translation['login_button']['tooltip'],
+        label     = translation['login_button']['tooltip'], 
     )
 
-    user_widget = dmc.Tooltip(
-        dmc.Button(
-            '', 
-            rightSection = DashIconify(icon='mdi:logout'), 
-            variant      = 'outline',
-            style        = {'display' : 'none'},
-            id           = 'logout-button'
-        ),
+    logout_button = dmc.Button(
+        '', 
+        rightSection = DashIconify(icon='mdi:logout'), 
+        variant      = 'outline',
+        style        = {'display' : 'none'},
+        id           = 'logout-button'
+    ),
+
+    logout_button_tooltip = dmc.Tooltip(
+        logout_button,
         label = translation['logout_button']['tooltip'],
         id    = 'logout-button-tooltip'
     )
 
     button_group = dmc.Group(
-        [user_widget, login_button_tooltip, language_selector, theme_switcher_tooltip],
+        [logout_button_tooltip, login_button_tooltip, language_selector, theme_switcher_tooltip],
         id = 'topbar-buttongroup'
     )
 

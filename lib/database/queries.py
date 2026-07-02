@@ -78,13 +78,22 @@ def execute_insert_query(
     except Exception as e: raise e
 
 def get_user_id(username: str) -> int: 
-    '''
+    r'''
     Return the identifier of the user.
 
     :param username: name of the user as it appears in the database
     '''
 
     return execute_get_query(f"SELECT id FROM users WHERE username = '{username}'")[0][0]
+
+def get_username(user_id: int) -> str:
+    r'''
+    Return the username of the user.
+
+    :param user_id: identifier of the user as it appears in the database
+    '''
+
+    return execute_get_query(f"SELECT username FROM users WHERE id = '{user_id}'")[0][0]
 
 def is_hike_in_db(user_id: int, hike_name: str) -> bool:
     r'''

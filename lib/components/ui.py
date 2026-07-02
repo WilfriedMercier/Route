@@ -9,11 +9,12 @@ from .      import (
     login_modal_layout
 )
 
-def ui_layout(language_handler: LanguageHandler, language: LANGUAGE):
+def ui_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.Stack:
     r'''
     Class responsible for building the user interface of the application.
     
-    :param langauge_handler: object handling the translation of the UI elements
+    :param language_handler: object handling the translation of the UI elements
+    :param language: language of the application
     '''
 
     distances, elevations        = [], []
