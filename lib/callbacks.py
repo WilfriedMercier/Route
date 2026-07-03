@@ -101,8 +101,10 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         # Case without a magic link
         if (token_list is None or len(token_list) != 1):
 
+            ui_elements = handle_without_magic_link(language)
+
             return (
-                *handle_without_magic_link(language), 
+                *ui_elements, 
                 {},
                 base_url
             )
@@ -171,7 +173,8 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         ui_elements = update_ui_after_multiple_hike_loads(
             app, property_dict, [],
             generate_map_figure().to_dict(), 
-            language, {}
+            language, {},
+            magic_link_state = True
         )
 
         # Create a new figure and update all ui elements related to hikes
@@ -201,7 +204,7 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
             username = Users_table.get_username_from_user_id(session['user_id'])
 
             # All ui elements associated to the hikes
-            ui_elements = generate_hike_ui_elements_after_login(app, language)
+            ui_elements = generate_hike_ui_elements_after_login(app, language, magic_link_state = False)
 
             return {'display' : 'none'}, {'display' : 'flex'}, username, *ui_elements
 
@@ -479,6 +482,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.Output('magic-link-modal', 'opened'),
         dash.Output('magic-link-copy-button', 'value'),
         dash.Output('magic-link-copy-button', 'children'),
+        #dash.Output('magic-link-copy-button-tooltip', 'label'),
         dash.Input({'type' : 'hikelist-share-button', 'index' : dash.ALL}, 'n_clicks'),
         dash.State('hike_names_list', 'data'),
         dash.State('base-url', 'data'),
@@ -821,10 +825,11 @@ def register_map_callbacks(app: dash.Dash) -> None:
     return
 
 def update_ui_after_single_hike_load(
-        pos_absolute  : int,
-        hike_name     : str,
-        properties    : dict | None,
-        language_dict : dict
+        pos_absolute     : int,
+        hike_name        : str,
+        properties       : dict | None,
+        language_dict    : dict,
+        magic_link_state : bool = False
     ) -> tuple[dmc.Space, go.Scattermapbox, dict[str, float | int]] | None:
     r'''
     Generate the new UI components that must be updated after a new hike has been loaded.
@@ -833,12 +838,12 @@ def update_ui_after_single_hike_load(
     :param hike_name: name of the hike
     :param properties: properties of the hike store in the Store
     :param language_dict: dictionary for the hikelist element
+    :param magic_link_state: True triggers a special UI for magic links, False triggers the normal UI
 
     :returns:
-
-    - hikelist element widget
-    - scatterboxmap object containing the trace for the map
-    - dictionary with hike information
+        - hikelist element widget
+        - scatterboxmap object containing the trace for the map
+        - dictionary with hike information
     '''
 
     # None means the parsing failed
@@ -852,7 +857,8 @@ def update_ui_after_single_hike_load(
         color,
         pos_absolute,
         False if pos_absolute > 0 else True,
-        language_dict
+        language_dict,
+        magic_link_state = magic_link_state
     )
 
     # Add a trace to the figure
@@ -873,12 +879,13 @@ def update_ui_after_single_hike_load(
     return widget, line, hike_info
 
 def update_ui_after_multiple_hike_loads(
-    app           : dash.Dash,
-    property_dict : dict[str, dict | None],
-    hike_widgets  : list,
-    map_dict      : dict,
-    language      : LANGUAGE,
-    hikes_info    : dict
+    app              : dash.Dash,
+    property_dict    : dict[str, dict | None],
+    hike_widgets     : list,
+    map_dict         : dict,
+    language         : LANGUAGE,
+    hikes_info       : dict,
+    magic_link_state : bool = False
 ) -> tuple[list, int, dict, go.Figure]:
     r'''
     Generate the new UI components that must be updated after many new hike have been loaded.
@@ -889,6 +896,7 @@ def update_ui_after_multiple_hike_loads(
     :param map_dict: dictionary representing the current state of the hike
     :param language_dict: dictionary for the hikelist element
     :param hikes_info: dictionary in Store with hike information such as center and zoom level
+    :param magic_link_state: True triggers a special UI for magic links, False triggers the normal UI
 
     :returns:
         - list of hike element widgets
@@ -910,7 +918,8 @@ def update_ui_after_multiple_hike_loads(
             pos_init + pos,
             hike_name,
             properties,
-            language_dict
+            language_dict,
+            magic_link_state=magic_link_state
         )
 
         if out is None: continue
@@ -944,10 +953,14 @@ def clear_ui_after_login() -> tuple[list, int, dict, go.Figure]:
     return [], 0, {}, figure
 
 def generate_hike_ui_elements_after_login(
-        app: dash.Dash, language: LANGUAGE
+        app: dash.Dash, language: LANGUAGE, magic_link_state: bool = False
     ) -> tuple[list[str], list, int, dict, go.Figure]:
     r'''
     Generate all the ui elements that need to be updated after login.
+
+    :param app: dash app
+    :param language: selected language
+    :param magic_link_state: True triggers a special UI for magic links, False triggers the normal UI
 
     :returns:
         - list of hike names in the same order as they appear in the hike list widget
@@ -983,7 +996,8 @@ def generate_hike_ui_elements_after_login(
     ui_elements = update_ui_after_multiple_hike_loads(
         app, property_dict, [],
         generate_map_figure().to_dict(), 
-        language, {}
+        language, {},
+        magic_link_state = magic_link_state
     )
 
     # Create a new figure and update all ui elements related to hikes

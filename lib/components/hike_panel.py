@@ -13,11 +13,12 @@ def hikelist_layout(language_dict : dict) -> dash.html.Div:
     return dash.html.Div([], className='hikelist-div', id='hikelist-div')
 
 def hikelist_element_layout(
-        hike_name     : str, 
-        color         : str, 
-        index         : int, 
-        is_selected   : bool,
-        language_dict : dict
+        hike_name        : str, 
+        color            : str, 
+        index            : int, 
+        is_selected      : bool,
+        language_dict    : dict,
+        magic_link_state : bool = False
     ) -> dmc.Space:
     r'''
     Widget containing a single hike shown in the sidebar.
@@ -27,6 +28,7 @@ def hikelist_element_layout(
     :param index: unique identifier for this widget
     :param is_selected: whether the hike is selected at startup or not (changes its default style)
     :param language_dict: dictionary containing the translation for the default language
+    :param magic_link_state: True hides the share button, False keeps it visible
     '''
 
     selected_style = {'backgroundColor': '#0D6EFD', 'color' : 'white'} 
@@ -65,9 +67,11 @@ def hikelist_element_layout(
         dmc.Button(
             DashIconify(icon='material-symbols:share', width=20),
             className = 'custom-button',
+            style     = {'display' : 'none' if magic_link_state else 'flex'},
             id        = {'type' : 'hikelist-share-button', 'index' : index}
         ),
         label     = language_dict['share_button']['tooltip'],
+        style     = {'display' : 'none' if magic_link_state else 'flex'},
         id        = {'type' : 'hikelist-share-button-tooltip', 'index' : index}
     )
 

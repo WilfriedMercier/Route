@@ -41,9 +41,10 @@ def magic_link_modal_layout(language_handler: dict) -> dmc.Modal:
     :param language_handler: object handling the translation of the UI elements
     '''
 
-    link = dmc.CopyButton('', value=None, variant='subtle', id = 'magic-link-copy-button')
+    link    = dmc.CopyButton('', value=None, variant='subtle', id = 'magic-link-copy-button')
+    #tooltip = dmc.Tooltip(link, id='magic-link-copy-button-tooltip', label='')
 
-    return dmc.Modal(
+    modal = dmc.Modal(
         dmc.Stack([
             dmc.Text(language_handler['text'], id='magic-link-modal-text'),
             link
@@ -51,3 +52,5 @@ def magic_link_modal_layout(language_handler: dict) -> dmc.Modal:
         title = language_handler['title'],
         id    = 'magic-link-modal'
     )
+
+    return modal
