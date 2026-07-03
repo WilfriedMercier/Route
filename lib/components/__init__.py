@@ -11,5 +11,6 @@ from .notifications import (
     logout_success_notification,
     hike_upload_success_notification,
     hike_upload_format_fail_notification,
-    hike_upload_already_there_fail_notification
+    hike_upload_already_there_fail_notification,
+    wrong_magic_link_notification
 )

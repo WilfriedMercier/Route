@@ -30,7 +30,7 @@ def login_modal_layout(language_handler: dict) -> dmc.Modal:
     return dmc.Modal(
         dmc.Stack([user_id_input, user_password_input, login_button]),
         id              = 'login-modal',
-        title           = language_handler['title']['text'],
+        title           = language_handler['title'],
         withCloseButton = True
     )
 

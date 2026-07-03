@@ -17,7 +17,8 @@ from   lib.components            import (
     logout_success_notification,
     hike_upload_success_notification,
     hike_upload_format_fail_notification,
-    hike_upload_already_there_fail_notification
+    hike_upload_already_there_fail_notification,
+    wrong_magic_link_notification
 )
 
 '''
@@ -73,7 +74,8 @@ notification_store = [
     dash.dcc.Store(id = 'logout-success-notification',      data = logout_success_notification(translation)),
     dash.dcc.Store(id = 'hike-load-success-notification',   data = hike_upload_success_notification(translation)),
     dash.dcc.Store(id = 'hike-load-format-fail-notification', data = hike_upload_format_fail_notification(translation)),
-    dash.dcc.Store(id = 'hike-load-already-there-fail-notification', data = hike_upload_already_there_fail_notification(translation))
+    dash.dcc.Store(id = 'hike-load-already-there-fail-notification', data = hike_upload_already_there_fail_notification(translation)),
+    dash.dcc.Store(id = 'wrong-magic-link-notification', data = wrong_magic_link_notification(translation))
 ]
 
 # Define layout of the application

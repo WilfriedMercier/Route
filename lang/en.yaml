@@ -1,11 +1,11 @@
 topbar:
   theme_switcher:
-    tooltip: Switch between light/dark modes
+    tooltip: Switch between light and dark themes
   login_button:
-    text: 'Login'
-    tooltip: 'Login to your account'
+    text: Login
+    tooltip: Login to your account
   logout_button:
-    tooltip: 'Logout'
+    tooltip: Logout of your account
 hike_panel:
   title: Available Hikes
   hide_button:
@@ -13,9 +13,9 @@ hike_panel:
   colorpicker:
     tooltip: Change the color of the hike on the map
   share_button:
-    tooltip: Share this hike
+    tooltip: Share this hike with others
   upload_button:
-    text: 'Drag and drop or click to upload hikes'
+    text: Click or drag and drop to upload hikes
 elevation_plot:
   xlabel: Distance (km)
   ylabel: Elevation (m)
@@ -29,8 +29,7 @@ menubar:
   hall_of_fame_button: 
     tooltip: Toggle the hall of fame panel
 login_modal:
-  title: 
-    text: 'Login'
+  title: Login to your account
   user_id_input:
     label: Enter your user ID
     placeholder: YourUserID
@@ -57,8 +56,12 @@ notifications:
     success:
       title: All hikes properly loaded
     fail:
-      title: 'Hike loading failed'
+      title: Hike loading failed
       format_error:
         text: 'The following file could not be parsed: '
       already_loaded_error:
         text: 'The following file is already loaded: '
+  magic_link:
+    fail:
+      title: Wrong shared link
+      text: No hike is associated to the magic link used in the url.

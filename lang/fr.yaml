@@ -1,11 +1,11 @@
 topbar:
   theme_switcher:
-    tooltip: Changer entre mode jour et nuit
+    tooltip: Changer de thème jour/nuit
   login_button:
-    text: 'Connexion'
-    tooltip: 'Connexion à son compte'
+    text: Connexion
+    tooltip: Se connecter à son espace personnel
   logout_button:
-    tooltip: 'Se déconnecter'
+    tooltip: Se déconnecter
 hike_panel:
   title: Randonnées disponibles
   hide_button:
@@ -15,7 +15,7 @@ hike_panel:
   share_button:
     tooltip: Partager cette randonnée
   upload_button:
-    text: 'Cliquez ou déposez pour charger des randonnées'
+    text: Cliquez ou faites glisser un fichier pour charger des randonnées
 elevation_plot:
   xlabel: Distance (km)
   ylabel: Altitude (m)
@@ -29,8 +29,7 @@ menubar:
   hall_of_fame_button: 
     tooltip: Ouvrir le panneau des statistiques
 login_modal:
-  title: 
-    text: 'Connexion'
+  title: Connexion à son compte
   user_id_input:
     label: Entrez votre identifiant
     placeholder: MonIdentifiant
@@ -38,14 +37,14 @@ login_modal:
     label: Entrez votre mot de passe
     placeholder: MonMotDePasse
   send_login_button:
-    text: 'Se connecter'
+    text: Se connecter à son compte
 magic_link_modal:
   title: Lien partageable
   text: Copiez et partagez le lien ci-dessous pour permettre à d'autres d'ouvrir la randonnée sur la carte
 notifications:
   login:
     fail:
-      title: Connexion échouée
+      title: Erreur de connexion
       username: Mauvais identifiant
       password: Mauvais mot de passe
     success:
@@ -57,8 +56,12 @@ notifications:
     success:
       title: Chargement des randonnées réussi
     fail:
-      title: 'Erreur de chargement des randonnées'
+      title: Erreur lors du chargement des randonnées
       format_error:
         text: 'Le fichier suivant ne peut pas être lu: '
       already_loaded_error:
         text: 'Le fichier suivant est déjà chargé: '
+  magic_link:
+    fail:
+      title: Mauvais lien de partage
+      text: Aucune randonnée n'est associée au lien magique fourni dans l'url.

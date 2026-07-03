@@ -69,21 +69,31 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         dash.Output('map', 'figure',            allow_duplicate=True),
 
         dash.Output('upload-hike-button', 'style', allow_duplicate=True),
+        dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
 
         dash.Output('base-url', 'data'),
 
         dash.Input('url', 'href'),
         dash.State('language', 'data'),
+        dash.State('wrong-magic-link-notification', 'data'),
 
         prevent_initial_call = True
     )
     def render_ui(
-            url      : str, 
-            language : LANGUAGE
+            url          : str, 
+            language     : LANGUAGE,
+            notification : dict
         ) -> tuple[
-            dict, dict, str, 
-            list[str], list, int, dict, go.Figure, 
-            dict[str, str], 
+            dict | dash.NoUpdate, 
+            dict | dash.NoUpdate, 
+            str | dash.NoUpdate, 
+            list[str] | dash.NoUpdate, 
+            list | dash.NoUpdate, 
+            int | dash.NoUpdate, 
+            dict | dash.NoUpdate, 
+            go.Figure | dash.NoUpdate, 
+            dict[str, str] | dash.NoUpdate, 
+            list[dict] | dash.NoUpdate,
             str
         ]:
         r'''
@@ -105,7 +115,7 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
 
             return (
                 *ui_elements, 
-                {},
+                {}, dash.no_update,
                 base_url
             )
     
@@ -116,12 +126,19 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         ui_elements = handle_with_magic_link(token_list[0], language)
 
         # Magic link incorrect
-        if ui_elements is None: raise dash.exceptions.PreventUpdate
+        if ui_elements is None: 
+            
+            return (
+                dash.no_update, dash.no_update, dash.no_update, 
+                dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update,
+                [notification], base_url
+            )
 
         return (
             {'display' : 'none'}, {'display' : 'none'}, '', 
-            *ui_elements, 
-            {'display' : 'none'},
+            *ui_elements, {},
+            dash.no_update,
             base_url
         )
         
@@ -300,7 +317,7 @@ def register_language_callacks(app: dash.Dash) -> None:
             translation['topbar']['login_button']['tooltip'],
             translation['topbar']['logout_button']['tooltip'],
 
-            translation['login_modal']['title']['text'],
+            translation['login_modal']['title'],
             translation['login_modal']['user_id_input']['label'],
             translation['login_modal']['user_id_input']['placeholder'],
             translation['login_modal']['user_password_input']['label'],

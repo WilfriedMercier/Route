@@ -117,3 +117,21 @@ def hike_upload_already_there_fail_notification(translation: dict) -> dict:
         'autoClose' : 4000,
         'icon'      : DashIconify(icon='si:error-duotone')
     }
+
+def wrong_magic_link_notification(translation: dict) -> dict:
+    r'''
+    Notification sent when the magic link in the url is not in the database.
+
+    :param translation: dictionary containing the text to show
+    '''
+    
+    return {
+        'title'     : translation['notifications']['magic_link']['fail']['title'],
+        'message'   : translation['notifications']['magic_link']['fail']['text'],
+        'position'  : 'top-center',
+        'action'    : 'show',
+        'color'     : 'red',
+        'autoClose' : False,
+        'withBorder' : True,
+        'icon'      : DashIconify(icon='si:error-duotone')
+    }
