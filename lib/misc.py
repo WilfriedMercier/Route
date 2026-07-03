@@ -1,6 +1,6 @@
 from   flask   import session
 
-from .database import is_hike_in_db
+from .database import Hikes_table
 
 def check_if_hike_is_loaded(hike_name: str, hike_list: list[str]):
     r'''
@@ -13,7 +13,7 @@ def check_if_hike_is_loaded(hike_name: str, hike_list: list[str]):
     '''
 
     # Case when the user is logged in
-    if 'user_id' in session: is_in_db = is_hike_in_db(session['user_id'], hike_name)
+    if 'user_id' in session: is_in_db = Hikes_table.is_hike_in_db(session['user_id'], hike_name)
 
     # Case when the user is not logged in
     else: is_in_db = hike_name in hike_list

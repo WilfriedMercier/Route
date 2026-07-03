@@ -6,7 +6,8 @@ from .      import (
     hike_panel_layout, 
     map_page_layout, 
     menubar_layout, 
-    login_modal_layout
+    login_modal_layout,
+    magic_link_modal_layout
 )
 
 def ui_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.Stack:
@@ -27,6 +28,7 @@ def ui_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.Stac
     hike_panel  = hike_panel_layout(translation['hike_panel'])
     menubar     = menubar_layout(translation['menubar'])
     login_modal = login_modal_layout(translation['login_modal'])
+    magic_modal = magic_link_modal_layout(translation['magic_link_modal'])
 
     #map_page.elevation_plot.add_elevation_data_to_plot(distances, elevations, color)
 
@@ -35,7 +37,8 @@ def ui_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.Stac
             topbar, 
             dmc.Group([map_page, menubar, hike_panel
             ], id = 'main-group'),
-            login_modal
+            login_modal,
+            magic_modal
         ],
         id = 'main-stack',
     )

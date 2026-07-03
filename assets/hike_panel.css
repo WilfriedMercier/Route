@@ -67,6 +67,10 @@
     cursor     : pointer;
 }
 
+.custom-upload:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
 .mantine-Drawer-content {
     display: flex;
     flex-direction: column;

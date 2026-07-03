@@ -21,11 +21,17 @@
     position      : absolute;
     top           : 30px;
     right         : 30px;
-    background    : white;
+    background    : var(--custom-background-color);
+    color         : var(--custom-text-color);
     padding       : 5px;
     border-radius : 10px;
     border        : 1px solid black;
     box-shadow    : 0 2px 5px rgba(0,0,0,0.2);
+    cursor        : pointer;
+}
+
+.div-map-style-selector > :first-child {
+    display: flex;
 }
 
 .map-style-button {

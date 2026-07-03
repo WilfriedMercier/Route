@@ -39,6 +39,9 @@ login_modal:
     placeholder: MonMotDePasse
   send_login_button:
     text: 'Se connecter'
+magic_link_modal:
+  title: Lien partageable
+  text: Copiez et partagez le lien ci-dessous pour permettre à d'autres d'ouvrir la randonnée sur la carte
 notifications:
   login:
     fail:

@@ -20,10 +20,6 @@ from   lib.components            import (
     hike_upload_already_there_fail_notification
 )
 
-TOKEN_DB = {
-    "share-endpoint": ['Lyon-Miribel', 'Lamure-Belleville'],
-}
-
 '''
 external_stylesheets = [
     dbc.themes.BOOTSTRAP,
@@ -86,6 +82,8 @@ app.layout   = dmc.MantineProvider(
         dash.dcc.Location(id='url', refresh=False),
         dash.dcc.Store(id='number_hikes', data = 0),
         dash.dcc.Store(id='hikes_info',   data = {}),
+        dash.dcc.Store(id='hike_names_list', data = []),
+        dash.dcc.Store(id='base-url', data=''),
         *language_store,
         *notification_store,
         dmc.NotificationContainer(id="notification-container"),
@@ -98,5 +96,5 @@ app.layout   = dmc.MantineProvider(
 )
 
 # Register all callbacks and run the application
-register_callbacks(app, TOKEN_DB)
+register_callbacks(app)
 app.run(debug=True)
