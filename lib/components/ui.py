@@ -1,4 +1,5 @@
-import dash_mantine_components as dmc
+import dash
+import dash_mantine_components as     dmc
 
 from ..lang import LANGUAGE, LanguageHandler
 from .      import (
@@ -10,7 +11,7 @@ from .      import (
     magic_link_modal_layout
 )
 
-def ui_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.Stack:
+def ui_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dash.html.Div:
     r'''
     Class responsible for building the user interface of the application.
     
@@ -20,25 +21,52 @@ def ui_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.Stac
 
     distances, elevations        = [], []
     color                        = 'black'
-    
-    translation                  = language_handler[language]
 
-    topbar      = topbar_layout(language_handler, language)
-    map_page    = map_page_layout()
+    translation = language_handler[language]
+    
     hike_panel  = hike_panel_layout(translation['hike_panel'])
-    menubar     = menubar_layout(translation['menubar'])
-    login_modal = login_modal_layout(translation['login_modal'])
     magic_modal = magic_link_modal_layout(translation['magic_link_modal'])
+    login_modal = login_modal_layout(translation['login_modal'])
 
     #map_page.elevation_plot.add_elevation_data_to_plot(distances, elevations, color)
 
-    return dmc.Stack(
+    appshell = appshell_layout(language_handler, language)
+
+    return dash.html.Div([
+        appshell, 
+        login_modal,
+        hike_panel,
+        magic_modal
+        ]
+    )
+
+def appshell_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.AppShell:
+    r'''
+    Class responsible for building the appshell part of the UI.
+    
+    :param language_handler: object handling the translation of the UI elements
+    :param language: language of the application
+    '''
+
+    translation = language_handler[language]
+
+    topbar      = topbar_layout(language_handler, language)
+    menubar     = menubar_layout(translation['menubar'])
+    map_page    = map_page_layout()
+
+    return dmc.AppShell(
         [
             topbar, 
-            dmc.Group([map_page, menubar, hike_panel
-            ], id = 'main-group'),
-            login_modal,
-            magic_modal
+            map_page, 
+            menubar,
         ],
-        id = 'main-stack',
+        header = {"height" : '4em'}, # type: ignore
+        navbar = {
+            'height'     : '10%', 
+            "breakpoint" : 9000, 
+            "collapsed"  : {"mobile": True, 'desktop' : True}, # type: ignore
+            'width'      : 'fit-content'
+        },
+        padding = '10px',
+        id      = 'appshell',
     )

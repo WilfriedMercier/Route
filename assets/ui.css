@@ -3,16 +3,14 @@
     justify-content  : space-between;
     align-items      : center;
     padding          : 10px;
-    border-bottom    : 1px solid var(--custom-primary-color);
 }
 
 #menubar {
-    border-left   : 1px solid var(--custom-primary-color);
     margin        : 0px;
-    padding       : 10px 0px 10px 10px;
+    padding       : 10px;
     align-content : initial;
     height        : 100%;
-            
+    width         : fit-content;    
 }
 
 #map-page {

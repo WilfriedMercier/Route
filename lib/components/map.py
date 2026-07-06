@@ -1,5 +1,5 @@
-import dash
 import dash_bootstrap_components as     dbc
+import dash_mantine_components   as     dmc
 import dash_leaflet              as     dl
 
 """
@@ -109,13 +109,16 @@ class ElevationPlot(BaseWidget):
         return
 """
 
-def map_page_layout() -> dbc.Stack:
+def map_page_layout() -> dmc.AppShellMain:
     r'''Widget containing the main content area of the application which contains the map and the elevation plot.'''
        
-    return dbc.Stack(
-        generate_leaflet_map_figure(), 
-        id = 'map-page'
-    ) #dash.html.Div(self._elevation_plot.layout) #, id='elevation-plot-flex-div')
+    return dmc.AppShellMain(
+            dbc.Stack(generate_leaflet_map_figure(), id = 'map-page')
+        #dash.html.Div(self._elevation_plot.layout) #, id='elevation-plot-flex-div')
+        ,
+        style = {'width' : '100%', 'height' : '100vh'},
+        id = 'appshell-main'
+    )
 
 def generate_leaflet_map_figure(
         lon  : float | None = None, 
@@ -149,7 +152,7 @@ def generate_leaflet_map_figure(
                 completedColor    = "#972158",
             ),
         ], 
-        center = [lat, lon], 
+        center = [lat, lon],  # type: ignore
         zoom   = zoom, 
         id     = 'map', 
         style  = {'zIndex': 0},

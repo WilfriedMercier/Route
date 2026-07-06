@@ -21,13 +21,6 @@ from   lib.components            import (
     wrong_magic_link_notification
 )
 
-'''
-external_stylesheets = [
-    dbc.themes.BOOTSTRAP,
-    'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css'
-]
-'''
-
 # Parse command-line arguments
 parser = argparse.ArgumentParser(
     prog        = 'Route',
@@ -59,11 +52,6 @@ app.language_handler = LanguageHandler(translations) # type: ignore
 
 language = dash.dcc.Store(id='language', data=default_language)
 
-language_store = [
-    language,
-
-]
-
 # Default translation at startup
 translation = app.language_handler[default_language]
 
@@ -86,13 +74,10 @@ app.layout   = dmc.MantineProvider(
         dash.dcc.Store(id='hikes_info',   data = {}),
         dash.dcc.Store(id='hike_names_list', data = []),
         dash.dcc.Store(id='base-url', data=''),
-        *language_store,
+        language,
         *notification_store,
         dmc.NotificationContainer(id="notification-container"),
-        dash.html.Div(
-            ui_layout(app.language_handler, default_language),
-            id = 'content-display'
-        )
+        ui_layout(app.language_handler, default_language),
     ]),
     theme={"primaryColor": "blue"}
 )

@@ -3,8 +3,9 @@ import dash_mantine_components as     dmc
 from   dash_iconify            import DashIconify
 
 from   ..lang                  import LANGUAGE, LanguageHandler
+from   .misc                   import login_button_layout
 
-def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.Group:
+def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.AppShellHeader:
     r'''
     Widget containing the top navigation bar of the application.
     
@@ -29,50 +30,28 @@ def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.
 
     logo = dash.html.Img(src="/assets/logo.svg", className='logo')
 
-    language_selector = language_selector_widget(language_handler, language)
-
-    login_button = dmc.Button(
-        translation['login_button']['text'],
-        id           = 'login-button',
-        rightSection = DashIconify(icon='mdi:user'),
-        variant      = 'outline',
-    )
-
-    login_button_tooltip = dmc.Tooltip(
-        login_button,
-        id        = 'login-button-tooltip',
-        label     = translation['login_button']['tooltip'], 
-    )
-
-    logout_button = dmc.Button(
-        '', 
-        rightSection = DashIconify(icon='mdi:logout'), 
-        variant      = 'outline',
-        style        = {'display' : 'none'},
-        id           = 'logout-button'
-    ),
-
-    logout_button_tooltip = dmc.Tooltip(
-        logout_button,
-        label = translation['logout_button']['tooltip'],
-        id    = 'logout-button-tooltip'
-    )
+    language_selector    = language_selector_widget(language_handler, language)
+    login_button_tooltip = login_button_layout(translation = language_handler[language]['login_logout_buttons'])
 
     button_group = dmc.Group(
-        [logout_button_tooltip, login_button_tooltip, language_selector, theme_switcher_tooltip],
+        [login_button_tooltip, language_selector, theme_switcher_tooltip],
         id = 'topbar-buttongroup'
     )
 
-    return dmc.Group(
+    burger = dmc.Burger(id='burger', opened=False)
+
+    group = dmc.Group(
         [
             dmc.Group(
-                [logo, dmc.Title('Route', order=1, className='title')], 
+                [burger, logo, dmc.Title('Route', order=1, className='title')], 
                 id = 'logo-title-group'
             ),
             button_group
         ],
         id = 'topbar'
     )
+
+    return dmc.AppShellHeader(group, id = 'appshell-header')
 
 def language_element(text: str, lang: LANGUAGE, checkmark: bool) -> dash.html.Div:
     r'''

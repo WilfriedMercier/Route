@@ -1,11 +1,6 @@
 topbar:
   theme_switcher:
     tooltip: Switch between light and dark themes
-  login_button:
-    text: Login
-    tooltip: Login to your account
-  logout_button:
-    tooltip: Logout of your account
 hike_panel:
   title: Available Hikes
   hide_button:
@@ -24,9 +19,11 @@ elevation_plot:
     remaining_distance: Remaining distance
     elevation: Elevation
 menubar:
-  hike_panel_button: 
+  hike_panel_button:
+    text: Hikes
     tooltip: Toggle the hike list panel
   hall_of_fame_button: 
+    text: Statistics
     tooltip: Toggle the hall of fame panel
 login_modal:
   title: Login to your account
@@ -65,3 +62,9 @@ notifications:
     fail:
       title: Wrong shared link
       text: No hike is associated to the magic link used in the url.
+login_logout_buttons:
+  login:
+    text: Login
+    tooltip: Login to your account
+  logout:
+    tooltip: Logout of your account

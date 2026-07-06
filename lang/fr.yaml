@@ -25,8 +25,10 @@ elevation_plot:
     elevation: Altitude
 menubar:
   hike_panel_button: 
+    text: Randonnées
     tooltip: Ouvrir le panneau des randonnées
   hall_of_fame_button: 
+    text: Statistiques
     tooltip: Ouvrir le panneau des statistiques
 login_modal:
   title: Connexion à son compte
@@ -65,3 +67,9 @@ notifications:
     fail:
       title: Mauvais lien de partage
       text: Aucune randonnée n'est associée au lien magique fourni dans l'url.
+login_logout_buttons:
+  login:
+    text: Connexion
+    tooltip: Se connecter à son espace personnel
+  logout:
+    tooltip: Se déconnecter de son espace personnel

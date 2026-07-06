@@ -1,7 +1,7 @@
 import dash_mantine_components as     dmc
 from   dash_iconify            import DashIconify
 
-def menubar_layout(language_dict: dict) -> dmc.Stack:
+def menubar_layout(language_dict: dict) -> dmc.AppShellNavbar:
     '''
     Initialize the layout of the menubar component.
 
@@ -9,11 +9,11 @@ def menubar_layout(language_dict: dict) -> dmc.Stack:
     '''
 
     hike_panel_button = dmc.Button(
-        DashIconify(icon='gis:hiker', height=28, width=28),
-        id        = 'hike-panel-button',
-        size      = 'lg',
-        variant   = 'outline',
-        className = 'menubar-button',
+        language_dict['hike_panel_button']['text'],
+        leftSection = DashIconify(icon='gis:hiker', height=28, width=28),
+        id          = 'hike-panel-button',
+        size        = 'md',
+        variant     = 'outline',
     )
 
     hike_panel_button_tooltip = dmc.Tooltip(
@@ -23,12 +23,12 @@ def menubar_layout(language_dict: dict) -> dmc.Stack:
     )
 
     hall_of_fame_button = dmc.Button(
-        DashIconify(icon='mdi:achievement-outline', height=28, width=28),
-        id        = 'hof-button',
-        size      = 'lg',
-        variant   = 'outline',
-        className = 'menubar-button',
-        disabled  = True
+        language_dict['hall_of_fame_button']['text'],
+        leftSection = DashIconify(icon='mdi:achievement-outline', height=28, width=28),
+        id          = 'hall-of-fame-button',
+        size        = 'md',
+        variant     = 'outline',
+        disabled    = True
     )
 
     hall_of_fame_button_tooltip = dmc.Tooltip(
@@ -38,7 +38,13 @@ def menubar_layout(language_dict: dict) -> dmc.Stack:
         id       = 'hall-of-fame-button-tooltip'
     )
 
-    return dmc.Stack(
+    stack = dmc.Stack(
         [hike_panel_button_tooltip, hall_of_fame_button_tooltip],
         id = 'menubar'
+    ) 
+
+    return dmc.AppShellNavbar(
+        stack,
+        style = {'width' : 'fit-content'},
+        id    = 'navbar'
     )
