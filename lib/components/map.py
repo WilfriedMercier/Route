@@ -1,106 +1,6 @@
 import dash
-import plotly.graph_objects      as     go
-import dash_mantine_components   as     dmc
 import dash_bootstrap_components as     dbc
-from   dash_iconify              import DashIconify
-
-def map_style_button_layout(style: str) -> dmc.Button:
-    r'''
-    Custom button widget used in the widget allowing to switch map styles.
-
-    :param style: default style
-    '''
-
-    figure = go.Figure()
-    figure.update_layout(   
-        template      = 'plotly_white',
-        paper_bgcolor = 'white',
-        plot_bgcolor  = 'white',
-        font          = {'color' : '#2c3e50', 'family' : 'Open Sans, sans-serif'},
-        margin        = {'l' : 0, 'r' : 0, 't' : 0, 'b' : 0},
-        width         = 50,
-        height        = 150,
-        mapbox        = {
-            'center' : {'lat' : 41.89860997999514, 'lon' : 12.477528109879714}, 
-            'zoom'   : 14,
-            'style'  : style
-        }
-    )
-
-    figure.add_trace(
-        go.Scattermapbox(
-            lat       = [41.89860997999514], 
-            lon       = [12.477528109879714],
-            mode      ='markers',
-            marker    = {'size' : 1, 'color' : 'rgba(0,0,0,0)'}, # Invisible dot to trigger render
-            hoverinfo = 'none'
-        )
-    )
-
-    graph = dash.dcc.Graph(
-        figure = figure,
-        config = {'staticPlot' : True}
-    )
-
-    return dmc.Button(
-        graph, 
-        className = 'map-style-button',
-        id        = {'type' : 'map-style-button', 'index' : style}
-    )
-    
-def map_style_selector_layout() -> dash.html.Div:
-    r'''A widget that allows to select different map styles.'''
-
-    buttons = []
-
-    for pos, style in enumerate(('carto-positron', 'carto-darkmatter', 'open-street-map')):
-        buttons.append(map_style_button_layout(style))
-
-    return dash.html.Div(
-        dmc.HoverCard([
-                dmc.HoverCardTarget(DashIconify(icon='fluent-mdl2:map-layers', height=35, width=35)),
-                dmc.HoverCardDropdown(buttons, style={'height' : '75px'}),
-            ],
-            position = 'left'
-        ),
-        className = 'div-map-style-selector'
-    )
-
-def map_layout():
-    r'''Widget containing the map figure.'''
-
-    fig = generate_map_figure()
-
-    style_selector = map_style_selector_layout()
-
-    return dash.html.Div([
-            dash.dcc.Graph(
-                id     = 'map',
-                figure = fig,
-                config = {'displayModeBar': False, 'scrollZoom': True}
-            ),
-            style_selector
-        ],
-        className = 'div-full-relative'
-    )
-    
-def add_hike_to_map(fig: go.Figure, hike_name: str, hike_data: dict) -> None:
-    r'''
-    Add a single hike to the map figure.
-    
-    :param fig: map figure
-    :param hike_name: name of the hike
-    :param hike_data: dictionary with hike properties
-    '''
-
-    lat   = [coord[0] for coord in hike_data['coords']]
-    lon   = [coord[1] for coord in hike_data['coords']]
-    color = hike_data['color']
-
-    # Use Scattermapbox for Plotly mapbox-based figures
-    fig.add_trace(line_for_map(hike_name, lon, lat, color))
-
-    return
+import dash_leaflet              as     dl
 
 """
 class ElevationPlot(BaseWidget):
@@ -211,44 +111,19 @@ class ElevationPlot(BaseWidget):
 
 def map_page_layout() -> dbc.Stack:
     r'''Widget containing the main content area of the application which contains the map and the elevation plot.'''
-
-    map = map_layout()
        
-    return dbc.Stack(map, id = 'map-page') #dash.html.Div(self._elevation_plot.layout) #, id='elevation-plot-flex-div')
+    return dbc.Stack(
+        generate_leaflet_map_figure(), 
+        id = 'map-page'
+    ) #dash.html.Div(self._elevation_plot.layout) #, id='elevation-plot-flex-div')
 
-def line_for_map(
-        name  : str,
-        lon   : list[float], 
-        lat   : list[float],
-        color : str
-    ) -> go.Scattermapbox:
-    r'''
-    Create a Scattermapbox line plot with a predefined style to add to the map figure.
-
-    :param name: name of the trace
-    :param lon: longitudes to plot
-    :param lat: latitudes to plot
-    :param color: color of the line
-    '''
-    
-    return go.Scattermapbox(
-        mode       = "lines",
-        lon        = lon,
-        lat        = lat,
-        showlegend = False,
-        line       = {'width' : 4, 'color' : color},
-        opacity    = 1,
-        hoverinfo  = 'none',
-        name       = name
-    )
-
-def generate_map_figure(
+def generate_leaflet_map_figure(
         lon  : float | None = None, 
         lat  : float | None = None,
         zoom : int   | None = None
-    ) -> go.Figure:
+    ) -> dl.Map:
     r'''
-    Generate an empty figure serving as baseline every time the map has to be updated.
+    Generate an empty leaflet figure serving as baseline every time the map has to be updated.
 
     :param lon: center's longitude
     :param lat: center's latitude
@@ -259,21 +134,72 @@ def generate_map_figure(
     if lat is None  : lat  = 45.7640
     if zoom is None : zoom = 10
 
-    figure = go.Figure(
-        layout = {
-            'template'      : 'plotly_white',
-            'mapbox'        : {
-                    'style' : 'open-street-map', 
-                    'center' : {'lat' : lat, 'lon' : lon}, 
-                    'zoom' : zoom
-            },
-            'paper_bgcolor' : 'white',
-            'plot_bgcolor'  : 'white',
-            'font'          : {'color' : '#2c3e50', 'family' : 'Open Sans, sans-serif'},
-            'margin'        : {'l' : 0, 'r' : 0, 't' : 0, 'b' : 0},
-        }
-    )
+    layer_control = generate_layer_control()
 
-    figure.add_trace(go.Scattermapbox(lon=[], lat=[]))
-
+    figure = dl.Map(children=[
+            layer_control, 
+            dl.FullScreenControl(),
+            dl.ScaleControl(position="bottomright"),
+            dl.LocateControl(locateOptions={"enableHighAccuracy": True}),
+            dl.MeasureControl(
+                position          = "topleft",
+                primaryLengthUnit = "kilometers",
+                primaryAreaUnit   = "hectares",
+                activeColor       = "#214097",
+                completedColor    = "#972158",
+            ),
+        ], 
+        center = [lat, lon], 
+        zoom   = zoom, 
+        id     = 'map', 
+        style  = {'zIndex': 0},
+    ) # type: ignore
+    
     return figure
+
+def generate_base_layers() -> list[dl.BaseLayer | dl.LayerGroup]:
+    r'''Generate the base layers used as map background.'''
+
+    return [
+        dl.BaseLayer(
+            dl.TileLayer(url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", attribution='© OpenStreetMap contributors'),
+            name    = "OSM", # type: ignore
+            checked = True
+        ),
+        dl.BaseLayer(
+            dl.TileLayer(url='https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attribution='© OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)'),
+            name    = "Open topo", # type: ignore
+            checked = False
+        ),
+        dl.BaseLayer(
+            dl.TileLayer(url='https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}.png', attribution='© Stadia Maps © Stamen Design © OpenMapTiles © OpenStreetMap contributors '),
+            name    = "Stamen toner", # type: ignore
+            checked = False
+        ),
+        dl.BaseLayer(
+            dl.TileLayer(url='https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg', attribution='© Stadia Maps © Stamen Design © OpenStreetMap contributors '),
+            name    = "Stamen watercolor", # type: ignore
+            checked = False
+        ),
+        dl.BaseLayer(
+            dl.TileLayer(url='https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png', attribution='© Stadia Maps © Stamen Design © OpenMapTiles © OpenStreetMap contributors '),
+            name    = "Stamen terrain", # type: ignore
+            checked = False
+        ),
+    ]
+
+def generate_layer_control(poly_lines: list[dl.Polyline] = []) -> dl.LayersControl:
+    r'''
+    Generate the layer control that contains map styles and hike paths.
+
+    :param poly_lines: hike paths to show on the map
+    '''
+
+    layers = generate_base_layers()
+    layers.append(dl.LayerGroup(poly_lines, id='map-polylines'))
+
+    return dl.LayersControl(
+        layers,
+        position = "topright",
+        id       = 'map-layer-control'
+    )
