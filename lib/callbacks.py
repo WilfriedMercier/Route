@@ -3,14 +3,15 @@ import pathlib
 import dash_mantine_components as     dmc
 import plotly.graph_objects    as     go
 import dash_leaflet            as     dl
+import numpy                   as     np
 from   urllib.parse            import urlparse, parse_qs
 from   flask                   import session
 from   plotly.colors           import qualitative
+from   dash_iconify            import DashIconify
 
 from   .lang                   import LANGUAGE
 from   .io                     import parse_uploaded_file
-from   .components             import hikelist_element_layout
-from   .components.topbar      import language_element
+from   .components             import hikelist_element_layout, language_element
 from   .misc                   import check_if_hike_is_loaded
 from   .database               import (
     Hikes_table,
@@ -19,6 +20,7 @@ from   .database               import (
     validate_credentials, 
     execute_get_query,
 )
+
 from   .components             import (
     login_success_notification,
     login_username_fail_notification,
@@ -40,12 +42,22 @@ def register_callbacks(app : dash.Dash) -> None:
     
     register_ui_init_callbacks(app)
     register_login_modal_callbacks(app)
-    register_topbar_callbacks(app)
     register_menubar_callbacks(app)
     register_hike_drawer_callbacks(app)
     register_upload_hike_callbacks(app)
     register_magic_link_modal_callbacks(app)
     register_language_callacks(app)
+    register_login_buttons_callbacks(app)
+    register_burger_callbacks(app)
+
+    return
+
+def register_burger_callbacks(app: dash.Dash) -> None:
+    r'''
+    Register all callbacks that define the behaviour of the burger component in the topbar.
+
+    :param app: dash application
+    '''
 
     @app.callback(
         dash.Output("appshell", "navbar"),
@@ -67,8 +79,7 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
     '''
 
     @app.callback(
-        dash.Output('login-button',  'style',    allow_duplicate=True),
-        dash.Output('login-button',  'children', allow_duplicate=True),
+        dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'style', allow_duplicate=True),
 
         dash.Output('hike_names_list',   'data',     allow_duplicate=True),
         dash.Output('hikelist-div',      'children', allow_duplicate=True),
@@ -93,8 +104,7 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
             language     : LANGUAGE,
             notification : dict
         ) -> tuple[
-            dict              | dash.NoUpdate,
-            str               | dash.NoUpdate,
+            tuple[dict, dict] | tuple[dash.NoUpdate, dash.NoUpdate],
             list[str]         | dash.NoUpdate, 
             list              | dash.NoUpdate, 
             int               | dash.NoUpdate, 
@@ -123,8 +133,8 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
             ui_elements = handle_without_magic_link(language)
 
             return (
-                *ui_elements, 
-                {}, dash.no_update,
+                *ui_elements, {}, 
+                dash.no_update,
                 base_url
             )
     
@@ -138,7 +148,7 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         if ui_elements is None: 
             
             return (
-                dash.no_update, dash.no_update,
+                (dash.no_update, dash.no_update), 
                 dash.no_update, dash.no_update, dash.no_update, dash.no_update,
                 dash.no_update, 
                 dash.no_update, [notification], 
@@ -147,7 +157,7 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
 
         # Magic link is correct
         return (
-            {'display' : 'none'}, dash.no_update,
+            ({'display' : 'none'}, {'display' : 'none'}), 
             *ui_elements, {'display' : 'none'},
             dash.no_update,
             base_url
@@ -208,14 +218,14 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         return hike_names, *ui_elements
 
     def handle_without_magic_link(language: LANGUAGE
-    ) -> tuple[dict[str, str], str | dash.NoUpdate, list[str], list, int, dict, list[dl.Polyline]]:
+    ) -> tuple[tuple[dict[str, str], dict[str, str]], list[str], list, int, dict, list[dl.Polyline]]:
         '''
         Handle the rendering of the UI elements when the user is not connecting with a magic link.
 
         :param language: selected language
 
         :returns:
-            - dictionary with the style for the login button
+            - two dictionaries with the style for the login buttons
             - text for the login/logout button if user is connected
             - list of hike names
             - list of hike widgets
@@ -232,10 +242,16 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
             # All ui elements associated to the hikes
             ui_elements = generate_hike_ui_elements_after_login(app, language, magic_link_state = False)
 
-            return {'display' : 'none'}, username, *ui_elements
+            return (
+                ({'display' : 'none'}, {'display' : 'none'}),
+                *ui_elements
+            )
 
         # User session not active in the cookies
-        return ({'display' : 'flex'}, dash.no_update, [], [], 0, {}, [])
+        return (
+            ({'display' : 'flex'}, {'display' : 'flex'}),
+            [], [], 0, {}, []
+        )
 
     return
 
@@ -256,23 +272,28 @@ def register_language_callacks(app: dash.Dash) -> None:
         dash.Output('hall-of-fame-button', 'children'),
         dash.Output('hall-of-fame-button-tooltip', 'label'),
         dash.Output('hike-panel', 'title'),
+
         dash.Output({'type' : 'hikelist-hide-button-tooltip',  'index' : dash.ALL}, 'label'),
         dash.Output({'type' : 'hikelist-colorpicker-tooltip',  'index' : dash.ALL}, 'label'),
         dash.Output({'type' : 'hikelist-share-button-tooltip', 'index' : dash.ALL}, 'label'),
         dash.Output('upload-hike-button', 'children'),
-        dash.Output('login-button', 'children', allow_duplicate=True),
-        dash.Output('login-button-tooltip', 'label', allow_duplicate=True),
+
+        dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'children', allow_duplicate=True),
+        dash.Output({'type' : 'login-button-tooltip', 'index' : dash.ALL}, 'label', allow_duplicate=True),
+
         dash.Output('login-modal', 'title'),
         dash.Output('login-modal-id-input', 'label'),
         dash.Output('login-modal-id-input', 'placeholder'),
         dash.Output('login-modal-password-input', 'label'),
         dash.Output('login-modal-password-input', 'placeholder'),
         dash.Output('send-login-button', 'children'),
+
         dash.Output('login-success-notification', 'data'),
         dash.Output('login-username-fail-notification', 'data'),
         dash.Output('login-password-fail-notification', 'data'),
         dash.Output('logout-success-notification', 'data'),
-        dash.Output('language-dropdown', 'children', allow_duplicate=True),
+
+        dash.Output({'type' : 'language-dropdown', 'index' : dash.ALL}, 'children', allow_duplicate=True),
         dash.Output('magic-link-modal-text', 'children'),
         dash.Output('magic-link-modal', 'title'),
   
@@ -285,9 +306,10 @@ def register_language_callacks(app: dash.Dash) -> None:
         str, 
         str, str, str, str, str, str,
         list[str], list[str], list[str], tuple[str],
-        str | dash.NoUpdate, str,
+        tuple[str, dash.NoUpdate] | tuple[dash.NoUpdate, dash.NoUpdate], tuple[str, str],
         str, str, str, str, str, str,
-        dict, dict, dict, dict, list,
+        dict, dict, dict, dict, 
+        tuple[list, list],
         str, str
     ]:
         r'''
@@ -307,13 +329,26 @@ def register_language_callacks(app: dash.Dash) -> None:
 
         if not isinstance(triggered_id, dict): raise dash.exceptions.PreventUpdate
 
-        lang        = triggered_id['index']
-        translation = app.language_handler[lang]
+        lang : LANGUAGE = triggered_id['index'].split('-')[-1]
+        translation     = app.language_handler[lang]
 
         login_sn    = login_success_notification(translation)
         login_ufn   = login_username_fail_notification(translation)
         login_pfn   = login_password_fail_notification(translation)
         logout_sn   = logout_success_notification(translation)
+
+        login_button_text    = translation['login_logout_buttons']['login']['text'] if 'user_id' not in session else dash.no_update
+        login_button_tooltip = translation['login_logout_buttons']['logout' if 'user_id' in session else 'login']['tooltip']
+        
+        language_dropdown = [
+            language_element(
+                triggered_id['index'],
+                app.language_handler.map_language_to_dropdown_text(selected_lang),
+                selected_lang,
+                selected_lang == lang
+            )
+            for selected_lang in app.language_handler.languages
+        ]
 
         return (
             lang,
@@ -329,8 +364,8 @@ def register_language_callacks(app: dash.Dash) -> None:
             [translation['hike_panel']['share_button']['tooltip']] * n_hikes,
             (translation['hike_panel']['upload_button']['text'],),
 
-            translation['login_logout_buttons']['login']['text'] if 'user_id' not in session else dash.no_update,
-            translation['login_logout_buttons']['logout' if 'user_id' in session else 'login']['tooltip'],
+            (login_button_text, login_button_text),
+            (login_button_tooltip, login_button_tooltip),
 
             translation['login_modal']['title'],
             translation['login_modal']['user_id_input']['label'],
@@ -344,14 +379,7 @@ def register_language_callacks(app: dash.Dash) -> None:
             login_pfn,
             logout_sn,
 
-            [
-                language_element(
-                    app.language_handler.map_language_to_dropdown_text(selected_lang),
-                    selected_lang,
-                    selected_lang == lang
-                )
-                for selected_lang in app.language_handler.languages
-            ],
+            (language_dropdown, language_dropdown),
 
             translation['magic_link_modal']['text'],
             translation['magic_link_modal']['title']
@@ -388,6 +416,8 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
     @app.callback(
         dash.Output({'type' : 'hikelist-button', 'index' : dash.ALL}, 'style'),
         dash.Output('map', 'center'),
+        dash.Output("burger", "opened"),
+        dash.Output('hike-panel', 'opened', allow_duplicate=True),
         #dash.Output('map', 'zoom'),
 
         dash.Input( {'type' : 'hikelist-button', 'index' : dash.ALL}, 'n_clicks'),
@@ -399,7 +429,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
     )
     def hike_button(
         _, n_hikes: int, hikes_info: dict, hike_names: list[str]
-    ) -> tuple[list[dict[str, str]], tuple[float, float]]:
+    ) -> tuple[list[dict[str, str]], tuple[float, float], bool, bool]:
         r'''
         Callback used when a hike is selected in the hike list.
 
@@ -423,7 +453,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         name = hike_names[clicked_index]
         info = hikes_info[name]
 
-        return styles, (info['lat'], info['lon'])#, info['zoom']
+        return styles, (info['lat'], info['lon']), False, False#, info['zoom']
     
     @app.callback(
         dash.Output({'type' : 'map-trace', 'index' : dash.ALL}, 'pathOptions', allow_duplicate=True),
@@ -626,7 +656,7 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
             [notification] # pyright: ignore[reportReturnType]
         )
 
-def register_topbar_callbacks(app: dash.Dash) -> None:
+def register_login_buttons_callbacks(app: dash.Dash) -> None:
     '''
     Register all callbacks associated to widgets in the topbar.
 
@@ -634,9 +664,9 @@ def register_topbar_callbacks(app: dash.Dash) -> None:
     '''
 
     @app.callback(
-        dash.Output('login-modal',  'opened',        allow_duplicate=True),
-        dash.Output('login-button', 'children',      allow_duplicate=True),
-        dash.Output('login-button-tooltip', 'label', allow_duplicate=True),
+        dash.Output('login-modal', 'opened', allow_duplicate=True),
+        dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'children', allow_duplicate=True),
+        dash.Output({'type' : 'login-button-tooltip', 'index' : dash.ALL}, 'label', allow_duplicate=True),
 
         dash.Output( 'map-polylines', 'children', allow_duplicate=True),
 
@@ -645,7 +675,7 @@ def register_topbar_callbacks(app: dash.Dash) -> None:
         dash.Output('number_hikes',      'data',     allow_duplicate=True),
         dash.Output('hikes_info',        'data',     allow_duplicate=True),
 
-        dash.Input( 'login-button', 'n_clicks'),
+        dash.Input( {'type' : 'login-button', 'index' : dash.ALL}, 'n_clicks'),
         dash.State( 'login-modal',  'opened'),
         dash.State( 'language',     'data'),
         prevent_initial_call=True
@@ -656,9 +686,11 @@ def register_topbar_callbacks(app: dash.Dash) -> None:
             language : LANGUAGE
         ) -> tuple[
             bool, 
-            str  | dash.NoUpdate, 
-            str  | dash.NoUpdate, 
+            tuple[str, DashIconify] | tuple[dash.NoUpdate, dash.NoUpdate], 
+            tuple[str, str] | tuple[dash.NoUpdate, dash.NoUpdate],
+
             list | dash.NoUpdate, 
+
             list | dash.NoUpdate, 
             list | dash.NoUpdate, 
             int  | dash.NoUpdate, 
@@ -677,17 +709,25 @@ def register_topbar_callbacks(app: dash.Dash) -> None:
             session.clear()
 
             translation = app.language_handler[language]
-            
+
+            login_button_text    = translation['login_logout_buttons']['login']['text']
+            login_button_tooltip = translation['login_logout_buttons']['login']['tooltip']
+
             return (
                 False, 
-                translation['login_logout_buttons']['login']['text'], 
-                translation['login_logout_buttons']['login']['tooltip'],
+                (login_button_text, login_button_text), 
+                (login_button_tooltip, login_button_tooltip),
                 [],
                 [], [], 0, {}
             )
 
         # Handle login button click
-        return not opened, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        return (
+            not opened, 
+            (dash.no_update, dash.no_update), (dash.no_update, dash.no_update), 
+            dash.no_update, 
+            dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        )
 
 def register_magic_link_modal_callbacks(app: dash.Dash) -> None:
     r'''Register all callbacks associated with widgets in the magic link modal.'''
@@ -720,15 +760,15 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         }
         """,
         dash.Output("login-modal-id-input", "key"),  # dummy output
-        dash.Input("login-button", "n_clicks"),
+        dash.Input({'type' : "login-button", 'index' : dash.ALL}, "n_clicks"),
     )
 
     @app.callback(
         dash.Output('login-modal', 'opened', allow_duplicate=True),
         dash.Output('notification-container', 'sendNotifications'),
 
-        dash.Output('login-button', 'children'),
-        dash.Output('login-button-tooltip', 'label'),
+        dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'children'),
+        dash.Output({'type' : 'login-button-tooltip', 'index' : dash.ALL}, 'label'),
 
         dash.Output('hike_names_list', 'data', allow_duplicate=True),
         dash.Output('hikelist-div', 'children', allow_duplicate=True),
@@ -740,6 +780,7 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         dash.Input('send-login-button', 'n_clicks'),
         dash.Input('login-modal-id-input', 'n_submit'),
         dash.Input('login-modal-password-input', 'n_submit'),
+
         dash.State('login-modal-id-input', 'value'),
         dash.State('login-modal-password-input', 'value'),
         dash.State('login-success-notification', 'data'),
@@ -761,8 +802,8 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
             bool, 
             list[dict] | dash.NoUpdate, 
 
-            str | dash.NoUpdate,
-            str | dash.NoUpdate,
+            tuple[str, str] | tuple[dash.NoUpdate, dash.NoUpdate],
+            tuple[str, str] | tuple[dash.NoUpdate, dash.NoUpdate],
             
             list[str] | dash.NoUpdate,
             list      | dash.NoUpdate,
@@ -776,7 +817,7 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         if password is None or username is None or password == '' or username == '':
             return (
                 True, dash.no_update, 
-                dash.no_update, dash.no_update, 
+                (dash.no_update, dash.no_update), (dash.no_update, dash.no_update), 
                 dash.no_update, dash.no_update, dash.no_update, dash.no_update,
                 dash.no_update
             )
@@ -787,7 +828,7 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         if res is None:
             return (
                 True, [username_fail_notification], 
-                dash.no_update, dash.no_update, 
+                (dash.no_update, dash.no_update), (dash.no_update, dash.no_update), 
                 dash.no_update, dash.no_update, dash.no_update, dash.no_update,
                 dash.no_update
             )
@@ -796,7 +837,7 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         if not res:
             return (
                 True, [password_fail_notification], 
-                dash.no_update, dash.no_update, 
+                (dash.no_update, dash.no_update), (dash.no_update, dash.no_update), 
                 dash.no_update, dash.no_update, dash.no_update, dash.no_update,
                 dash.no_update
             )
@@ -807,12 +848,25 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         # Load the hike list ui elements based on the data from the db
         hike_list_ui_elements = generate_hike_ui_elements_after_login(app, language)
 
+        login_button_tooltip = app.language_handler[language]['login_logout_buttons']['logout' if 'user_id' in session else 'login']['tooltip']
+
         # Otherwise, sends a login success notification
         return (
             False, [success_notification], 
-            username, app.language_handler[language]['login_logout_buttons']['logout' if 'user_id' in session else 'login']['tooltip'],
+            (username, username), (login_button_tooltip, login_button_tooltip),
             *hike_list_ui_elements
         )
+    
+    @app.callback(
+        dash.Output('login-modal-id-input', 'value', allow_duplicate=True),
+        dash.Output('login-modal-password-input', 'value', allow_duplicate=True),
+        dash.Input('login-modal', 'opened'),
+        prevent_initial_call=True
+    )
+    def exit_login_modal(is_open: bool) -> tuple[str, str]: 
+        
+        if not is_open: return '', ''
+        else: raise dash.exceptions.PreventUpdate
 
     return
 
@@ -853,20 +907,30 @@ def update_ui_after_single_hike_load(
         magic_link_state = magic_link_state
     )
 
-    line = dl.Polyline(
-        id        = {'type' : 'map-trace', 'index' : hike_name},
-        positions = [(la, lo) for lo, la in zip(properties['lon'], properties['lat'])],
-        pathOptions = {
-            'color' : color
-        }
-    )
-
+    max_distance = properties['distances'][-1]
+    diff_height  = np.array(properties['elevations'][1:]) - np.array(properties['elevations'][:-1])
+    positive_cumulative = diff_height[diff_height > 0].sum()
+    negative_cumulative = diff_height[diff_height < 0].sum()
+    
     # Add hike information to the Store component
     hike_info = {
         'lat'  : properties['center'][0],
         'lon'  : properties['center'][1],
         'zoom' : properties['zoom']
     }
+
+    line = dl.Polyline(
+        id        = {'type' : 'map-trace', 'index' : hike_name},
+        positions = [(la, lo) for lo, la in zip(properties['lon'], properties['lat'])],
+        pathOptions = {
+            'color' : color
+        },
+        children    = dl.Popup([
+            dash.html.Div(f'Distance: {max_distance:.1f} km'),
+            dash.html.Div(f'Positive elevation: {positive_cumulative:.0f} m'),
+            dash.html.Div(f'Negative elevation: {negative_cumulative:.0f} m')
+        ])
+    )
 
     return widget, line, hike_info
 

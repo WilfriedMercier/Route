@@ -1,24 +1,104 @@
+import dash
 import dash_mantine_components as     dmc
 from   dash_iconify            import DashIconify
 
-def login_button_layout(translation: dict) -> dmc.Tooltip:
+from   ..lang                  import LanguageHandler, LANGUAGE
+
+def login_button_layout(
+        id          : str,
+        translation : dict,
+        visibleFrom : str | None = None,
+        hiddenFrom  : str | None = None,
+        iconAlone   : bool = False,
+    ) -> dmc.Tooltip:
     r'''
     Generate at startup a group of buttons used for login/logout.
     
+    :param id: identifier of the object
     :param translation: object containing the translation for the login/logout button group
+    :param visibleFrom: prop passed to the dmc.Button object to decide when to hide it base on screen's width
+    :param hiddenFrom: prop passed to the dmc.Button object to decide when to hide it base on screen's width
+    :param iconAlone: whether to just show the icon or icon + text
     '''
 
+    icon   = DashIconify(icon='mdi:user')
+
     button = dmc.Button(
-        translation['login']['text'],
-        id           = 'login-button',
-        rightSection = DashIconify(icon='mdi:user'),
+        icon if iconAlone else translation['text'],
+        id           = {'type' : 'login-button', 'index' : id},
+        rightSection = None if iconAlone else icon,
         variant      = 'outline',
+        visibleFrom  = visibleFrom,
+        hiddenFrom   = hiddenFrom
     )
 
-    tooltip = dmc.Tooltip(
+    button_tooltip = dmc.Tooltip(
         button,
-        id        = 'login-button-tooltip',
-        label     = translation['login']['tooltip'], 
+        id        = {'type' : 'login-button-tooltip', 'index' : id},
+        label     = translation['tooltip'], 
     )
 
-    return tooltip
+    return button_tooltip
+
+def language_element(id: str, text: str, lang: LANGUAGE, checkmark: bool) -> dash.html.Div:
+    r'''
+    UI element in the custom language dropdown menu representing one language.
+
+    :param id: identifier of the object
+    :param text: text to display (i.e. name of the language)
+    :param lang: language represented by the element
+    :param checkmark: whether to display a checkmark (True if selected)
+    '''
+
+    return dash.html.Div(
+        dmc.Button(
+            dmc.Group([
+                dmc.Text(text),
+                DashIconify(
+                    icon   = 'material-symbols:check', 
+                    style  = {'display' : 'flex' if checkmark else 'none'},
+                )]
+            ),
+            variant = 'subtle',
+            id      = {'type': 'language-button', 'index': f'{id}-{lang}'},
+        ),
+        className = 'language-element',
+    )
+
+def language_selector_widget(
+        id               : str,
+        language_handler : LanguageHandler, 
+        language         : LANGUAGE,
+        visibleFrom      : str | None = None,
+        hiddenFrom       : str | None = None,
+    ) -> dmc.Box:
+    r'''
+    Widget used to switch between languages.
+    
+    :param id: identifier of the object
+    :language_handler: object handling translation
+    :param language: current language of the application
+    :param visibleFrom: prop passed to the dmc.Button object to decide when to hide it base on screen's width
+    :param hiddenFrom: prop passed to the dmc.Button object to decide when to hide it base on screen's width
+    '''
+
+    language_elements = []
+    for lang in language_handler.languages:
+        language_elements.append(language_element(
+            id,
+            language_handler.map_language_to_dropdown_text(lang),
+            lang,
+            language == lang
+        ))
+
+    stack_languages = dmc.Stack(language_elements, id = {'type' : 'language-dropdown', 'index' : id})
+
+    hover_card = dmc.HoverCard(
+        [
+            dmc.HoverCardTarget(DashIconify(icon='mdi:language', width=20), boxWrapperProps={'style' : {'display' : 'flex'}}),
+            dmc.HoverCardDropdown(stack_languages)
+        ],
+        id = {'type' : 'language-dropdown-hovercard', 'index' : id},
+    )
+
+    return dmc.Box(hover_card, visibleFrom=visibleFrom, hiddenFrom=hiddenFrom)

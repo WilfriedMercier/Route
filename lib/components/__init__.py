@@ -4,6 +4,7 @@ from .map           import map_page_layout
 from .menubar       import menubar_layout
 from .modals        import login_modal_layout, magic_link_modal_layout
 from .ui            import ui_layout
+from .misc          import language_element
 from .notifications import (
     login_success_notification, 
     login_password_fail_notification,

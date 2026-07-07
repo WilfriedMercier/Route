@@ -79,7 +79,7 @@ app.layout   = dmc.MantineProvider(
         dmc.NotificationContainer(id="notification-container"),
         ui_layout(app.language_handler, default_language),
     ]),
-    theme={"primaryColor": "blue"}
+    theme={"primaryColor": "blue", 'breakpoints' : {'md' : '450px'}}
 )
 
 # Register all callbacks and run the application

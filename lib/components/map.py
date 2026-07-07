@@ -1,4 +1,3 @@
-import dash_bootstrap_components as     dbc
 import dash_mantine_components   as     dmc
 import dash_leaflet              as     dl
 
@@ -113,7 +112,7 @@ def map_page_layout() -> dmc.AppShellMain:
     r'''Widget containing the main content area of the application which contains the map and the elevation plot.'''
        
     return dmc.AppShellMain(
-            dbc.Stack(generate_leaflet_map_figure(), id = 'map-page')
+            dmc.Stack(generate_leaflet_map_figure(), id = 'map-page')
         #dash.html.Div(self._elevation_plot.layout) #, id='elevation-plot-flex-div')
         ,
         style = {'width' : '100%', 'height' : '100vh'},
@@ -139,11 +138,15 @@ def generate_leaflet_map_figure(
 
     layer_control = generate_layer_control()
 
-    figure = dl.Map(children=[
-            layer_control, 
+    """
+    
+    """
+
+    figure = dl.Map(
+        children = [
+            layer_control,
             dl.FullScreenControl(),
             dl.ScaleControl(position="bottomright"),
-            dl.LocateControl(locateOptions={"enableHighAccuracy": True}),
             dl.MeasureControl(
                 position          = "topleft",
                 primaryLengthUnit = "kilometers",
@@ -151,11 +154,11 @@ def generate_leaflet_map_figure(
                 activeColor       = "#214097",
                 completedColor    = "#972158",
             ),
-        ], 
-        center = [lat, lon],  # type: ignore
-        zoom   = zoom, 
-        id     = 'map', 
-        style  = {'zIndex': 0},
+        ],
+        center   = [lat, lon],  # type: ignore
+        zoom     = zoom,
+        id       = 'map', 
+        style    = {'zIndex': 0},
     ) # type: ignore
     
     return figure
@@ -189,6 +192,12 @@ def generate_base_layers() -> list[dl.BaseLayer | dl.LayerGroup]:
             name    = "Stamen terrain", # type: ignore
             checked = False
         ),
+        dl.BaseLayer(
+            dl.TileLayer(url='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution='© Stadia Maps © Stamen Design © OpenMapTiles © OpenStreetMap contributors '),
+            name    = "Satellite", # type: ignore
+            checked = False
+        ),
+
     ]
 
 def generate_layer_control(poly_lines: list[dl.Polyline] = []) -> dl.LayersControl:

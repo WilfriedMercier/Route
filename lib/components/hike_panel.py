@@ -1,6 +1,5 @@
 import dash
 import dash_mantine_components   as     dmc
-import dash_bootstrap_components as     dbc
 from   dash_iconify              import DashIconify
 
 def hikelist_layout(language_dict : dict) -> dash.html.Div:
@@ -31,14 +30,14 @@ def hikelist_element_layout(
     :param magic_link_state: True hides the share button, False keeps it visible
     '''
 
-    selected_style = {'backgroundColor': '#0D6EFD', 'color' : 'white'} 
+    selected_style = {'backgroundColor': '#0D6EFD', 'color' : 'white', 'max-width' : '160px'} 
 
     button = dmc.Button(
         hike_name,
         id        = {'type' : 'hikelist-button', 'index' : index},
         className = 'hikelist-button',
         color     = 'primary',
-        style     = selected_style if is_selected else {}
+        style     = selected_style if is_selected else {'max-width' : '160px'}
     )
 
     hide_button = dmc.Tooltip(
@@ -53,11 +52,11 @@ def hikelist_element_layout(
     )
 
     colorpicker = dmc.Tooltip(
-        dbc.Input(
+        dmc.ColorPicker(
             id        = {'type' : 'hikelist-colorpicker', 'index' : index},
             className = 'hikelist-colorpicker',
+            format    = 'rgba',
             value     = color,
-            type      = 'color' , # type: ignore
         ),
         label     = language_dict['colorpicker']['tooltip'],
         id        = {'type' : 'hikelist-colorpicker-tooltip', 'index' : index}

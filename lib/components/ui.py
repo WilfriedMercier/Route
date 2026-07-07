@@ -51,7 +51,7 @@ def appshell_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dm
     translation = language_handler[language]
 
     topbar      = topbar_layout(language_handler, language)
-    menubar     = menubar_layout(translation['menubar'])
+    menubar     = menubar_layout(language_handler, language)
     map_page    = map_page_layout()
 
     return dmc.AppShell(
@@ -62,7 +62,6 @@ def appshell_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dm
         ],
         header = {"height" : '4em'}, # type: ignore
         navbar = {
-            'height'     : '10%', 
             "breakpoint" : 9000, 
             "collapsed"  : {"mobile": True, 'desktop' : True}, # type: ignore
             'width'      : 'fit-content'

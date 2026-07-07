@@ -51,3 +51,8 @@
     transform : none;
     color     : light-dark(black, white)
 }
+
+/*Necessary to have buttons with full extent in the menubar. Otherwise the tooltip messes up the layout*/
+div:has(> .menubar-button) {
+    width: 100% !important;
+}
