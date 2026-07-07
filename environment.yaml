@@ -1,0 +1,19 @@
+name: Route
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.13
+  - plotly
+  - dash-leaflet
+  - dash
+  - dash-iconify
+  - numpy
+  - python
+  - flask
+  - dash-mantine-components
+  - pyaml
+  - gpxpy
+  - argon2-cffi
+  - psycopg2
+  - python-dotenv
