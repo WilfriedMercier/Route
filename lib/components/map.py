@@ -1,120 +1,43 @@
 import dash_mantine_components   as     dmc
 import dash_leaflet              as     dl
 
-"""
-class ElevationPlot(BaseWidget):
+from ..lang import LanguageHandler, LANGUAGE
+
+def elevation_plot_layout(language_dict: dict) -> dmc.LineChart:
+
+    fig = dmc.LineChart(
+        data           = [], # type: ignore
+        dataKey        = 'x',
+        curveType      = "Monotone"    , # type: ignore
+        series         = [{'name' : 'y', 'color' : 'var(--custom-primary-color)'}], # type: ignore
+        withDots       = False,
+        strokeWidth    = 3,
+        connectNulls   = True,
+        h              = '30%',
+        xAxisLabel     = 'Distance (km)',
+        yAxisProps={'domain' : [0, 1000]},
+        yAxisLabel     = 'Elevation (m)',
+        withTooltip    = True,
+        tooltipProps   = {'content': {'function': 'CustomTooltip'}},
+        style          = {'display' : 'none'},
+        id             = 'elevation-plot'
+    )
+
+    return fig
+
+def map_page_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.AppShellMain:
     r'''
-    Class responsible for building the elevation profile plot.
+    Widget containing the main content area of the application which contains the map and the elevation plot.
     
-    :param app: The Dash application instance
-    :param color: color used for the line and the filled area
+    :param language_handler: object the translation of the UI
+    :param language: language used at startup
     '''
-
-    def __init__(self, app: dash.Dash, color: str = 'black') -> None:
-
-        super().__init__(app)
-
-        self._hovertemplate = (
-            f'<b>{self.app.lang['elevation_plot']["hovertemplate"]["distance"]}</b>:' + '%{x:.2f} km<br>'
-            f'<b>{self.app.lang['elevation_plot']["hovertemplate"]["remaining_distance"]}</b>:' + '%{customdata[0]:.2f} km<br>'
-            f'<b>{self.app.lang['elevation_plot']["hovertemplate"]["elevation"]}</b>:' + '%{y:.0f} m<br>'
-            '<extra></extra>'
-        )
-
-        self._init_figure(color)
-        self._init_layout()
-
-        return
-
-    @property
-    def hovertemplate(self) -> str: return self._hovertemplate
-    
-    def _init_figure(self, color: str) -> None:
-        r'''
-        Initialize the elevation profile figure using Plotly.
-        
-        :param color: color of the line and filled area on the plot
-        '''
-
-        self.fig = go.Figure()
-
-        self.trace = go.Scatter(
-            x             = [],  # Distance (km)
-            y             = [],  # Elevation (m)
-            customdata    = [],
-            mode          = 'lines',
-            line          = {'color' : color, 'width' : 2},
-            fill          = 'tozeroy',
-            hovertemplate = self.hovertemplate,
-            name          = 'Elevation'
-        )
-
-        self.fig.add_trace(self.trace)
-
-        self.fig.update_layout(
-            template      = 'plotly_white',
-            paper_bgcolor = 'white',
-            plot_bgcolor  = 'white',
-            font          = {'color' : '#2c3e50', 'family' : 'Open Sans, sans-serif'},
-            margin        = {'l' : 0, 'r' : 0, 't' : 0, 'b' : 0},
-            hovermode     = 'x unified',
-            xaxis         = {
-                'title'             : self.app.lang['elevation_plot']['xlabel'],
-                'unifiedhovertitle' : {'text' : ' '}
-            },
-            yaxis         = {'title' : self.app.lang['elevation_plot']['ylabel']}
-        )
-
-        return
-    
-    def _init_layout(self) -> None:
-        r'''Initialize the layout for the elevation profile plot.'''
-
-        self._layout = dash.dcc.Graph(
-            id     = 'elevation-plot',
-            figure = self.fig,
-            config = {'displayModeBar': False},
-        )
-
-        return
-    
-    def add_elevation_data_to_plot(
-            self, 
-            distances  : list[float], 
-            elevations : list[float],
-            color      : str
-        ) -> None:
-        r'''
-        Add elevation data to the plot figure.
-        
-        :param distances: cumulative distances since the beginning of the hike in km
-        :param elevations: elevation in m at each point along the hike
-        :param color: color of the line plot
-        '''
-
-        total_distance = distances[-1] if distances else 0.0
-        remaining      = [[max(0.0, total_distance - d)] for d in distances]
-
-        self.fig.data[0].x          = distances
-        self.fig.data[0].y          = elevations
-        self.fig.data[0].customdata = remaining
-
-        self.fig.update_traces(
-            line_color = color,
-            selector   = {'name' : 'Elevation'}
-
-        )
-
-        return
-"""
-
-def map_page_layout() -> dmc.AppShellMain:
-    r'''Widget containing the main content area of the application which contains the map and the elevation plot.'''
        
+    map            = generate_leaflet_map_figure()
+    elevation_plot = elevation_plot_layout(language_handler[language]['elevation_plot'])
+
     return dmc.AppShellMain(
-            dmc.Stack(generate_leaflet_map_figure(), id = 'map-page')
-        #dash.html.Div(self._elevation_plot.layout) #, id='elevation-plot-flex-div')
-        ,
+            dmc.Stack([map, elevation_plot], id = 'map-page'),
         style = {'width' : '100%', 'height' : '100vh'},
         id = 'appshell-main'
     )
@@ -137,10 +60,6 @@ def generate_leaflet_map_figure(
     if zoom is None : zoom = 10
 
     layer_control = generate_layer_control()
-
-    """
-    
-    """
 
     figure = dl.Map(
         children = [

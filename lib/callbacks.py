@@ -49,8 +49,25 @@ def register_callbacks(app : dash.Dash) -> None:
     register_language_callacks(app)
     register_login_buttons_callbacks(app)
     register_burger_callbacks(app)
+    register_keydown_callbacks(app)
 
     return
+
+def register_keydown_callbacks(app: dash.Dash) -> None:
+    
+    @app.callback(
+        dash.Output('hike-panel', 'opened', allow_duplicate=True),
+        dash.Input('keyboard', 'n_keydowns'),
+        dash.State('keyboard', 'keydown'),
+        dash.State('hike-panel', 'opened'), 
+        prevent_initial_call=True
+    )
+    def register_keydown(_, keydown: dict, is_hike_panel_open: bool) -> bool:
+
+        if keydown['key'] == 'l' and keydown['altKey']:
+            return not is_hike_panel_open
+        
+        raise dash.exceptions.PreventUpdate
 
 def register_burger_callbacks(app: dash.Dash) -> None:
     r'''
@@ -87,6 +104,7 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         dash.Output('hikes_info',        'data',     allow_duplicate=True),
 
         dash.Output('map-polylines',     'children', allow_duplicate=True),
+        dash.Output('elevation-plot',    'style',    allow_duplicate=True),
 
         dash.Output('upload-hike-button',     'style',             allow_duplicate=True),
         dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
@@ -110,6 +128,7 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
             int               | dash.NoUpdate, 
             dict              | dash.NoUpdate, 
             list[dl.Polyline] | dash.NoUpdate, 
+            dict[str, str]    | dash.NoUpdate,
             dict[str, str]    | dash.NoUpdate, 
             list[dict]        | dash.NoUpdate,
             str
@@ -133,7 +152,7 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
             ui_elements = handle_without_magic_link(language)
 
             return (
-                *ui_elements, {}, 
+                *ui_elements, dash.no_update, {}, 
                 dash.no_update,
                 base_url
             )
@@ -150,7 +169,7 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
             return (
                 (dash.no_update, dash.no_update), 
                 dash.no_update, dash.no_update, dash.no_update, dash.no_update,
-                dash.no_update, 
+                dash.no_update,  dash.no_update,
                 dash.no_update, [notification], 
                 base_url
             )
@@ -158,8 +177,8 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         # Magic link is correct
         return (
             ({'display' : 'none'}, {'display' : 'none'}), 
-            *ui_elements, {'display' : 'none'},
-            dash.no_update,
+            *ui_elements, {'display' : 'flex'},
+            dash.no_update, dash.no_update,
             base_url
         )
         
@@ -395,7 +414,7 @@ def register_menubar_callbacks(app: dash.Dash) -> None:
     '''
 
     @app.callback(
-        dash.Output('hike-panel', 'opened'),
+        dash.Output('hike-panel', 'opened', allow_duplicate=True),
         dash.Input('hike-panel-button', 'n_clicks'),
         prevent_initial_call=True
     )
@@ -418,6 +437,8 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.Output('map', 'center'),
         dash.Output("burger", "opened"),
         dash.Output('hike-panel', 'opened', allow_duplicate=True),
+        dash.Output('elevation-plot', 'data'),
+         dash.Output('elevation-plot', 'yAxisProps'),
         #dash.Output('map', 'zoom'),
 
         dash.Input( {'type' : 'hikelist-button', 'index' : dash.ALL}, 'n_clicks'),
@@ -429,7 +450,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
     )
     def hike_button(
         _, n_hikes: int, hikes_info: dict, hike_names: list[str]
-    ) -> tuple[list[dict[str, str]], tuple[float, float], bool, bool]:
+    ) -> tuple[list[dict[str, str]], tuple[float, float], bool, bool, list[dict], dict]:
         r'''
         Callback used when a hike is selected in the hike list.
 
@@ -453,7 +474,13 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         name = hike_names[clicked_index]
         info = hikes_info[name]
 
-        return styles, (info['lat'], info['lon']), False, False#, info['zoom']
+        elevation_data = [{'x' : d, 'y' : e} for d, e in zip(info['distances'], info['elevations'])]
+
+        return (
+            styles, (info['lat'], info['lon']), 
+            False, False,# info['zoom']
+            elevation_data, {'domain' : [np.min(info['elevations']), np.max(info['elevations'])]}
+        )
     
     @app.callback(
         dash.Output({'type' : 'map-trace', 'index' : dash.ALL}, 'pathOptions', allow_duplicate=True),
@@ -675,6 +702,8 @@ def register_login_buttons_callbacks(app: dash.Dash) -> None:
         dash.Output('number_hikes',      'data',     allow_duplicate=True),
         dash.Output('hikes_info',        'data',     allow_duplicate=True),
 
+        dash.Output('elevation-plot', 'style', allow_duplicate=True),
+
         dash.Input( {'type' : 'login-button', 'index' : dash.ALL}, 'n_clicks'),
         dash.State( 'login-modal',  'opened'),
         dash.State( 'language',     'data'),
@@ -694,7 +723,9 @@ def register_login_buttons_callbacks(app: dash.Dash) -> None:
             list | dash.NoUpdate, 
             list | dash.NoUpdate, 
             int  | dash.NoUpdate, 
-            dict | dash.NoUpdate
+            dict | dash.NoUpdate,
+
+            dict[str, str] | dash.NoUpdate
         ]:
         r'''
         Callback used when the login/logout button on the topbar is clicked.
@@ -718,7 +749,8 @@ def register_login_buttons_callbacks(app: dash.Dash) -> None:
                 (login_button_text, login_button_text), 
                 (login_button_tooltip, login_button_tooltip),
                 [],
-                [], [], 0, {}
+                [], [], 0, {}, 
+                {'display' : 'none'}
             )
 
         # Handle login button click
@@ -726,7 +758,8 @@ def register_login_buttons_callbacks(app: dash.Dash) -> None:
             not opened, 
             (dash.no_update, dash.no_update), (dash.no_update, dash.no_update), 
             dash.no_update, 
-            dash.no_update, dash.no_update, dash.no_update, dash.no_update
+            dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+            dash.no_update
         )
 
 def register_magic_link_modal_callbacks(app: dash.Dash) -> None:
@@ -776,6 +809,7 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         dash.Output('hikes_info', 'data', allow_duplicate=True),
 
         dash.Output('map-polylines', 'children', allow_duplicate=True),
+        dash.Output('elevation-plot', 'style', allow_duplicate=True),
         
         dash.Input('send-login-button', 'n_clicks'),
         dash.Input('login-modal-id-input', 'n_submit'),
@@ -810,7 +844,8 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
             int       | dash.NoUpdate,
             dict      | dash.NoUpdate,
 
-            list[dl.Polyline] | dash.NoUpdate
+            list[dl.Polyline] | dash.NoUpdate,
+            dict[str, str]    | dash.NoUpdate
         ]:
 
         # If one of the fields is empty, we let the page as is
@@ -819,7 +854,7 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
                 True, dash.no_update, 
                 (dash.no_update, dash.no_update), (dash.no_update, dash.no_update), 
                 dash.no_update, dash.no_update, dash.no_update, dash.no_update,
-                dash.no_update
+                dash.no_update, dash.no_update
             )
 
         res = validate_credentials(username, password)
@@ -830,7 +865,7 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
                 True, [username_fail_notification], 
                 (dash.no_update, dash.no_update), (dash.no_update, dash.no_update), 
                 dash.no_update, dash.no_update, dash.no_update, dash.no_update,
-                dash.no_update
+                dash.no_update, dash.no_update
             )
         
         # res is False means the password is wrong
@@ -839,7 +874,7 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
                 True, [password_fail_notification], 
                 (dash.no_update, dash.no_update), (dash.no_update, dash.no_update), 
                 dash.no_update, dash.no_update, dash.no_update, dash.no_update,
-                dash.no_update
+                dash.no_update, dash.no_update
             )
         
         # Password and username are both correct, we store the user ID for later queries to the db
@@ -854,7 +889,7 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         return (
             False, [success_notification], 
             (username, username), (login_button_tooltip, login_button_tooltip),
-            *hike_list_ui_elements
+            *hike_list_ui_elements, {'display' : 'flex'}
         )
     
     @app.callback(
@@ -909,14 +944,17 @@ def update_ui_after_single_hike_load(
 
     max_distance = properties['distances'][-1]
     diff_height  = np.array(properties['elevations'][1:]) - np.array(properties['elevations'][:-1])
+    
     positive_cumulative = diff_height[diff_height > 0].sum()
     negative_cumulative = diff_height[diff_height < 0].sum()
     
     # Add hike information to the Store component
     hike_info = {
-        'lat'  : properties['center'][0],
-        'lon'  : properties['center'][1],
-        'zoom' : properties['zoom']
+        'lat'        : properties['center'][0],
+        'lon'        : properties['center'][1],
+        'zoom'       : properties['zoom'],
+        'distances'  : [f'{d:.1f}' for d in properties['distances']],
+        'elevations' : properties['elevations']
     }
 
     line = dl.Polyline(

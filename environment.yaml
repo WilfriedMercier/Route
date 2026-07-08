@@ -2,18 +2,19 @@ name: Route
 channels:
   - conda-forge
   - defaults
+  - conda-pypi
 dependencies:
-  - python=3.13
-  - plotly
-  - dash-leaflet
-  - dash
-  - dash-iconify
-  - numpy
   - python
   - flask
-  - dash-mantine-components
-  - pyaml
-  - gpxpy
-  - argon2-cffi
-  - psycopg2
   - python-dotenv
+  - argon2-cffi
+  - plotly
+  - psycopg2
+  - pyaml
+  - dash
+  - gpxpy
+  - numpy
+  - dash-mantine-components
+  - dash-iconify
+  - dash-extensions
+prefix: /home/wilfried/miniconda3/envs/Route

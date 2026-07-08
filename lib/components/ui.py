@@ -1,5 +1,6 @@
 import dash
 import dash_mantine_components as     dmc
+from   dash_extensions         import Keyboard
 
 from ..lang import LANGUAGE, LanguageHandler
 from .      import (
@@ -19,24 +20,20 @@ def ui_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dash.htm
     :param language: language of the application
     '''
 
-    distances, elevations        = [], []
-    color                        = 'black'
-
     translation = language_handler[language]
     
     hike_panel  = hike_panel_layout(translation['hike_panel'])
     magic_modal = magic_link_modal_layout(translation['magic_link_modal'])
     login_modal = login_modal_layout(translation['login_modal'])
 
-    #map_page.elevation_plot.add_elevation_data_to_plot(distances, elevations, color)
-
     appshell = appshell_layout(language_handler, language)
 
     return dash.html.Div([
-        appshell, 
-        login_modal,
-        hike_panel,
-        magic_modal
+            appshell, 
+            login_modal,
+            hike_panel,
+            magic_modal,
+            Keyboard(id='keyboard', captureKeys=['l'])
         ]
     )
 
@@ -50,9 +47,9 @@ def appshell_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dm
 
     translation = language_handler[language]
 
-    topbar      = topbar_layout(language_handler, language)
-    menubar     = menubar_layout(language_handler, language)
-    map_page    = map_page_layout()
+    topbar      = topbar_layout(  language_handler, language)
+    menubar     = menubar_layout( language_handler, language)
+    map_page    = map_page_layout(language_handler, language)
 
     return dmc.AppShell(
         [

@@ -5,45 +5,10 @@
     min-height : 0;
 }
 
-#elevation-plot {
-    width      : 100%;
-    height     : 100%;
-    min-width  : 0;
-    min-height : 0;
+.mantine-AreaChart-axisLabel {
+    text-anchor: middle;
 }
 
-#elevation-plot-flex-div {
-    display : flex;
-    flex    : 30%;
-}
-
-.div-map-style-selector {
-    position      : absolute;
-    top           : 30px;
-    right         : 30px;
-    background    : var(--custom-background-color);
-    color         : var(--custom-text-color);
-    padding       : 5px;
-    border-radius : 10px;
-    border        : 1px solid black;
-    box-shadow    : 0 2px 5px rgba(0,0,0,0.2);
-    cursor        : pointer;
-}
-
-.div-map-style-selector > :first-child {
-    display: flex;
-}
-
-.map-style-button {
-    height           : 50px; 
-    margin-left      : 5px;
-    margin-right     : 5px;
-    padding-inline   : 0px;
-    background-color : transparent; 
-    border           : 1px solid var(--custom-theme-color);
-    transition       : transform 0.2s ease;
-}
-
-.map-style-button:hover {
-    transform : scale(1.1);
+.mantine-LineChart-axisLabel {
+    text-anchor: middle;
 }
