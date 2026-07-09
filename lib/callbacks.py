@@ -50,6 +50,7 @@ def register_callbacks(app : dash.Dash) -> None:
     register_login_buttons_callbacks(app)
     register_burger_callbacks(app)
     register_keydown_callbacks(app)
+    register_colorpicker_modal_callbacks(app)
 
     return
 
@@ -433,30 +434,42 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
     '''
 
     @app.callback(
+        dash.Output('selected-hike', 'data'),
         dash.Output({'type' : 'hikelist-button', 'index' : dash.ALL}, 'style'),
+
         dash.Output('map', 'center'),
+
         dash.Output("burger", "opened"),
         dash.Output('hike-panel', 'opened', allow_duplicate=True),
+
         dash.Output('elevation-plot', 'data'),
-         dash.Output('elevation-plot', 'yAxisProps'),
+        dash.Output('elevation-plot', 'yAxisProps'),
+        dash.Output('elevation-plot', 'series', allow_duplicate=True),
         #dash.Output('map', 'zoom'),
 
         dash.Input( {'type' : 'hikelist-button', 'index' : dash.ALL}, 'n_clicks'),
         dash.State('number_hikes', 'data'),
         dash.State('hikes_info', 'data'),
         dash.State('hike_names_list', 'data'),
+        dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'), 
 
         prevent_initial_call = True
     )
     def hike_button(
-        _, n_hikes: int, hikes_info: dict, hike_names: list[str]
-    ) -> tuple[list[dict[str, str]], tuple[float, float], bool, bool, list[dict], dict]:
+        _, n_hikes: int, hikes_info: dict, hike_names: list[str], colors: list[str]
+    ) -> tuple[
+            int, list[dict[str, str]], 
+            tuple[float, float], 
+            bool, bool, 
+            list[dict], dict, list[dict]
+        ]:
         r'''
         Callback used when a hike is selected in the hike list.
 
         :param n_hikes: total number of hike list components
         :param hikes_info: hike properties containing information such as center and zoom level
-        :parma hike_names_list: list containing the name of the hikes as they appear in the hike list
+        :param hike_names_list: list containing the name of the hikes as they appear in the hike list
+        :param colors: list of colors associated to each colorpicker
         '''
 
         ctx = dash.callback_context
@@ -476,31 +489,82 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
 
         elevation_data = [{'x' : d, 'y' : e} for d, e in zip(info['distances'], info['elevations'])]
 
+        yaxisprops = {'domain' : [np.min(info['elevations']), np.max(info['elevations'])]}
+        color      = colors[clicked_index]
+
         return (
-            styles, (info['lat'], info['lon']), 
+            clicked_index, styles, 
+            (info['lat'], info['lon']), 
             False, False,# info['zoom']
-            elevation_data, {'domain' : [np.min(info['elevations']), np.max(info['elevations'])]}
+            elevation_data, yaxisprops, [{'name' : 'y', 'color' : color}]
         )
     
     @app.callback(
-        dash.Output({'type' : 'map-trace', 'index' : dash.ALL}, 'pathOptions', allow_duplicate=True),
-        dash.Input({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'value'),
+        dash.Output('colorpicker-modal', 'opened', allow_duplicate=True),
+        dash.Output('colorpicker', 'value', allow_duplicate=True),
+        dash.Output('colorpicker-selected-id', 'data'),
+
+        dash.Input({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'n_clicks'),
+        dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'),
         prevent_initial_call=True
     )
-    def colorpicker(colors: list[str]) -> list[dict]:
+    def colorpicker_click(n_clicks: list[int | None], colors: list[str]) -> tuple[bool, str, str]:
         '''
         Callback called whenever the given colorpicker is clicked.
-        
+
+        :param n_clicks: number of clicks for each colorpicker object
         :param colors: colors selected by the colorpickers
         '''
 
-        from .components.map import generate_layer_control
+        if all(n is None for n in n_clicks): raise dash.exceptions.PreventUpdate
 
         ctx = dash.callback_context
 
         if ctx is None or not ctx.triggered: raise dash.exceptions.PreventUpdate
 
-        return [{'color' : color} for color in colors]
+        triggered_id = ctx.triggered_id['index'] # type: ignore
+        
+        return True, colors[triggered_id], triggered_id
+    
+    @app.callback(
+        dash.Output({'type' : 'map-trace', 'index' : dash.ALL}, 'pathOptions', allow_duplicate=True),
+        dash.Output('elevation-plot', 'series'),
+
+        dash.Input({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'),
+        dash.State('colorpicker-selected-id', 'data'),
+        dash.State('selected-hike', 'data'),
+        dash.State('number_hikes', 'data'),
+        prevent_initial_call=True
+    )
+    def colorpicker_color_update(
+            colors         : list[str], 
+            color_index    : int,
+            selected_index : int,
+            n_hikes        : int,
+        ) -> tuple[list[dict[str, str] | dash.NoUpdate], list[dict] | dash.NoUpdate]:
+        '''
+        Callback called whenever the color of one of the colorpickers changes.
+
+        :param colors: colors for all colorpickers
+        :param index: index of the colorpicker whose color has changed
+        '''
+
+        if color_index is None: raise dash.exceptions.PreventUpdate
+
+        color = colors[color_index]
+
+        print(selected_index, color)
+
+        # If the index of the changed color does not match the selected hike, we do not update the elevation plot color
+        if selected_index is None or color_index != selected_index:
+            plot_style = dash.no_update
+        else:
+            plot_style = [{'name' : 'y', 'color' : color}]
+
+        props : list[dict[str, str] | dash.NoUpdate] = [dash.no_update] * n_hikes
+        props[color_index] = {'color' : color}
+
+        return props, plot_style
     
     @app.callback(
         dash.Output({'type' : 'hikelist-button',       'index' : dash.ALL}, 'disabled'),
@@ -511,7 +575,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.Output({'type' : 'map-trace', 'index' : dash.ALL}, 'pathOptions', allow_duplicate=True),
 
         dash.Input({'type' : 'hikelist-hide-button', 'index' : dash.ALL}, 'checked'),
-        dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'value'),
+        dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'),
         dash.State('number_hikes', 'data'),
 
         prevent_initial_call = True
@@ -539,6 +603,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         output[clicked_index] = not checked
 
         # Change disabled hikes color to transparent
+        print(colors)
         hike_colors = [{'color' : color if check else 'rgba(0, 0, 0, 0)'} for color, check in zip(colors, checked_list)]
 
         return output, output, output, output, output, hike_colors
@@ -771,6 +836,26 @@ def register_magic_link_modal_callbacks(app: dash.Dash) -> None:
         prevent_initial_call=True
     )
     def magic_link_button(_): return False
+
+def register_colorpicker_modal_callbacks(app: dash.Dash) -> None:
+
+    @app.callback(
+        dash.Output({'type' : 'hikelist-colorpicker',  'index' : dash.ALL}, 'color'),
+        dash.Input('colorpicker', 'value'),
+        dash.State('colorpicker-selected-id', 'data'),
+        dash.State({'type' : 'hikelist-colorpicker',  'index' : dash.ALL}, 'color'),
+    )
+    def colorpicker_selection(
+            selected_color : str | None, 
+            index          : int, 
+            colors         : list[str]
+        ) -> list[str]:
+
+        if selected_color is None: raise dash.exceptions.PreventUpdate
+
+        colors[index] = selected_color
+
+        return colors
 
 def register_login_modal_callbacks(app: dash.Dash) -> None:
     r'''

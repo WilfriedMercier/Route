@@ -40,7 +40,7 @@ server.config["SESSION_PERMANENT"]            = True
 server.config["SESSION_REFRESH_EACH_REQUEST"] = True
 server.config["PERMANENT_SESSION_LIFETIME"]   = datetime.timedelta(hours=1)  # Session expires after 1 hour of inactivity
 
-app               = dash.Dash(__name__, server=server, external_stylesheets=None)
+app               = dash.Dash(__name__, server=server, external_stylesheets=None) # type: ignore
 
 default_language: LANGUAGE = args.language.lower()
 
@@ -74,6 +74,8 @@ app.layout   = dmc.MantineProvider(
         dash.dcc.Store(id='hikes_info',   data = {}),
         dash.dcc.Store(id='hike_names_list', data = []),
         dash.dcc.Store(id='base-url', data=''),
+        dash.dcc.Store(id='colorpicker-selected-id', data=None),
+        dash.dcc.Store(id='selected-hike', data=None),
         language,
         *notification_store,
         dmc.NotificationContainer(id="notification-container"),

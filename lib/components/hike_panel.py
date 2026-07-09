@@ -52,11 +52,11 @@ def hikelist_element_layout(
     )
 
     colorpicker = dmc.Tooltip(
-        dmc.ColorPicker(
+        dmc.ActionIcon(
             id        = {'type' : 'hikelist-colorpicker', 'index' : index},
-            className = 'hikelist-colorpicker',
-            format    = 'rgba',
-            value     = color,
+            className = 'colorpicker',
+            color     = color,
+            size      = 'lg'
         ),
         label     = language_dict['colorpicker']['tooltip'],
         id        = {'type' : 'hikelist-colorpicker-tooltip', 'index' : index}

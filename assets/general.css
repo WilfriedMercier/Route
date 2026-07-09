@@ -56,3 +56,8 @@
 div:has(> .menubar-button) {
     width: 100% !important;
 }
+
+/*For the colorpicker in the hike rows to be aligned with the hike button*/
+div:has(> .mantine-ActionIcon-root) {
+    display: flex;
+}

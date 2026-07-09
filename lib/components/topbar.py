@@ -1,9 +1,12 @@
 import dash
 import dash_mantine_components as     dmc
-from   dash_iconify            import DashIconify
 
 from   ..lang                  import LANGUAGE, LanguageHandler
-from   .misc                   import login_button_layout, language_selector_widget
+from   .misc                   import (
+    login_button_layout, 
+    language_selector_layout,
+    theme_switcher_layout
+)
 
 def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.AppShellHeader:
     r'''
@@ -15,12 +18,7 @@ def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.
 
     translation = language_handler[language]['topbar']
 
-    theme_switcher_button = dmc.ColorSchemeToggle(
-        lightIcon = DashIconify(icon="radix-icons:sun",  width=25, color = 'darkorange'),
-        darkIcon  = DashIconify(icon="radix-icons:moon", width=25, color = 'lightblue'),
-        size      = "lg",
-        id        = 'theme-toggle'
-    )
+    theme_switcher_button = theme_switcher_layout('topbar', visibleFrom='md')
 
     theme_switcher_tooltip = dmc.Tooltip(
         theme_switcher_button,
@@ -30,7 +28,7 @@ def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.
 
     logo = dash.html.Img(src="/assets/logo.svg", className='logo')
 
-    language_selector    = language_selector_widget(
+    language_selector    = language_selector_layout(
         'topbar', 
         language_handler, 
         language,

@@ -24,27 +24,13 @@
     width           : 100%;
 }
 
-.hikelist-colorpicker {
-    width        : 35px;
-    height: 35px;
-    padding      : 0;
-    border       : 1px solid light-dark(black, white);
-    border-radius: 50%;
-    cursor       : pointer;
-    transition   : transform 0.2s ease;
+.colorpicker {
+    border: 1px solid black;
 }
 
-.hikelist-colorpicker:disabled {
-    opacity : 0.5;
-    cursor  : not-allowed;
-}
-
-.hikelist-colorpicker:disabled:hover {
-    transform: none;
-}
-
-.hikelist-colorpicker:hover {
-    transform : scale(1.1);
+#colorpicker-modal-body {
+    display: flex;
+    justify-content: center;
 }
 
 #hike-panel-title {

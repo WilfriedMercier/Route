@@ -54,3 +54,11 @@ def magic_link_modal_layout(language_handler: dict) -> dmc.Modal:
     )
 
     return modal
+
+def colorpicker_modal_layout() -> dmc.Modal:
+
+    return dmc.Modal(
+        dmc.ColorPicker(format="rgba", fullWidth=True, id='colorpicker'),
+        withCloseButton=False,
+        id='colorpicker-modal'
+    )

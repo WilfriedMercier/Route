@@ -2,7 +2,11 @@ import dash_mantine_components as     dmc
 from   dash_iconify            import DashIconify
 
 from   ..lang import LanguageHandler, LANGUAGE
-from   .misc  import login_button_layout, language_selector_widget
+from   .misc  import (
+    login_button_layout, 
+    language_selector_layout,
+    theme_switcher_layout
+)
 
 def menubar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.AppShellNavbar:
     '''
@@ -21,14 +25,17 @@ def menubar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc
         hiddenFrom  = 'md'
     )
 
-    language_selector = language_selector_widget(
+    language_selector = language_selector_layout(
         'menubar', 
         language_handler, 
         language,
         hiddenFrom  = 'md'
     )
 
-    top_group = dmc.Group([login_button, language_selector], style={'justify-content' : 'space-between'})
+    theme_switcher_button = theme_switcher_layout('menubar', hiddenFrom='md')
+
+    lang_theme_group = dmc.Group([language_selector, theme_switcher_button])
+    top_group        = dmc.Group([login_button, lang_theme_group], style={'justify-content' : 'space-between'})
 
     hike_panel_button = dmc.Button(
         translation['menubar']['hike_panel_button']['text'],

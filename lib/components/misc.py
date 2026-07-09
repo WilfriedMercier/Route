@@ -65,7 +65,7 @@ def language_element(id: str, text: str, lang: LANGUAGE, checkmark: bool) -> das
         className = 'language-element',
     )
 
-def language_selector_widget(
+def language_selector_layout(
         id               : str,
         language_handler : LanguageHandler, 
         language         : LANGUAGE,
@@ -102,3 +102,25 @@ def language_selector_widget(
     )
 
     return dmc.Box(hover_card, visibleFrom=visibleFrom, hiddenFrom=hiddenFrom)
+
+def theme_switcher_layout(
+        id          : str,
+        visibleFrom : str | None = None,
+        hiddenFrom  : str | None = None,
+    ) -> dmc.ColorSchemeToggle:
+    r'''
+    Widget used to switch between light and dark themes.
+
+    :param id: identifier of the object
+    :param visibleFrom: prop passed to the dmc.Button object to decide when to hide it base on screen's width
+    :param hiddenFrom: prop passed to the dmc.Button object to decide when to hide it base on screen's width
+    '''
+
+    return dmc.ColorSchemeToggle(
+        lightIcon   = DashIconify(icon="radix-icons:sun",  width=25, color = 'darkorange'),
+        darkIcon    = DashIconify(icon="radix-icons:moon", width=25, color = 'lightblue'),
+        size        = "lg",
+        visibleFrom = visibleFrom,
+        hiddenFrom  = hiddenFrom,
+        id          = {'type' : 'theme-toggle', 'index' : id}
+    )
