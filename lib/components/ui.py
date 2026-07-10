@@ -36,7 +36,7 @@ def ui_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dash.htm
             hike_panel,
             magic_modal,
             colorpicker_modal,
-            Keyboard(id='keyboard', captureKeys=['l'])
+            Keyboard(id='keyboard', captureKeys=['l', 'a'])
         ]
     )
 

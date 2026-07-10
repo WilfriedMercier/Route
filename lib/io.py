@@ -8,7 +8,7 @@ from .logic import (
     calculate_distance_from_coords, 
     calculate_elevation_stats, 
     extract_elevation_data_from_gpx,
-    zoom_for_bounds
+    calculate_zoom_from_bounds
 )
 
 def process_hike(filename: str, content: str) -> dict[str, dict] | None:
@@ -33,7 +33,7 @@ def process_hike(filename: str, content: str) -> dict[str, dict] | None:
     bounds = ((min(lats), min(lons)), (max(lats), max(lons)))
 
     # Compute estimated zoom level for the hike
-    zoom   = zoom_for_bounds(bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1])
+    zoom   = calculate_zoom_from_bounds(bounds)
 
     # Compute center of the hike
     center = (bounds[0][0] + (bounds[1][0] - bounds[0][0]) / 2, bounds[0][1] + (bounds[1][1] - bounds[0][1]) / 2)

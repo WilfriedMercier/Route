@@ -26,7 +26,7 @@ elevation_plot:
 menubar:
   hike_panel_button: 
     text: Randonnées
-    tooltip: Ouvrir le panneau des randonnées
+    tooltip: Ouvrir le panneau des randonnées (Alt + L)
   hall_of_fame_button: 
     text: Statistiques
     tooltip: Ouvrir le panneau des statistiques
@@ -70,6 +70,6 @@ notifications:
 login_logout_buttons:
   login:
     text: Connexion
-    tooltip: Se connecter à son espace personnel
+    tooltip: Se connecter à son espace personnel (Alt + A)
   logout:
     tooltip: Se déconnecter de son espace personnel

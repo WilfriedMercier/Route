@@ -52,21 +52,26 @@ def register_callbacks(app : dash.Dash) -> None:
     register_keydown_callbacks(app)
     register_colorpicker_modal_callbacks(app)
 
-    return
-
 def register_keydown_callbacks(app: dash.Dash) -> None:
     
     @app.callback(
-        dash.Output('hike-panel', 'opened', allow_duplicate=True),
+        dash.Output('hike-panel',  'opened', allow_duplicate=True),
+        dash.Output('login-modal', 'opened', allow_duplicate=True),
+
         dash.Input('keyboard', 'n_keydowns'),
         dash.State('keyboard', 'keydown'),
         dash.State('hike-panel', 'opened'), 
         prevent_initial_call=True
     )
-    def register_keydown(_, keydown: dict, is_hike_panel_open: bool) -> bool:
+    def register_keydown(_, keydown: dict, is_hike_panel_open: bool) -> tuple[bool | dash.NoUpdate, bool | dash.NoUpdate]:
 
+        # Shortcut to open the hike panel
         if keydown['key'] == 'l' and keydown['altKey']:
-            return not is_hike_panel_open
+            return not is_hike_panel_open, dash.no_update
+        
+        # Shortcut to switch between light and dark modes
+        elif keydown['key'] == 'a' and keydown['altKey']:
+            return dash.no_update, 'user_id' not in session
         
         raise dash.exceptions.PreventUpdate
 
@@ -99,10 +104,10 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
     @app.callback(
         dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'style', allow_duplicate=True),
 
-        dash.Output('hike_names_list',   'data',     allow_duplicate=True),
+        dash.Output('hike-names-list',   'data',     allow_duplicate=True),
         dash.Output('hikelist-div',      'children', allow_duplicate=True),
-        dash.Output('number_hikes',      'data',     allow_duplicate=True),
-        dash.Output('hikes_info',        'data',     allow_duplicate=True),
+        dash.Output('number-hikes',      'data',     allow_duplicate=True),
+        dash.Output('hikes-info',        'data',     allow_duplicate=True),
 
         dash.Output('map-polylines',     'children', allow_duplicate=True),
         dash.Output('elevation-plot',    'style',    allow_duplicate=True),
@@ -318,7 +323,7 @@ def register_language_callacks(app: dash.Dash) -> None:
         dash.Output('magic-link-modal', 'title'),
   
         dash.Input({'type': 'language-button', 'index': dash.ALL}, 'n_clicks'),
-        dash.State('number_hikes', 'data'),
+        dash.State('number-hikes', 'data'),
 
         prevent_initial_call=True,
     )
@@ -437,7 +442,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.Output('selected-hike', 'data'),
         dash.Output({'type' : 'hikelist-button', 'index' : dash.ALL}, 'style'),
 
-        dash.Output('map', 'center'),
+        dash.Output('map', 'viewport'),
 
         dash.Output("burger", "opened"),
         dash.Output('hike-panel', 'opened', allow_duplicate=True),
@@ -448,9 +453,9 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         #dash.Output('map', 'zoom'),
 
         dash.Input( {'type' : 'hikelist-button', 'index' : dash.ALL}, 'n_clicks'),
-        dash.State('number_hikes', 'data'),
-        dash.State('hikes_info', 'data'),
-        dash.State('hike_names_list', 'data'),
+        dash.State('number-hikes', 'data'),
+        dash.State('hikes-info', 'data'),
+        dash.State('hike-names-list', 'data'),
         dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'), 
 
         prevent_initial_call = True
@@ -459,7 +464,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         _, n_hikes: int, hikes_info: dict, hike_names: list[str], colors: list[str]
     ) -> tuple[
             int, list[dict[str, str]], 
-            tuple[float, float], 
+            dict,
             bool, bool, 
             list[dict], dict, list[dict]
         ]:
@@ -493,9 +498,9 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         color      = colors[clicked_index]
 
         return (
-            clicked_index, styles, 
-            (info['lat'], info['lon']), 
-            False, False,# info['zoom']
+            clicked_index, styles,
+            {'center' : (info['lat'], info['lon']), 'zoom' : info['zoom'], 'transition' : "flyTo"},
+            False, False,
             elevation_data, yaxisprops, [{'name' : 'y', 'color' : color}]
         )
     
@@ -533,7 +538,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.Input({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'),
         dash.State('colorpicker-selected-id', 'data'),
         dash.State('selected-hike', 'data'),
-        dash.State('number_hikes', 'data'),
+        dash.State('number-hikes', 'data'),
         prevent_initial_call=True
     )
     def colorpicker_color_update(
@@ -576,7 +581,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
 
         dash.Input({'type' : 'hikelist-hide-button', 'index' : dash.ALL}, 'checked'),
         dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'),
-        dash.State('number_hikes', 'data'),
+        dash.State('number-hikes', 'data'),
 
         prevent_initial_call = True
     )
@@ -614,7 +619,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.Output('magic-link-copy-button', 'children'),
         #dash.Output('magic-link-copy-button-tooltip', 'label'),
         dash.Input({'type' : 'hikelist-share-button', 'index' : dash.ALL}, 'n_clicks'),
-        dash.State('hike_names_list', 'data'),
+        dash.State('hike-names-list', 'data'),
         dash.State('base-url', 'data'),
         prevent_initial_call = True
     )
@@ -664,10 +669,10 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
     r'''All callbacks associated to uploading hikes.'''
 
     @app.callback(
-        dash.Output('hike_names_list', 'data'),
+        dash.Output('hike-names-list', 'data'),
         dash.Output('hikelist-div', 'children'),
-        dash.Output('number_hikes', 'data'),
-        dash.Output('hikes_info', 'data'),
+        dash.Output('number-hikes', 'data'),
+        dash.Output('hikes-info', 'data'),
         dash.Output('map-polylines', 'children', allow_duplicate=True),
         dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
         
@@ -676,7 +681,7 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
         dash.State('hikelist-div', 'children'),
         dash.State('map-polylines', 'children'),
         dash.State('language', 'data'),
-        dash.State('hikes_info', 'data'),
+        dash.State('hikes-info', 'data'),
 
         prevent_initial_call = True
     )
@@ -762,10 +767,10 @@ def register_login_buttons_callbacks(app: dash.Dash) -> None:
 
         dash.Output( 'map-polylines', 'children', allow_duplicate=True),
 
-        dash.Output('hike_names_list',   'data',     allow_duplicate=True),
+        dash.Output('hike-names-list',   'data',     allow_duplicate=True),
         dash.Output('hikelist-div',      'children', allow_duplicate=True),
-        dash.Output('number_hikes',      'data',     allow_duplicate=True),
-        dash.Output('hikes_info',        'data',     allow_duplicate=True),
+        dash.Output('number-hikes',      'data',     allow_duplicate=True),
+        dash.Output('hikes-info',        'data',     allow_duplicate=True),
 
         dash.Output('elevation-plot', 'style', allow_duplicate=True),
 
@@ -888,10 +893,10 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'children'),
         dash.Output({'type' : 'login-button-tooltip', 'index' : dash.ALL}, 'label'),
 
-        dash.Output('hike_names_list', 'data', allow_duplicate=True),
+        dash.Output('hike-names-list', 'data', allow_duplicate=True),
         dash.Output('hikelist-div', 'children', allow_duplicate=True),
-        dash.Output('number_hikes', 'data', allow_duplicate=True),
-        dash.Output('hikes_info', 'data', allow_duplicate=True),
+        dash.Output('number-hikes', 'data', allow_duplicate=True),
+        dash.Output('hikes-info', 'data', allow_duplicate=True),
 
         dash.Output('map-polylines', 'children', allow_duplicate=True),
         dash.Output('elevation-plot', 'style', allow_duplicate=True),
@@ -1037,6 +1042,10 @@ def update_ui_after_single_hike_load(
     hike_info = {
         'lat'        : properties['center'][0],
         'lon'        : properties['center'][1],
+        'minLat'     : np.min(properties['lat']),
+        'maxLat'     : np.max(properties['lat']),
+        'minLon'     : np.min(properties['lon']),
+        'maxLon'     : np.max(properties['lon']),
         'zoom'       : properties['zoom'],
         'distances'  : [f'{d:.1f}' for d in properties['distances']],
         'elevations' : properties['elevations']

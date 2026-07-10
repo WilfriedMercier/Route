@@ -107,3 +107,59 @@ def zoom_for_bounds(south: float, west: float, north: float, east: float) -> int
     zoom = int(math.floor(math.log2(360 / max_diff)))
 
     return zoom
+
+def calculate_zoom_from_bounds(bounds, map_width=800, map_height=600):
+    """
+    Calculate optimal zoom level from bounding box.
+    
+    Args:
+        bounds: [[lat_southwest, lng_southwest], [lat_northeast, lng_northeast]]
+        map_width: Map container width in pixels
+        map_height: Map container height in pixels
+    
+    Returns:
+        int: Optimal zoom level (1-19)
+    """
+    if len(bounds) != 2:
+        return 10  # Default zoom
+    
+    sw_lat, sw_lng = bounds[0]
+    ne_lat, ne_lng = bounds[1]
+    
+    # Calculate latitude and longitude differences
+    lat_diff = abs(ne_lat - sw_lat)
+    lng_diff = abs(ne_lng - sw_lng)
+    
+    # Avoid division by zero
+    if lat_diff == 0 or lng_diff == 0:
+        return 15  # High zoom for very small areas
+    
+    # Average latitude for longitude correction (cosine factor)
+    avg_lat = (sw_lat + ne_lat) / 2
+    
+    # Convert degrees to approximate kilometers
+    # 1 degree latitude ≈ 111.32 km (varies slightly but consistent enough)
+    lat_km = lat_diff * 111.32
+    # Longitude distance varies with latitude
+    lng_km = lng_diff * 111.32 * math.cos(math.radians(avg_lat))
+    
+    # Use the larger dimension (with padding buffer)
+    max_dist_km = max(lat_km, lng_km) * 1.2  # 20% padding
+    
+    # World circumference at equator in km
+    world_circumference = 40075
+    
+    # Map dimensions (use the smaller dimension for conservative calculation)
+    map_size = min(map_width, map_height)
+    
+    # Pixels per degree at zoom 0
+    pixels_per_degree_at_zoom0 = 256 / 360  # 256 tiles / 360 degrees
+    
+    # Calculate zoom level
+    # Formula derived from Mercator projection and tile system
+    zoom = math.log2(
+        (world_circumference * map_size) / (max_dist_km * 360)
+    )
+    
+    # Clamp to valid Leaflet range (1-19) and round down
+    return max(1, min(19, int(zoom)))

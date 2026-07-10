@@ -21,7 +21,7 @@ elevation_plot:
 menubar:
   hike_panel_button:
     text: Hikes
-    tooltip: Toggle the hike list panel
+    tooltip: Toggle the hike list panel (Alt + L)
   hall_of_fame_button: 
     text: Statistics
     tooltip: Toggle the hall of fame panel
@@ -65,6 +65,6 @@ notifications:
 login_logout_buttons:
   login:
     text: Login
-    tooltip: Login to your account
+    tooltip: Login to your account (Alt + A)
   logout:
     tooltip: Logout of your account
