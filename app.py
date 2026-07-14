@@ -7,19 +7,10 @@ import argparse
 import datetime
 import dash_mantine_components   as     dmc
 
+from   lib.types                 import EMPTY_HIKE_DATA_FOR_MAP, EMPTY_HIKE_DATA_FOR_PLOT
 from   lib.lang                  import load_languages, LanguageHandler, LANGUAGE, are_languages_correct
 from   lib.callbacks             import register_callbacks
-from   lib.components            import (
-    ui_layout, 
-    login_success_notification,
-    login_username_fail_notification,
-    login_password_fail_notification,
-    logout_success_notification,
-    hike_upload_success_notification,
-    hike_upload_format_fail_notification,
-    hike_upload_already_there_fail_notification,
-    wrong_magic_link_notification
-)
+from   lib.components            import ui_layout
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(
@@ -57,32 +48,23 @@ language = dash.dcc.Store(id='language', data=default_language)
 # Default translation at startup
 translation = app.language_handler[default_language]
 
-notification_store = [
-    dash.dcc.Store(id = 'login-success-notification',       data = login_success_notification(translation)),
-    dash.dcc.Store(id = 'login-username-fail-notification', data = login_username_fail_notification(translation)),
-    dash.dcc.Store(id = 'login-password-fail-notification', data = login_password_fail_notification(translation)),
-    dash.dcc.Store(id = 'logout-success-notification',      data = logout_success_notification(translation)),
-    dash.dcc.Store(id = 'hike-load-success-notification',   data = hike_upload_success_notification(translation)),
-    dash.dcc.Store(id = 'hike-load-format-fail-notification', data = hike_upload_format_fail_notification(translation)),
-    dash.dcc.Store(id = 'hike-load-already-there-fail-notification', data = hike_upload_already_there_fail_notification(translation)),
-    dash.dcc.Store(id = 'wrong-magic-link-notification', data = wrong_magic_link_notification(translation))
-]
-
 register_callbacks(app)
 
 # Define layout of the application
 app.layout   = dmc.MantineProvider(
     dash.html.Div([
         dash.dcc.Location(id='url', refresh=False),
-        dash.dcc.Store(id='number-hikes', data = 0),
-        dash.dcc.Store(id='hikes-info',   data = {}),
-        dash.dcc.Store(id='hike-names-list', data = []),
-        dash.dcc.Store(id='base-url', data=''),
-        dash.dcc.Store(id='colorpicker-selected-id', data=None),
-        dash.dcc.Store(id='selected-hike', data=None),
-        dash.dcc.Store(id='map-bounds', data=None),
+        dash.dcc.Store(   id='number-hikes',                   data = 0),
+        dash.dcc.Store(   id='hikes-info',                     data = []), # type: ignore
+        dash.dcc.Store(   id='base-url',                       data = ''),
+        dash.dcc.Store(   id='colorpicker-selected-id',        data = ''),
+        dash.dcc.Store(   id='selected-hike-props',            data = {}),  # Contains the following properties: index, hike name, color
+        dash.dcc.Store(   id='selected-hike-data-for-plot',    data = EMPTY_HIKE_DATA_FOR_PLOT), # Contains the distances and elevations for the bottom elevation plot # type: ignore
+        dash.dcc.Store(   id='selected-hike-data-for-marker',  data = EMPTY_HIKE_DATA_FOR_MAP),  # Contains the lat, lon arrays for the map figure # type: ignore
+        dash.dcc.Store(   id='marker-location',                data = (0, 0)),
+        dash.dcc.Store(   id='render-ui',                      data = False),
+        dash.dcc.Store(   id='magic-link',                     data = ''),
         language,
-        *notification_store,
         dmc.NotificationContainer(id="notification-container"),
         ui_layout(app.language_handler, default_language),
     ]),

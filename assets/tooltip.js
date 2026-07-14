@@ -1,4 +1,9 @@
 window.dashMantineFunctions = window.dashMantineFunctions || {};
+
+window.dashMantineFunctions.roundNumber = function(number) {
+    return number.toFixed(1);
+};
+
 window.dashMantineFunctions.CustomTooltip = function(props) {
     if (!props.active || !props.payload || !props.payload.length) {
         return null;
@@ -26,7 +31,7 @@ window.dashMantineFunctions.CustomTooltip = function(props) {
             style: { marginBottom: '4px' }
         }, 
             React.createElement('span', {style : {color: '#000000'}}, 'Distance: '),
-            React.createElement('strong', { style: { color: color } }, distance + ' km')
+            React.createElement('strong', { style: { color: color } }, distance.toFixed(1) + ' km')
         ),
         React.createElement('div', {
             key: 'elevation',

@@ -1,48 +1,22 @@
 import math
 
-def extract_elevation_data_from_gpx(gpx) -> tuple[list[tuple[float, float]], list[float]]:
-    """
-    Extract elevation data from GPX file (tracks and waypoints).
-    
-    :param gpx: GPX file object.
-    :return: Tuple of (coords, elevations).
-    """
-
-    coords     = []
-    elevations = []
-    
-    # Extract from tracks
-    for track in gpx.tracks:
-        for segment in track.segments:
-            for point in segment.points:
-                
-                coords.append((point.latitude, point.longitude))
-                elevations.append(point.elevation)
-    
-    # Extract from waypoints if no track data
-    if not coords and gpx.waypoints:
-        for point in gpx.waypoints:
-            
-            coords.append((point.latitude, point.longitude))
-            elevations.append(point.elevation)
-    
-    return coords, elevations
-
-def calculate_distance_from_coords(points):
+def calculate_distance_from_coords(latitudes: list[float], longitudes: list[float]) -> list[float]:
     """
     Calculate cumulative distance along a path (in km).
     
-    :param points: List of (latitude, longitude) tuples.
-    :return: List of cumulative distances at each point.
+    :param latitudes: list of latitude coordinates
+    :param longitudes: list of longitude coordinates
+
+    :return: list of cumulative distances at each point.
     """
         
     distances      = [0.0]
     total_distance = 0.0
     
-    for i in range(1, len(points)):
+    for i in range(1, len(latitudes)):
 
-        lat1, lon1 = math.radians(points[i-1][0]), math.radians(points[i-1][1])
-        lat2, lon2 = math.radians(points[i][0]), math.radians(points[i][1])
+        lat1, lon1 = math.radians(latitudes[i-1]), math.radians(longitudes[i-1])
+        lat2, lon2 = math.radians(latitudes[i]),   math.radians(longitudes[i])
         
         dlat = lat2 - lat1
         dlon = lon2 - lon1
@@ -108,20 +82,17 @@ def zoom_for_bounds(south: float, west: float, north: float, east: float) -> int
 
     return zoom
 
-def calculate_zoom_from_bounds(bounds, map_width=800, map_height=600):
+def calculate_zoom_from_bounds(bounds, map_width=800, map_height=600) -> float:
     """
     Calculate optimal zoom level from bounding box.
     
-    Args:
-        bounds: [[lat_southwest, lng_southwest], [lat_northeast, lng_northeast]]
-        map_width: Map container width in pixels
-        map_height: Map container height in pixels
+    :param bounds: geographical bounds of the map
+    :param map_width: width of the map
+    :param map_height: height of the map
     
-    Returns:
-        int: Optimal zoom level (1-19)
+    :returns: zoom level
     """
-    if len(bounds) != 2:
-        return 10  # Default zoom
+    if len(bounds) != 2: return 10  # Default zoom
     
     sw_lat, sw_lng = bounds[0]
     ne_lat, ne_lng = bounds[1]
@@ -160,6 +131,9 @@ def calculate_zoom_from_bounds(bounds, map_width=800, map_height=600):
     zoom = math.log2(
         (world_circumference * map_size) / (max_dist_km * 360)
     )
+
+    print(zoom)
+    return 13.5
     
     # Clamp to valid Leaflet range (1-19) and round down
     return max(1, min(19, int(zoom)))

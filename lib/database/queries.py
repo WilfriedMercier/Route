@@ -5,6 +5,9 @@ from   contextlib    import contextmanager
 from   psycopg2.pool import ThreadedConnectionPool
 from   psycopg2      import extras
 
+from   ..errors      import NoHikeForMagicLink, NoHikeIDInDB, NoUsernameInDB
+from   ..types       import HikeInfo
+
 # Load environment variables for database
 dotenv.load_dotenv()
 
@@ -89,7 +92,12 @@ class Users_table:
         :param username: name of the user as it appears in the database
         '''
 
-        return execute_get_query(f"SELECT id FROM users WHERE username = '{username}'")[0][0]
+        res = execute_get_query(f"SELECT id FROM users WHERE username = '{username}'")
+
+        if res is None:
+            raise NoUsernameInDB(f'The username {username} could not be found in the database.')
+
+        return res[0][0]
 
     @staticmethod
     def get_username_from_user_id(user_id: int) -> str:
@@ -105,17 +113,19 @@ class Hikes_table:
     r'''A class containing methods that query information in the hikes table.'''
 
     @staticmethod
-    def get_hike_id_from_user_id_and_hike_name(user_id: int, hike_name: str) -> int | None:
+    def get_hike_id_from_user_id_and_hike_name(user_id: int, hike_name: str) -> int:
         '''
         Return the hike id associated to the user if it exists, None otherwise.
 
         :param user_id: identifier of the user as it appears in the database
         :param hike_name: name of the hike as it appears in the database
         '''
-
+        
         res = execute_get_query(f"SELECT id FROM hikes WHERE user_id = '{user_id}' AND name = '{hike_name}'")
 
-        return res[0][0] if len(res) > 0 else None
+        if res is None: raise NoHikeIDInDB(f'Hike with name {hike_name} for user {user_id} not in database.')
+
+        return res[0][0]
     
     @staticmethod
     def is_hike_in_db(user_id: int, hike_name: str) -> bool:
@@ -131,7 +141,7 @@ class Hikes_table:
     @staticmethod
     def insert_hikes_into_db(
         user_id         : int,
-        hike_properties : dict[str, dict[str, float | int | list[float]]],
+        hike_properties : dict[str, HikeInfo],
     ) -> None:
         r'''
         Insert multiple hikes into the database.
@@ -151,24 +161,19 @@ class Hikes_table:
 
         for hike_name, hike_dict in hike_properties.items():
 
-            center: list[float] = hike_dict['center'] # type: ignore
-
             values.append((
                 user_id,
                 hike_name,
-                center[0],
-                center[1],
+                hike_dict['center_lat'],
+                hike_dict['center_lon'],
                 hike_dict['zoom'],
-                hike_dict['lat'],
-                hike_dict['lon'],
+                hike_dict['latitudes'],
+                hike_dict['longitudes'],
                 hike_dict['distances'],
-                hike_dict['elevations'],
+                hike_dict['elevations']
             ))
 
         execute_insert_query(query, values, multiple_rows=True, template=template)
-
-        print('Here is the db')
-        print(execute_get_query('SELECT * FROM hikes;'))
 
         return
 
@@ -188,17 +193,21 @@ class Magic_links_table:
         return res[0][0] if len(res) > 0 else None
     
     @staticmethod
-    def get_hike_id_from_magic_link(magic_link: str) -> int | None:
+    def get_hike_id_from_magic_link(magic_link: str) -> int:
         '''
         Return the hike id the magic link is associated to if the magic link exists, None otherwise.
 
         :param magic_link: magic link
+
+        :returns: hike ID
         '''
 
         res = execute_get_query(f"SELECT hike_id FROM magic_links WHERE id = '{magic_link}'")
 
-        return res[0][0] if len(res) > 0 else None
-
+        if res is None or len(res) != 1: 
+            raise NoHikeForMagicLink(f'No hike found for the magic link {magic_link}')
+            
+        return res[0][0]
 
     @staticmethod
     def insert_magic_link_into_db(hike_id: int) -> None:

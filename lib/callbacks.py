@@ -1,17 +1,42 @@
 import dash
-import pathlib
+import typing
 import dash_mantine_components as     dmc
 import plotly.graph_objects    as     go
 import dash_leaflet            as     dl
-import numpy                   as     np
 from   urllib.parse            import urlparse, parse_qs
 from   flask                   import session
 from   plotly.colors           import qualitative
-from   dash_iconify            import DashIconify
+
+from   .errors                 import (
+    UnsupportedFileFormatError,
+    NoHikeForMagicLink,
+    NoHikeIDInDB,
+    NoMagicForHikeID,
+    NoUsernameInDB,
+    WrongPassword,
+    WrongUsername
+)
+from   .types                  import (
+    HikeDataForMarker, 
+    HikeProps, 
+    HikeInfo,
+    HikeDataForElevationPlot,
+    Notification,
+    EMPTY_HIKE_DATA_FOR_PLOT
+)
 
 from   .lang                   import LANGUAGE
-from   .io                     import parse_uploaded_file
-from   .components             import hikelist_element_layout, language_element
+from   .io                     import decode_and_process_uploaded_file
+from   .components             import hikelist_element_layout, language_element, HandleShortcut
+from   .components.notifications import (
+    login_success_notification, 
+    login_password_fail_notification, 
+    login_username_fail_notification, 
+    logout_success_notification,
+    wrong_magic_link_notification
+)
+
+from   .components.map         import generate_new_figure, generate_leaflet_map_figure
 from   .misc                   import check_if_hike_is_loaded
 from   .database               import (
     Hikes_table,
@@ -51,29 +76,93 @@ def register_callbacks(app : dash.Dash) -> None:
     register_burger_callbacks(app)
     register_keydown_callbacks(app)
     register_colorpicker_modal_callbacks(app)
+    register_elevation_plot_callbacks(app)
+    
+    return
+    
+def register_elevation_plot_callbacks(app: dash.Dash) -> None:
+    r'''
+    Register all callbacks associated to the elevation plot.
+
+    :param app: dash application
+    '''
+
+    @app.callback(
+        dash.Output('marker', 'center'),
+        dash.Output('marker', 'pathOptions'),
+
+        dash.Input('elevation-plot', 'hoverData'),
+        dash.State('selected-hike-data-for-marker', 'data'),
+        dash.State('selected-hike-props', 'data'),
+    )
+    def elevation_plot_hover(
+            hoverData       : dict[str, typing.Any], 
+            hike_properties : HikeDataForMarker, 
+            props           : HikeProps
+        ) -> tuple[tuple[float, float], dict[str, str]]:
+        r'''
+        Callback used whenever the user hovers over the elevation plot. This moves a marker on the map at the corresponding location.
+
+        :param hoverData: dictionary containing properties about the hovered point (in particular its index in the array)
+        :param hike_properties: dictionary with latitude and longitude information for the selected hike
+        :param props: dictionary with additional properties associated to to the selected hike (in particular its color)
+
+        :returns:
+            - the (lat, lon) position of the marker on the map
+            - a dictionary indicating the color of the marker on the map
+        '''
+
+        if hoverData is None: return (0, 0), {'color' : 'rgba(0, 0, 0, 0)'}
+
+        # Index in the array corresponding to the hovered point
+        index     = hoverData['points'][0]['pointIndex']
+
+        # Associated lat, lon position
+        position  = (hike_properties['latitudes'][index], hike_properties['longitudes'][index])
+        
+        return position, {'color' : props['color']}
+    
+    return
 
 def register_keydown_callbacks(app: dash.Dash) -> None:
+    r'''
+    Register callabacks associated to different key shortcuts being pressed.
+
+    :param app: dash application
+    '''
     
     @app.callback(
         dash.Output('hike-panel',  'opened', allow_duplicate=True),
         dash.Output('login-modal', 'opened', allow_duplicate=True),
 
-        dash.Input('keyboard', 'n_keydowns'),
-        dash.State('keyboard', 'keydown'),
+        dash.Input('keyboard',   'n_keydowns'),
+        dash.State('keyboard',   'keydown'),
         dash.State('hike-panel', 'opened'), 
         prevent_initial_call=True
     )
     def register_keydown(_, keydown: dict, is_hike_panel_open: bool) -> tuple[bool | dash.NoUpdate, bool | dash.NoUpdate]:
+        r'''
+        Callaback called whenever a registered key is pressed. Used to handle shortcuts.
 
-        # Shortcut to open the hike panel
+        :param keydown: dictionary with 'key' holding the pressed key and 'altKey' indicating whether alt is pressed as well
+        :param is_hike_panel_open: whether the hike panel is open or not
+
+        :returns: 
+            - if Alt + L, see :py:`HandleShortcut.alt_l_key_combination`
+            - if Alt + A, see :py:`HandleShortcut.alt_a_key_combination`
+        '''
+
+        # Shortcut to open/close the hike panel (not working with a magic link)
         if keydown['key'] == 'l' and keydown['altKey']:
-            return not is_hike_panel_open, dash.no_update
+            return HandleShortcut.alt_l_key_combination(is_hike_panel_open)
         
         # Shortcut to switch between light and dark modes
-        elif keydown['key'] == 'a' and keydown['altKey']:
-            return dash.no_update, 'user_id' not in session
+        elif not session['magic-link'] and keydown['key'] == 'a' and keydown['altKey']:
+            return HandleShortcut.alt_a_key_combination()
         
         raise dash.exceptions.PreventUpdate
+    
+    return
 
 def register_burger_callbacks(app: dash.Dash) -> None:
     r'''
@@ -84,10 +173,19 @@ def register_burger_callbacks(app: dash.Dash) -> None:
 
     @app.callback(
         dash.Output("appshell", "navbar"),
-        dash.Input("burger", "opened"),
-        dash.State("appshell", "navbar"),
+
+        dash.Input( "burger",   "opened"),
+        dash.State( "appshell", "navbar"),
     )
-    def toggle_navbar(opened, navbar):
+    def toggle_navbar(opened: bool, navbar: dict[str, typing.Any]):
+        r'''
+        Callback called whenever the burger UI element is clicked.
+
+        :param opened: whether the burger has state opened or not
+        :param navbar: dictionary with key-value pairs that describe the navbar (i.e., the menubar)
+
+        :returns: the new navbar with a collapsed state or not
+        '''
 
         navbar["collapsed"] = {"mobile": not opened, 'desktop' : not opened}
         return navbar
@@ -102,42 +200,46 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
     '''
 
     @app.callback(
+        dash.Output('map-div', 'children', allow_duplicate=True),
+        dash.Output('map-div', 'style'),
         dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'style', allow_duplicate=True),
-
-        dash.Output('hike-names-list',   'data',     allow_duplicate=True),
-        dash.Output('hikelist-div',      'children', allow_duplicate=True),
-        dash.Output('number-hikes',      'data',     allow_duplicate=True),
-        dash.Output('hikes-info',        'data',     allow_duplicate=True),
-
-        dash.Output('map-polylines',     'children', allow_duplicate=True),
-        dash.Output('elevation-plot',    'style',    allow_duplicate=True),
-
+        dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'children'),
+        dash.Output({'type' : 'login-button-tooltip', 'index' : dash.ALL}, 'label'),
+        dash.Output('hikelist-div',           'children',          allow_duplicate=True),
+        dash.Output('number-hikes',           'data',              allow_duplicate=True),
+        dash.Output('hikes-info',             'data',              allow_duplicate=True),
+        dash.Output('map-polylines',          'children',          allow_duplicate=True),
+        dash.Output('elevation-plot-stack',   'style',             allow_duplicate=True),
         dash.Output('upload-hike-button',     'style',             allow_duplicate=True),
         dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
-
         dash.Output('base-url', 'data'),
+        dash.Output('render-ui', 'data'),
+        dash.Output('magic-link', 'data'),
 
         dash.Input('url', 'href'),
         dash.State('language', 'data'),
-        dash.State('wrong-magic-link-notification', 'data'),
 
         prevent_initial_call = True
     )
     def render_ui(
-            url          : str, 
-            language     : LANGUAGE,
-            notification : dict
+            url      : str, 
+            language : LANGUAGE
         ) -> tuple[
-            tuple[dict, dict] | tuple[dash.NoUpdate, dash.NoUpdate],
-            list[str]         | dash.NoUpdate, 
-            list              | dash.NoUpdate, 
-            int               | dash.NoUpdate, 
-            dict              | dash.NoUpdate, 
-            list[dl.Polyline] | dash.NoUpdate, 
-            dict[str, str]    | dash.NoUpdate,
-            dict[str, str]    | dash.NoUpdate, 
-            list[dict]        | dash.NoUpdate,
-            str
+            dl.Map                                | dash.NoUpdate, # map -> children
+            dict[str, typing.Any]                 | dash.NoUpdate, # map -> style
+            tuple[dict[str, str], dict[str, str]] | tuple[dash.NoUpdate, dash.NoUpdate], # all login-button -> style
+            tuple[str, str]      | tuple[dash.NoUpdate, dash.NoUpdate], # all login-button -> children
+            tuple[str, str]      | tuple[dash.NoUpdate, dash.NoUpdate], # all login-button-tooltip -> children
+            list[dmc.Space]      | dash.NoUpdate, # hikelist-div -> children
+            int                  | dash.NoUpdate, # number-hikes -> data
+            dict[str, HikeInfo]  | dash.NoUpdate, # hikes-info -> data
+            list[dl.Polyline]    | dash.NoUpdate, # map-polylines -> children
+            dict[str, str]       | dash.NoUpdate, # elevation-plot-stack -> style
+            dict[str, str]       | dash.NoUpdate, # upload-hike-button -> style
+            list[Notification]   | dash.NoUpdate, # notification-container -> sendNotifications
+            str,  # base-url -> data
+            bool, # render-ui -> data
+            str,  # magic-link -> data
         ]:
         r'''
         Callback used at startup to define how the UI is rendered.
@@ -155,127 +257,180 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         # Case without a magic link
         if (token_list is None or len(token_list) != 1):
 
-            ui_elements = handle_without_magic_link(language)
+            (
+                button_style_1, button_style_2,
+                widgets, n_hikes, hikes_info, traces,
+                login_button, login_tooltip
+            ) = handle_without_magic_link(language)
 
             return (
-                *ui_elements, dash.no_update, {}, 
+                generate_leaflet_map_figure(),
                 dash.no_update,
-                base_url
+                (button_style_1, button_style_2), 
+                (login_button, login_button),
+                (login_tooltip, login_tooltip),
+                widgets, n_hikes, hikes_info, traces,
+                {'display' : 'none'}, dash.no_update, dash.no_update,
+                base_url, False, ''
             )
-    
-        # Case with a magic link. Note the following when opening with a magic link:
-        # - login and logout buttons are disabled
-        # - upload hike button is disabled
-        # - share hike buttons are disabled
-        ui_elements = handle_with_magic_link(token_list[0], language)
-
-        # Magic link incorrect
-        if ui_elements is None: 
-            
-            return (
-                (dash.no_update, dash.no_update), 
-                dash.no_update, dash.no_update, dash.no_update, dash.no_update,
-                dash.no_update,  dash.no_update,
-                dash.no_update, [notification], 
-                base_url
-            )
-
-        # Magic link is correct
+        
+        # Case with a magic link
         return (
-            ({'display' : 'none'}, {'display' : 'none'}), 
-            *ui_elements, {'display' : 'flex'},
-            dash.no_update, dash.no_update,
-            base_url
+            dash.no_update,
+            {'height' : '70%'},
+            (dash.no_update, dash.no_update), (dash.no_update, dash.no_update),
+            (dash.no_update, dash.no_update),
+            dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+            dash.no_update, dash.no_update, dash.no_update,
+            base_url, True, token_list[0]
+        )
+    
+    @app.callback(
+        dash.Output('map-div', 'children', allow_duplicate=True),
+        dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'style', allow_duplicate=True),
+        dash.Output('hikelist-div',           'children',          allow_duplicate=True),
+        dash.Output('number-hikes',           'data',              allow_duplicate=True),
+        dash.Output('hikes-info',             'data',              allow_duplicate=True),
+        dash.Output('map-polylines',          'children',          allow_duplicate=True),
+        dash.Output('elevation-plot-stack',   'style',             allow_duplicate=True),
+        dash.Output('upload-hike-button',     'style',             allow_duplicate=True),
+        dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
+
+        dash.Input('render-ui', 'data'),
+        dash.State('language', 'data'),
+        dash.State('magic-link', 'data'),
+
+        prevent_initial_call = True
+    )
+    def render_ui_with_magic_link(
+            render_ui  : bool, 
+            language   : LANGUAGE,
+            magic_link:  str
+        ) -> tuple[
+            dl.Map, # map -> children
+            tuple[dict[str, str], dict[str, str]] | tuple[dash.NoUpdate, dash.NoUpdate], # all login-button -> style
+            list[dmc.Space]      | dash.NoUpdate, # hikelist-div -> children
+            int                  | dash.NoUpdate, # number-hikes -> data
+            dict[str, HikeInfo]  | dash.NoUpdate, # hikes-info -> data
+            list[dl.Polyline]    | dash.NoUpdate, # map-polylines -> children
+            dict[str, str]       | dash.NoUpdate, # elevation-plot-plot -> style
+            dict[str, str]       | dash.NoUpdate, # upload-hike-button -> style
+            list[Notification]   | dash.NoUpdate, # notification-container -> sendNotifications
+        ]:
+
+        if not render_ui: raise dash.exceptions.PreventUpdate
+
+        # Case with a magic link. Note the following are disabled when opening with a magic link:
+        # - all login/logout buttons
+        # - upload hike button
+        # - all share hike buttons
+        try:
+            widgets, n_hikes, hikes_info, traces = handle_with_magic_link(magic_link, language)
+        except NoHikeForMagicLink: # Case when magic link incorrect
+
+            notification = wrong_magic_link_notification(
+                app.language_handler[language]['notifications']
+            )
+
+            return (
+                generate_leaflet_map_figure(),
+                (dash.no_update, dash.no_update),
+                dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update,  dash.no_update, [notification]
+            )
+
+        # Case when magic link is correct
+        return (
+            generate_leaflet_map_figure(),
+            ({'display' : 'none'}, {'display' : 'none'}),
+            widgets, n_hikes, hikes_info, traces,
+            {'display' : 'flex'},  {'display' : 'none'}, dash.no_update
         )
         
     def handle_with_magic_link(
             magic_link : str, 
             language   : LANGUAGE
-        ) -> tuple[list[str], list, int, dict, list[dl.Polyline]] | None:
-        '''
+        ) -> tuple[list[dmc.Space], int, dict[str, HikeInfo], list[dl.Polyline]]:
+        r'''
         Handle the rendering of the UI elements when the user is connecting with a magic link.
 
         :param magic_link: magic link provided in the url
         :param language: selected language
 
         :returns:
-            - list of hike names
             - list of hike element widgets
             - number of hikes
             - dictionary with hike names as keys and dictionaries with hike information as values
             - list of Polylines object to draw on the map (hike paths)
+
+        :raises: NoHikeForMagicLink if the magic link is wrong
         '''
 
+        # Store in session manager that a magic link is used
+        session['magic-link'] = True
+
+        # Get the hike ID associated to the magic link. If None, no link 
         hike_id = Magic_links_table.get_hike_id_from_magic_link(magic_link)
-
-        if hike_id is None: return
         
-        # Query hikes database associated to the user
-        hike_properties = execute_get_query(f'''
-            SELECT name, latitude, longitude, center_lat, center_lon, zoom, distances, elevations
-            FROM hikes
-            WHERE id = {hike_id};
-        ''')
-
-        # Build the dictionary with hike properties
-        property_dict = {}
-        hike_names    = []
-
-        for hike in hike_properties:
-
-            hike_names.append(hike[0])
-
-            property_dict[hike[0]]               = {}
-            property_dict[hike[0]]['lat']        = hike[1]
-            property_dict[hike[0]]['lon']        = hike[2]
-            property_dict[hike[0]]['center']     = (hike[3], hike[4])
-            property_dict[hike[0]]['zoom']       = hike[5]
-            property_dict[hike[0]]['distances']  = hike[6]
-            property_dict[hike[0]]['elevations'] = hike[7]
-
-        ui_elements = update_ui_after_multiple_hike_loads(
-            app, property_dict, [],
-            language, {},
-            magic_link_state = True
-        )
+        hikes_info, widgets, traces = generate_hike_ui_elements_with_hike_id(app, language, hike_id)
 
         # Create a new figure and update all ui elements related to hikes
-        return hike_names, *ui_elements
+        return widgets, len(widgets), hikes_info, traces
 
-    def handle_without_magic_link(language: LANGUAGE
-    ) -> tuple[tuple[dict[str, str], dict[str, str]], list[str], list, int, dict, list[dl.Polyline]]:
-        '''
+    def handle_without_magic_link(
+            language: LANGUAGE
+        ) -> tuple[
+            dict[str, str], 
+            dict[str, str], 
+            list[dmc.Space], 
+            int, 
+            dict[str, HikeInfo], 
+            list[dl.Polyline],
+            str,
+            str
+        ]:
+        r'''
         Handle the rendering of the UI elements when the user is not connecting with a magic link.
 
         :param language: selected language
 
         :returns:
-            - two dictionaries with the style for the login buttons
-            - text for the login/logout button if user is connected
-            - list of hike names
+            - a dictionary containing the style for the first login button
+            - a dictionary containing the style for the second login button
             - list of hike widgets
             - number of loaded hikes
             - dictionary with information for each hike
             - list of Polylines object to draw on the map (hike paths)
+            - text shown in the login buttons
+            - text shown in the tooltips of the login buttons
         '''
+
+        # Store in session manager that a magic link is not used
+        session['magic-link'] = False
 
         # User session still active in the cookies
         if 'user_id' in session:
 
-            username = Users_table.get_username_from_user_id(session['user_id'])
-
             # All ui elements associated to the hikes
-            ui_elements = generate_hike_ui_elements_after_login(app, language, magic_link_state = False)
+            hikes_info, widgets, traces = generate_hike_ui_elements_with_login(app, language)
+
+            login_button  = Users_table.get_username_from_user_id(session['user_id'])
+            login_tooltip = app.language_handler[language]['login_logout_buttons']['logout']['tooltip']
 
             return (
-                ({'display' : 'none'}, {'display' : 'none'}),
-                *ui_elements
+                {'display' : 'flex'}, {'display' : 'flex'},
+                widgets, len(widgets), hikes_info, traces,
+                login_button, login_tooltip
             )
+        
+        login_button  = app.language_handler[language]['login_logout_buttons']['login']['text']
+        login_tooltip = app.language_handler[language]['login_logout_buttons']['login']['tooltip']
 
         # User session not active in the cookies
         return (
-            ({'display' : 'flex'}, {'display' : 'flex'}),
-            [], [], 0, {}, []
+            {'display' : 'flex'}, {'display' : 'flex'},
+            [], 0, {}, [],
+            login_button, login_tooltip
         )
 
     return
@@ -313,11 +468,6 @@ def register_language_callacks(app: dash.Dash) -> None:
         dash.Output('login-modal-password-input', 'placeholder'),
         dash.Output('send-login-button', 'children'),
 
-        dash.Output('login-success-notification', 'data'),
-        dash.Output('login-username-fail-notification', 'data'),
-        dash.Output('login-password-fail-notification', 'data'),
-        dash.Output('logout-success-notification', 'data'),
-
         dash.Output({'type' : 'language-dropdown', 'index' : dash.ALL}, 'children', allow_duplicate=True),
         dash.Output('magic-link-modal-text', 'children'),
         dash.Output('magic-link-modal', 'title'),
@@ -333,7 +483,6 @@ def register_language_callacks(app: dash.Dash) -> None:
         list[str], list[str], list[str], tuple[str],
         tuple[str, dash.NoUpdate] | tuple[dash.NoUpdate, dash.NoUpdate], tuple[str, str],
         str, str, str, str, str, str,
-        dict, dict, dict, dict, 
         tuple[list, list],
         str, str
     ]:
@@ -356,11 +505,6 @@ def register_language_callacks(app: dash.Dash) -> None:
 
         lang : LANGUAGE = triggered_id['index'].split('-')[-1]
         translation     = app.language_handler[lang]
-
-        login_sn    = login_success_notification(translation)
-        login_ufn   = login_username_fail_notification(translation)
-        login_pfn   = login_password_fail_notification(translation)
-        logout_sn   = logout_success_notification(translation)
 
         login_button_text    = translation['login_logout_buttons']['login']['text'] if 'user_id' not in session else dash.no_update
         login_button_tooltip = translation['login_logout_buttons']['logout' if 'user_id' in session else 'login']['tooltip']
@@ -399,11 +543,6 @@ def register_language_callacks(app: dash.Dash) -> None:
             translation['login_modal']['user_password_input']['placeholder'],
             translation['login_modal']['send_login_button']['text'],
 
-            login_sn,
-            login_ufn,
-            login_pfn,
-            logout_sn,
-
             (language_dropdown, language_dropdown),
 
             translation['magic_link_modal']['text'],
@@ -424,7 +563,7 @@ def register_menubar_callbacks(app: dash.Dash) -> None:
         dash.Input('hike-panel-button', 'n_clicks'),
         prevent_initial_call=True
     )
-    def hike_panel_button(_: int) -> bool:
+    def hike_panel_button(_) -> typing.Literal[True]:
         r'''Callback used when the hike panel button is clicked.'''
 
         return True
@@ -439,7 +578,10 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
     '''
 
     @app.callback(
-        dash.Output('selected-hike', 'data'),
+        dash.Output('selected-hike-props',         'data'),
+        dash.Output('selected-hike-data-for-marker',  'data'),
+        dash.Output('selected-hike-data-for-plot', 'data'),
+
         dash.Output({'type' : 'hikelist-button', 'index' : dash.ALL}, 'style'),
 
         dash.Output('map', 'viewport'),
@@ -447,61 +589,94 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.Output("burger", "opened"),
         dash.Output('hike-panel', 'opened', allow_duplicate=True),
 
-        dash.Output('elevation-plot', 'data'),
-        dash.Output('elevation-plot', 'yAxisProps'),
-        dash.Output('elevation-plot', 'series', allow_duplicate=True),
-        #dash.Output('map', 'zoom'),
+        dash.Output('elevation-plot', 'figure'),
 
         dash.Input( {'type' : 'hikelist-button', 'index' : dash.ALL}, 'n_clicks'),
-        dash.State('number-hikes', 'data'),
         dash.State('hikes-info', 'data'),
-        dash.State('hike-names-list', 'data'),
         dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'), 
 
         prevent_initial_call = True
     )
     def hike_button(
-        _, n_hikes: int, hikes_info: dict, hike_names: list[str], colors: list[str]
+        _,
+        hikes_info : dict[str, HikeInfo], 
+        colors     : list[str],
     ) -> tuple[
-            int, list[dict[str, str]], 
+            HikeProps, HikeDataForMarker, HikeDataForElevationPlot,
+            list[dict[str, str]], 
             dict,
-            bool, bool, 
-            list[dict], dict, list[dict]
+            typing.Literal[False], 
+            typing.Literal[False],
+            go.Figure
         ]:
         r'''
         Callback used when a hike is selected in the hike list.
 
-        :param n_hikes: total number of hike list components
         :param hikes_info: hike properties containing information such as center and zoom level
-        :param hike_names_list: list containing the name of the hikes as they appear in the hike list
         :param colors: list of colors associated to each colorpicker
+
+        :returns:
+            - dictionary with properties corresponding to the selected hike
+            - dictionary with data for the map corresponding to the selected hike
+            - dictionary with data for the elevation plot corresponding to the selected hike
+            - list of dictionaries with styles for the hikelist buttons
+            - dictionary with properties to modify the viewport of the map (i.e. center and zoom)
+            - False to close the navbar associated to the burger object
+            - False to close the hike-panel
+            - a new figure for the elevation plot with updated data and properties
         '''
 
         ctx = dash.callback_context
 
         if ctx is None or not ctx.triggered: raise dash.exceptions.PreventUpdate
 
-        styles = [{}] * n_hikes
-
         # Extract the ID of the clicked button
-        clicked_index = ctx.triggered_id['index'] # type: ignore
+        hike_name = ctx.triggered_id['index'] # type: ignore
 
-        styles[clicked_index] = {'backgroundColor': 'var(--custom-theme-color)', 'color' : 'white'}
+        styles = []
+        for pos, name in enumerate(hikes_info.keys()):
+            
+            styles.append(
+                {} if hike_name != name else 
+                {'backgroundColor': 'var(--custom-theme-color)', 'color' : 'white'}
+            )
+            
+            if hike_name == name: color = colors[pos]
 
         # Get distances and elevations for the given hike
-        name = hike_names[clicked_index]
-        info = hikes_info[name]
+        info  = hikes_info[hike_name]
 
-        elevation_data = [{'x' : d, 'y' : e} for d, e in zip(info['distances'], info['elevations'])]
+        # Store info about the selected hike
+        selected_hike_props = HikeProps(
+            name  = hike_name,
+            color = color
+        )
 
-        yaxisprops = {'domain' : [np.min(info['elevations']), np.max(info['elevations'])]}
-        color      = colors[clicked_index]
+        selected_hike_lat_lon = HikeDataForMarker(
+            latitudes  = info['latitudes'],
+            longitudes = info['longitudes']
+        )
+
+        selected_hike_dist_elev = HikeDataForElevationPlot(
+            distances  = info['distances'],
+            elevations = info['elevations']
+        )
+
+        fig = generate_new_figure(info['distances'], info['elevations'], color)
 
         return (
-            clicked_index, styles,
-            {'center' : (info['lat'], info['lon']), 'zoom' : info['zoom'], 'transition' : "flyTo"},
+            selected_hike_props, selected_hike_lat_lon, selected_hike_dist_elev,
+            styles,
+            {
+                'center'     : (info['center_lat'], info['center_lon']),
+                'bounds'     : (
+                    (min(info['latitudes']), min(info['longitudes'])), 
+                    (max(info['latitudes']), max(info['longitudes']))
+                ),
+                'transition' : "flyTo"
+            },
             False, False,
-            elevation_data, yaxisprops, [{'name' : 'y', 'color' : color}]
+            fig
         )
     
     @app.callback(
@@ -513,13 +688,23 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'),
         prevent_initial_call=True
     )
-    def colorpicker_click(n_clicks: list[int | None], colors: list[str]) -> tuple[bool, str, str]:
-        '''
-        Callback called whenever the given colorpicker is clicked.
+    def colorpicker_click(
+            n_clicks        : list[int | None], 
+            colors          : list[str]
+        ) -> tuple[typing.Literal[True], str, str]:
+        r'''
+        Callback called whenever the given colorpicker is clicked in the hike list panel.
 
         :param n_clicks: number of clicks for each colorpicker object
         :param colors: colors selected by the colorpickers
+
+        :returns:
+            - True to open the colorpicker modal
+            - the color of the clicked button to pass it as default value to the colorpicker
+            - ID of the clicked colorpicker button
         '''
+
+        print(colors)
 
         if all(n is None for n in n_clicks): raise dash.exceptions.PreventUpdate
 
@@ -527,50 +712,13 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
 
         if ctx is None or not ctx.triggered: raise dash.exceptions.PreventUpdate
 
+        for pos, n in enumerate(n_clicks):
+            if n is not None: color = colors[pos]
+
         triggered_id = ctx.triggered_id['index'] # type: ignore
         
-        return True, colors[triggered_id], triggered_id
-    
-    @app.callback(
-        dash.Output({'type' : 'map-trace', 'index' : dash.ALL}, 'pathOptions', allow_duplicate=True),
-        dash.Output('elevation-plot', 'series'),
+        return True, color, triggered_id
 
-        dash.Input({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'),
-        dash.State('colorpicker-selected-id', 'data'),
-        dash.State('selected-hike', 'data'),
-        dash.State('number-hikes', 'data'),
-        prevent_initial_call=True
-    )
-    def colorpicker_color_update(
-            colors         : list[str], 
-            color_index    : int,
-            selected_index : int,
-            n_hikes        : int,
-        ) -> tuple[list[dict[str, str] | dash.NoUpdate], list[dict] | dash.NoUpdate]:
-        '''
-        Callback called whenever the color of one of the colorpickers changes.
-
-        :param colors: colors for all colorpickers
-        :param index: index of the colorpicker whose color has changed
-        '''
-
-        if color_index is None: raise dash.exceptions.PreventUpdate
-
-        color = colors[color_index]
-
-        print(selected_index, color)
-
-        # If the index of the changed color does not match the selected hike, we do not update the elevation plot color
-        if selected_index is None or color_index != selected_index:
-            plot_style = dash.no_update
-        else:
-            plot_style = [{'name' : 'y', 'color' : color}]
-
-        props : list[dict[str, str] | dash.NoUpdate] = [dash.no_update] * n_hikes
-        props[color_index] = {'color' : color}
-
-        return props, plot_style
-    
     @app.callback(
         dash.Output({'type' : 'hikelist-button',       'index' : dash.ALL}, 'disabled'),
         dash.Output({'type' : 'hikelist-colorpicker',  'index' : dash.ALL}, 'disabled'),
@@ -581,34 +729,27 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
 
         dash.Input({'type' : 'hikelist-hide-button', 'index' : dash.ALL}, 'checked'),
         dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'),
-        dash.State('number-hikes', 'data'),
 
         prevent_initial_call = True
     )
     def hide_button(
-        checked_list: list[bool], colors: list[str], number_hikes: int
+        checked_list : list[bool], 
+        colors       : list[str], 
     ) -> tuple[list[bool], list[bool], list[bool], list[bool], list[bool], list[dict]]:
         r'''
         Callback used when the hide button is toggled.
 
         :param checked_list: whether the hide buttons are checked
         :param colors: current colors for each colorpicker
-        :param number_hikes: total number of hike elements
+
+        :returns: a tuple containing
+            - 5 times the same list with True or False for each hike wiget UI element (True to disable, False to enable)
+            - a list with dictionaries inside specifying the color of the lines on the map (transparent if hidden)
         '''
 
-        ctx = dash.callback_context
-
-        if ctx is None or not ctx.triggered: raise dash.exceptions.PreventUpdate
-
-        # Extract the ID of the clicked button
-        clicked_index = ctx.triggered_id['index'] # type: ignore
-        checked       = checked_list[clicked_index]
-
-        output                = [not i for i in checked_list]
-        output[clicked_index] = not checked
+        output      = [not i for i in checked_list]
 
         # Change disabled hikes color to transparent
-        print(colors)
         hike_colors = [{'color' : color if check else 'rgba(0, 0, 0, 0)'} for color, check in zip(colors, checked_list)]
 
         return output, output, output, output, output, hike_colors
@@ -617,47 +758,44 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.Output('magic-link-modal', 'opened'),
         dash.Output('magic-link-copy-button', 'value'),
         dash.Output('magic-link-copy-button', 'children'),
-        #dash.Output('magic-link-copy-button-tooltip', 'label'),
+
         dash.Input({'type' : 'hikelist-share-button', 'index' : dash.ALL}, 'n_clicks'),
-        dash.State('hike-names-list', 'data'),
         dash.State('base-url', 'data'),
         prevent_initial_call = True
     )
     def share_hike(
-            n_clicks   : list[int | None], 
-            hike_names : list[str],
-            base_url   : str
+            n_clicks : list[int | None],
+            base_url : str
         ) -> tuple[bool, str, str]:
         r'''
         Callback used when any of the share buttons is clicked.
         
         :param n_clicks: number of clicks in each share button
-        :param hike_names: name of each hike that is loaded
         :param base_url: base url at which the application is accessible 
         '''
 
         if all(n is None for n in n_clicks): raise dash.exceptions.PreventUpdate
 
-        ctx          = dash.callback_context
+        ctx = dash.callback_context
 
         if ctx is None or not ctx.triggered: raise dash.exceptions.PreventUpdate
 
-        triggered_id = ctx.triggered_id
-        hike_name    = hike_names[triggered_id['index']] # type: ignore
-        hike_id      = Hikes_table.get_hike_id_from_user_id_and_hike_name(
-            session['user_id'], hike_name
-        )
-
-        if hike_id is None: raise dash.exceptions.PreventUpdate
+        triggered_id: dict = ctx.triggered_id # type: ignore
         
-        magic_link_id = Magic_links_table.get_magic_link_from_hike_id(hike_id)
+        try:
+            hike_id      = Hikes_table.get_hike_id_from_user_id_and_hike_name(
+                session['user_id'], triggered_id['index']
+            )
+        except NoHikeIDInDB: raise dash.exceptions.PreventUpdate
+        
+        try:
+            magic_link_id = Magic_links_table.get_magic_link_from_hike_id(hike_id)
+        except NoMagicForHikeID:
 
-        # If no magic link, we create it
-        if magic_link_id is None: 
             Magic_links_table.insert_magic_link_into_db(hike_id)
 
-        # Retrieve the magic link
-        magic_link_id = Magic_links_table.get_magic_link_from_hike_id(hike_id)
+            # Retrieve the magic link
+            magic_link_id = Magic_links_table.get_magic_link_from_hike_id(hike_id)
 
         magic_link = f'{base_url}?token={magic_link_id}'
 
@@ -669,12 +807,15 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
     r'''All callbacks associated to uploading hikes.'''
 
     @app.callback(
-        dash.Output('hike-names-list', 'data'),
         dash.Output('hikelist-div', 'children'),
         dash.Output('number-hikes', 'data'),
         dash.Output('hikes-info', 'data'),
+
         dash.Output('map-polylines', 'children', allow_duplicate=True),
         dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
+
+        dash.Output('elevation-plot-stack', 'style', allow_duplicate=True),
+        dash.Output('map', 'style', allow_duplicate=True),
         
         dash.Input('upload-hike-button', 'contents'),
         dash.State('upload-hike-button', 'filename'),
@@ -688,47 +829,77 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
     def upload_hike(
         file_contents : list[str] | None, 
         filenames     : list[str], 
-        hike_widgets  : list,
-        map_polylines : list[dl.LayerGroup],
+        hike_widgets  : list[dmc.Space],
+        traces        : list[dl.Polyline],
         language      : LANGUAGE,
-        hikes_info    : dict
-    ) -> (tuple[list, list, int, dict, go.Figure, list[dict]] |
-          tuple[list, dash.NoUpdate, dash.NoUpdate, dash.NoUpdate, list, list[dict]]):
+        hikes_info    : dict[str, HikeInfo]
+    ) -> tuple[
+            list[dmc.Space]     | dash.NoUpdate, 
+            int                 | dash.NoUpdate, 
+            dict[str, HikeInfo] | dash.NoUpdate, 
+            list[dl.Polyline]   | dash.NoUpdate, 
+            list[Notification],
+            dict[str, str]      | dash.NoUpdate, 
+            dict[str, str]      | dash.NoUpdate
+        ]:
+        r'''
+        Actions taken when a hike is loaded through the load hike button.
 
-        ui_elements = (dash.no_update, dash.no_update, dash.no_update, [])
+        :param file_contents: list containing the content of each loaded file
+        :param filenames: list of file names
+        :param hike_widgets: list of hike element UI widgets already present in the UI
+        :param traces: list of map traces already drawn
+        :param language: current language of the application
+        :param hikes_info: dictionary-like `HikeInfo` object containing all the information about all the loaded hikes
+
+        :returns:
+            - updated list of hike widgets
+            - updated number of hikes
+            - updated `HikeInfo` object
+            - traces for the map
+            - notification to send if any
+            - dictionary indicating whether the elevation plot should be visible or not
+            - dictionary indicating the height of the map
+        '''
 
         if file_contents is None or len(file_contents) == 0: raise dash.exceptions.PreventUpdate
-        
-        # Default notification is success
-        notification = hike_upload_success_notification(app.language_handler[language])
 
-        # List of hike names updated as we load the new hikes below
-        hike_names = list(hikes_info.keys())
+        translation = app.language_handler[language]['notifications']
+
+        # Default notification is success
+        notification = hike_upload_success_notification(translation)
+        
+        # Default values if there is an error when uploading a hike
+        new_widgets    : list[dmc.Space]     | dash.NoUpdate = dash.no_update
+        n_hikes        : int                 | dash.NoUpdate = dash.no_update
+        out_hikes_info : dict[str, HikeInfo] | dash.NoUpdate = dash.no_update
+        out_traces     : list[dl.Polyline]   | dash.NoUpdate = dash.no_update
+        plot_style     : dict[str, str]      | dash.NoUpdate = dash.no_update
+        map_style      : dict[str, str]      | dash.NoUpdate = dash.no_update
+
+        # List of names of hikes already loaded
+        hike_names   = list(hikes_info.keys())
 
         # Extract the properties of the loaded hikes
-        hike_properties = {}
+        hike_properties : dict[str, HikeInfo] = {}
 
         for content, filename in zip(file_contents, filenames):
 
-            filename, properties  = parse_uploaded_file(content, filename)
+            try: hike_name, properties = decode_and_process_uploaded_file(content, filename)
 
-            # None means the parsing failed
-            if properties is None: 
+            # Wrong file format cancels loading hikes
+            except UnsupportedFileFormatError:
                 
-                notification = hike_upload_format_fail_notification(app.language_handler[language])
-                notification['message'] += filename
+                notification = hike_upload_format_fail_notification(translation)
+                if 'message' in notification: notification['message'] += filename
                 break
 
-            hike_name = pathlib.Path(filename).stem
-
-            # If the hike is loaded, we do not load any hikes. Users must only provide files that are not loaded yet
+            # If the hike is already loaded, we do not load any hikes. Users must only provide files that are not loaded yet
             if check_if_hike_is_loaded(hike_name, hike_names):
 
-                notification = hike_upload_already_there_fail_notification(app.language_handler[language])
-                notification['message'] += filename
+                notification = hike_upload_already_there_fail_notification(translation)
+                if 'message' in notification: notification['message'] += filename
                 break
-            
-            else: hike_names.append(hike_name)
 
             hike_properties[hike_name] = properties
 
@@ -738,23 +909,29 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
             if 'user_id' in session: 
                 Hikes_table.insert_hikes_into_db(session['user_id'], hike_properties)
 
-            ui_elements = update_ui_after_multiple_hike_loads(
+            new_widgets, new_traces = update_ui_after_multiple_hike_loads(
                 app, 
                 hike_properties,
                 hike_widgets,
                 language,
-                hikes_info
+                magic_link_state = 'user_id' not in session
             )
 
+            # Combine previous elements with new ones
+            n_hikes        = len(new_widgets)
+            out_traces     = traces + new_traces
+            out_hikes_info = hikes_info | hike_properties
+            plot_style     = {'display' : 'flex'}
+            map_style      = {'height' : '70%'}
+
         return (
-            hike_names, 
-            *ui_elements[:-1], 
-            map_polylines + ui_elements[-1], 
-            [notification] # pyright: ignore[reportReturnType]
+            new_widgets, n_hikes, out_hikes_info, 
+            out_traces, [notification],
+            plot_style, map_style
         )
 
 def register_login_buttons_callbacks(app: dash.Dash) -> None:
-    '''
+    r'''
     Register all callbacks associated to widgets in the topbar.
 
     :param app: dash application
@@ -767,16 +944,23 @@ def register_login_buttons_callbacks(app: dash.Dash) -> None:
 
         dash.Output( 'map-polylines', 'children', allow_duplicate=True),
 
-        dash.Output('hike-names-list',   'data',     allow_duplicate=True),
-        dash.Output('hikelist-div',      'children', allow_duplicate=True),
-        dash.Output('number-hikes',      'data',     allow_duplicate=True),
-        dash.Output('hikes-info',        'data',     allow_duplicate=True),
+        dash.Output('hikelist-div', 'children', allow_duplicate=True),
+        dash.Output('number-hikes', 'data',     allow_duplicate=True),
 
-        dash.Output('elevation-plot', 'style', allow_duplicate=True),
+        dash.Output('hikes-info',                    'data', allow_duplicate=True),
+        dash.Output('colorpicker-selected-id',       'data', allow_duplicate=True),
+        dash.Output('selected-hike-props',           'data', allow_duplicate=True),
+        dash.Output('selected-hike-data-for-plot',   'data', allow_duplicate=True),
+        dash.Output('selected-hike-data-for-marker', 'data', allow_duplicate=True),
+
+        dash.Output('map',                    'style',             allow_duplicate=True),
+        dash.Output('elevation-plot-stack',   'style',             allow_duplicate=True),
+
+        dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
 
         dash.Input( {'type' : 'login-button', 'index' : dash.ALL}, 'n_clicks'),
-        dash.State( 'login-modal',  'opened'),
-        dash.State( 'language',     'data'),
+        dash.State( 'login-modal', 'opened'),
+        dash.State( 'language',    'data'),
         prevent_initial_call=True
     )
     def topbar_login_button(
@@ -785,17 +969,24 @@ def register_login_buttons_callbacks(app: dash.Dash) -> None:
             language : LANGUAGE
         ) -> tuple[
             bool, 
-            tuple[str, DashIconify] | tuple[dash.NoUpdate, dash.NoUpdate], 
+            tuple[str, str] | tuple[dash.NoUpdate, dash.NoUpdate], 
             tuple[str, str] | tuple[dash.NoUpdate, dash.NoUpdate],
 
             list | dash.NoUpdate, 
 
             list | dash.NoUpdate, 
-            list | dash.NoUpdate, 
             int  | dash.NoUpdate, 
-            dict | dash.NoUpdate,
 
-            dict[str, str] | dash.NoUpdate
+            dict[str, HikeInfo]      | dash.NoUpdate,
+            str                      | dash.NoUpdate,
+            HikeProps                | dash.NoUpdate,
+            HikeDataForElevationPlot | dash.NoUpdate,
+            HikeDataForMarker           | dash.NoUpdate,
+
+            dict[str, str] | dash.NoUpdate,
+            dict[str, str] | dash.NoUpdate,
+
+            list[Notification] | dash.NoUpdate
         ]:
         r'''
         Callback used when the login/logout button on the topbar is clicked.
@@ -808,27 +999,40 @@ def register_login_buttons_callbacks(app: dash.Dash) -> None:
         if 'user_id' in session:
 
             session.clear()
+            session['magic-link'] = False
 
             translation = app.language_handler[language]
 
             login_button_text    = translation['login_logout_buttons']['login']['text']
             login_button_tooltip = translation['login_logout_buttons']['login']['tooltip']
 
+            traces         = []
+            widgets        = []
+            n_hikes        = 0
+            hikes_info     = {}
+            colorpicker_id = ''
+            hike_props     = HikeProps(name='', color='')
+            hike_data_ev   = HikeDataForElevationPlot(distances=[], elevations=[])
+            hike_data_map  = HikeDataForMarker(latitudes=[], longitudes=[])
+            
             return (
                 False, 
                 (login_button_text, login_button_text), 
                 (login_button_tooltip, login_button_tooltip),
-                [],
-                [], [], 0, {}, 
-                {'display' : 'none'}
+                traces, widgets, n_hikes,
+                hikes_info, colorpicker_id, hike_props, hike_data_ev, hike_data_map,
+                {'height' : '100%'}, {'display' : 'none'},
+                [logout_success_notification(translation['notifications'])]
             )
 
         # Handle login button click
         return (
             not opened, 
-            (dash.no_update, dash.no_update), (dash.no_update, dash.no_update), 
-            dash.no_update, 
-            dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+            (dash.no_update, dash.no_update), 
+            (dash.no_update, dash.no_update), 
+            dash.no_update, dash.no_update, dash.no_update, 
+            dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+            dash.no_update, dash.no_update,
             dash.no_update
         )
 
@@ -843,24 +1047,78 @@ def register_magic_link_modal_callbacks(app: dash.Dash) -> None:
     def magic_link_button(_): return False
 
 def register_colorpicker_modal_callbacks(app: dash.Dash) -> None:
+    r'''Register all callbacks associated to the modal in which resides the colorpicker.'''
 
     @app.callback(
         dash.Output({'type' : 'hikelist-colorpicker',  'index' : dash.ALL}, 'color'),
+        dash.Output('selected-hike-props', 'data', allow_duplicate=True),
+
+        dash.Output({'type' : 'map-trace', 'index' : dash.ALL}, 'pathOptions', allow_duplicate=True),
+        dash.Output('elevation-plot', 'figure', allow_duplicate=True),
+
         dash.Input('colorpicker', 'value'),
         dash.State('colorpicker-selected-id', 'data'),
-        dash.State({'type' : 'hikelist-colorpicker',  'index' : dash.ALL}, 'color'),
+        dash.State({'type' : 'hikelist-colorpicker',  'index' : dash.ALL}, 'id'),
+        dash.State('selected-hike-props', 'data'),
+        dash.State('selected-hike-data-for-plot', 'data'),
+        prevent_initial_call=True
     )
     def colorpicker_selection(
-            selected_color : str | None, 
-            index          : int, 
-            colors         : list[str]
-        ) -> list[str]:
+            selected_color  : str | None, 
+            index           : str,
+            colorpicker_ids : list[dict[str, str]],
+            hike_props      : HikeProps,
+            dist_elev       : HikeDataForElevationPlot
+        ) -> tuple[
+            list[str | dash.NoUpdate], 
+            HikeProps,
+            list[dict[str, str] | dash.NoUpdate], 
+            go.Figure | dash.NoUpdate
+        ]:
+        r'''
+        Callback used whenever a color is picked in the colorpicker modal.
 
-        if selected_color is None: raise dash.exceptions.PreventUpdate
+        :param selected_color: color corresponding to the colorpicker button clicked in the hike list panel. This is used to setup the default color of the colorpicker when loading
+        :param index: index identifying the hike corresponding to the button clicked
+        :param colorpicker_ids: identifiers of all the colorpicker buttons in the hike list panel
+        :param hike_props: properties associated to the clicked colorpicker button
+        :param dist_elev: object containing distance and elevation data for the elevation plot
 
-        colors[index] = selected_color
+        :returns:
+            - color (or dash.no_update) for all the colorpicker buttons. Only the clicked button is updated
+            - dictionary with properties associated to the hike. The color information is updated
+            - list of dictionaries with updated colors for the map
+            - figure for the elevation plot with an updated color if it corresponds to the currently selected hike. Otherwise dash.no_update
+        '''
 
-        return colors
+        # If data is missing, we prevent any update
+        if selected_color is None or index == '' or hike_props == {} or dist_elev == EMPTY_HIKE_DATA_FOR_PLOT: 
+            raise dash.exceptions.PreventUpdate
+
+        # If the user is changing the color of the selected hike, we update the color attribute in the Store
+        if hike_props['name'] == index: hike_props['color'] = selected_color
+
+        # Only update the color of the colorpicker button which is being changed
+        output_colors = [
+            selected_color if index == colorpicker_id['index']
+            else dash.no_update
+            for colorpicker_id in colorpicker_ids
+        ]
+
+        # If the index of the changed color does not match the selected hike, we do not update the elevation plot color
+        if index != hike_props['name']:
+            fig = dash.no_update
+        else:
+            fig = generate_new_figure(dist_elev['distances'], dist_elev['elevations'], selected_color)
+
+        # Only update the color of the path on the map corresponding to the button being changed
+        map_props = [
+            {'color' : selected_color} if index == colorpicker_id['index']
+            else dash.no_update
+            for colorpicker_id in colorpicker_ids
+        ]
+
+        return output_colors, hike_props, map_props, fig
 
 def register_login_modal_callbacks(app: dash.Dash) -> None:
     r'''
@@ -890,16 +1148,15 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         dash.Output('login-modal', 'opened', allow_duplicate=True),
         dash.Output('notification-container', 'sendNotifications'),
 
-        dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'children'),
-        dash.Output({'type' : 'login-button-tooltip', 'index' : dash.ALL}, 'label'),
+        dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'children', allow_duplicate=True),
+        dash.Output({'type' : 'login-button-tooltip', 'index' : dash.ALL}, 'label', allow_duplicate=True),
 
-        dash.Output('hike-names-list', 'data', allow_duplicate=True),
         dash.Output('hikelist-div', 'children', allow_duplicate=True),
         dash.Output('number-hikes', 'data', allow_duplicate=True),
-        dash.Output('hikes-info', 'data', allow_duplicate=True),
+        dash.Output('hikes-info',   'data', allow_duplicate=True),
 
         dash.Output('map-polylines', 'children', allow_duplicate=True),
-        dash.Output('elevation-plot', 'style', allow_duplicate=True),
+        dash.Output('elevation-plot-stack', 'style', allow_duplicate=True),
         
         dash.Input('send-login-button', 'n_clicks'),
         dash.Input('login-modal-id-input', 'n_submit'),
@@ -907,9 +1164,6 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
 
         dash.State('login-modal-id-input', 'value'),
         dash.State('login-modal-password-input', 'value'),
-        dash.State('login-success-notification', 'data'),
-        dash.State('login-username-fail-notification', 'data'),
-        dash.State('login-password-fail-notification', 'data'),
         dash.State('language', 'data'),
 
         prevent_initial_call=True
@@ -918,68 +1172,69 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         _1, _2, _3,
         username                   : str, 
         password                   : str,
-        success_notification       : dict,
-        username_fail_notification : dict,
-        password_fail_notification : dict,
         language                   : LANGUAGE
         ) -> tuple[
             bool, 
-            list[dict] | dash.NoUpdate, 
+            list[Notification]  | dash.NoUpdate, 
 
-            tuple[str, str] | tuple[dash.NoUpdate, dash.NoUpdate],
-            tuple[str, str] | tuple[dash.NoUpdate, dash.NoUpdate],
+            tuple[str, str]     | tuple[dash.NoUpdate, dash.NoUpdate],
+            tuple[str, str]     | tuple[dash.NoUpdate, dash.NoUpdate],
             
-            list[str] | dash.NoUpdate,
-            list      | dash.NoUpdate,
-            int       | dash.NoUpdate,
-            dict      | dash.NoUpdate,
+            list[dmc.Space]     | dash.NoUpdate,
+            int                 | dash.NoUpdate,
+            dict[str, HikeInfo] | dash.NoUpdate,
 
-            list[dl.Polyline] | dash.NoUpdate,
-            dict[str, str]    | dash.NoUpdate
+            list[dl.Polyline]   | dash.NoUpdate,
+            dict[str, str]      | dash.NoUpdate
         ]:
+        r'''
+        Callback used when the user is trying to login.
+
+        :param username: username provided in the relevant field
+        :param password: password provided in the relevant field
+        :param success_notification: notification shown in case of success. This is passed as argument in order to have the right language shown.
+        :param 
+        '''
+
+        translation = app.language_handler[language]['notifications']
 
         # If one of the fields is empty, we let the page as is
         if password is None or username is None or password == '' or username == '':
+            raise dash.exceptions.PreventUpdate
+
+        try:
+            validate_credentials(username, password)
+        except WrongUsername:
             return (
-                True, dash.no_update, 
+                True, [login_username_fail_notification(translation)], 
                 (dash.no_update, dash.no_update), (dash.no_update, dash.no_update), 
-                dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update,
                 dash.no_update, dash.no_update
             )
-
-        res = validate_credentials(username, password)
-
-        # res is None means the username does not exist
-        if res is None:
+        except WrongPassword:
             return (
-                True, [username_fail_notification], 
+                True, [login_password_fail_notification(translation)], 
                 (dash.no_update, dash.no_update), (dash.no_update, dash.no_update), 
-                dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update,
                 dash.no_update, dash.no_update
             )
         
-        # res is False means the password is wrong
-        if not res:
-            return (
-                True, [password_fail_notification], 
-                (dash.no_update, dash.no_update), (dash.no_update, dash.no_update), 
-                dash.no_update, dash.no_update, dash.no_update, dash.no_update,
-                dash.no_update, dash.no_update
-            )
-        
-        # Password and username are both correct, we store the user ID for later queries to the db
-        session['user_id'] = Users_table.get_user_id_from_username(username)
+        # Password and username are both correct, we store the user ID for later queries into the database
+        try:
+            session['user_id'] = Users_table.get_user_id_from_username(username)
+        except NoUsernameInDB: raise dash.exceptions.PreventUpdate
 
         # Load the hike list ui elements based on the data from the db
-        hike_list_ui_elements = generate_hike_ui_elements_after_login(app, language)
+        hikes_info, widgets, traces = generate_hike_ui_elements_with_login(app, language)
 
         login_button_tooltip = app.language_handler[language]['login_logout_buttons']['logout' if 'user_id' in session else 'login']['tooltip']
 
         # Otherwise, sends a login success notification
         return (
-            False, [success_notification], 
+            False, [login_success_notification(translation)], 
             (username, username), (login_button_tooltip, login_button_tooltip),
-            *hike_list_ui_elements, {'display' : 'flex'}
+            widgets, len(widgets), hikes_info, 
+            traces, {'display' : 'flex'}
         )
     
     @app.callback(
@@ -988,7 +1243,14 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         dash.Input('login-modal', 'opened'),
         prevent_initial_call=True
     )
-    def exit_login_modal(is_open: bool) -> tuple[str, str]: 
+    def exit_login_modal(is_open: bool) -> tuple[str, str]:
+        r'''
+        Callback used when the modal is closed. This clears the username and password fields when logging out.
+
+        :param is_open: whether the login modal is open or not
+
+        :returns: ('', '') in order to clear the two fields
+        '''
         
         if not is_open: return '', ''
         else: raise dash.exceptions.PreventUpdate
@@ -996,29 +1258,27 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
     return
 
 def update_ui_after_single_hike_load(
+        latitudes        : list[float],
+        longitudes       : list[float],
         pos_absolute     : int,
         hike_name        : str,
-        properties       : dict | None,
         language_dict    : dict,
         magic_link_state : bool = False
-    ) -> tuple[dmc.Space, dl.Polyline, dict[str, float | int]] | None:
+    ) -> tuple[dmc.Space, dl.Polyline]:
     r'''
-    Generate the new UI components that must be updated after a new hike has been loaded.
+    Update components after a single hike load.
 
+    :param latitudes: latitudes of the hike plotted on the map
+    :param longitudes: longitudes of the hike plotted on the map
     :param pos_absolute: absolute index of the hike in the hike list
     :param hike_name: name of the hike
-    :param properties: properties of the hike store in the Store
     :param language_dict: dictionary for the hikelist element
     :param magic_link_state: True triggers a special UI for magic links, False triggers the normal UI
 
     :returns:
         - hikelist element widget
         - PolyLine that represents the path of the hike
-        - dictionary with hike information
     '''
-
-    # None means the parsing failed
-    if properties is None: return
 
     color    = COLOR_PALETTE[pos_absolute]
 
@@ -1026,54 +1286,26 @@ def update_ui_after_single_hike_load(
     widget   = hikelist_element_layout(
         hike_name,
         color,
-        pos_absolute,
         False if pos_absolute > 0 else True,
         language_dict,
         magic_link_state = magic_link_state
     )
 
-    max_distance = properties['distances'][-1]
-    diff_height  = np.array(properties['elevations'][1:]) - np.array(properties['elevations'][:-1])
-    
-    positive_cumulative = diff_height[diff_height > 0].sum()
-    negative_cumulative = diff_height[diff_height < 0].sum()
-    
-    # Add hike information to the Store component
-    hike_info = {
-        'lat'        : properties['center'][0],
-        'lon'        : properties['center'][1],
-        'minLat'     : np.min(properties['lat']),
-        'maxLat'     : np.max(properties['lat']),
-        'minLon'     : np.min(properties['lon']),
-        'maxLon'     : np.max(properties['lon']),
-        'zoom'       : properties['zoom'],
-        'distances'  : [f'{d:.1f}' for d in properties['distances']],
-        'elevations' : properties['elevations']
-    }
-
     line = dl.Polyline(
-        id        = {'type' : 'map-trace', 'index' : hike_name},
-        positions = [(la, lo) for lo, la in zip(properties['lon'], properties['lat'])],
-        pathOptions = {
-            'color' : color
-        },
-        children    = dl.Popup([
-            dash.html.Div(f'Distance: {max_distance:.1f} km'),
-            dash.html.Div(f'Positive elevation: {positive_cumulative:.0f} m'),
-            dash.html.Div(f'Negative elevation: {negative_cumulative:.0f} m')
-        ])
+        id          = {'type' : 'map-trace', 'index' : hike_name},
+        positions   = [(la, lo) for lo, la in zip(longitudes, latitudes)],
+        pathOptions = {'color' : color}
     )
 
-    return widget, line, hike_info
+    return widget, line
 
 def update_ui_after_multiple_hike_loads(
     app              : dash.Dash,
-    property_dict    : dict[str, dict | None],
+    property_dict    : dict[str, HikeInfo],
     hike_widgets     : list,
     language         : LANGUAGE,
-    hikes_info       : dict,
     magic_link_state : bool = False
-) -> tuple[list, int, dict, list[dl.Polyline]]:
+) -> tuple[list[dmc.Space], list[dl.Polyline]]:
     r'''
     Generate the new UI components that must be updated after many new hike have been loaded.
 
@@ -1081,14 +1313,11 @@ def update_ui_after_multiple_hike_loads(
     :param property_dict: dictionary containing hike names as keys and dictionaries with hike properties as values
     :param hike_widgets: current widgets holding hikes in the hike list
     :param language_dict: dictionary for the hikelist element
-    :param hikes_info: dictionary in Store with hike information such as center and zoom level
     :param magic_link_state: True triggers a special UI for magic links, False triggers the normal UI
 
     :returns:
         - list of hike element widgets
-        - number of hikes
-        - dictionary with hike names as keys and dictionaries with hike information as values
-        - map figure
+        - list of hike traces for the map
     '''
 
     language_dict = app.language_handler[language]['hike_panel']
@@ -1100,11 +1329,12 @@ def update_ui_after_multiple_hike_loads(
     for pos, (hike_name, properties) in enumerate(property_dict.items()):
 
         out = update_ui_after_single_hike_load(
+            properties['latitudes'],
+            properties['longitudes'],
             pos_init + pos,
             hike_name,
-            properties,
             language_dict,
-            magic_link_state=magic_link_state
+            magic_link_state = magic_link_state
         )
 
         if out is None: continue
@@ -1112,29 +1342,24 @@ def update_ui_after_multiple_hike_loads(
         new_hike_widgets.append(out[0])
         new_traces.append(out[1])
 
-        # Add hike information to the Store component
-        hikes_info[hike_name] = out[2]
-
     hike_widgets.extend(new_hike_widgets)
 
-    return hike_widgets, len(hike_widgets), hikes_info, new_traces
+    return hike_widgets, new_traces
 
-def generate_hike_ui_elements_after_login(
-        app: dash.Dash, language: LANGUAGE, magic_link_state: bool = False
-    ) -> tuple[list[str], list, int, dict, list[dl.Polyline]]:
+def generate_hike_ui_elements_with_login(
+        app              : dash.Dash, 
+        language         : LANGUAGE
+    ) -> tuple[dict[str, HikeInfo], list[dmc.Space], list[dl.Polyline]]:
     r'''
     Generate all the ui elements that need to be updated after login.
 
     :param app: dash app
     :param language: selected language
-    :param magic_link_state: True triggers a special UI for magic links, False triggers the normal UI
 
     :returns:
-        - list of hike names in the same order as they appear in the hike list widget
+        - dictionary with hike information for each hike
         - list of hike element widgets
-        - number of hikes
-        - dictionary with hike names as keys and dictionaries with hike information as values
-        - list of Polyline object to draw on the map (hike paths)
+        - list of hike traces for the map
     '''
 
     # Query hikes database associated to the user
@@ -1146,25 +1371,74 @@ def generate_hike_ui_elements_after_login(
 
     # Build the dictionary with hike properties
     property_dict = {}
-    hike_names    = []
 
     for hike in hike_properties:
 
-        hike_names.append(hike[0])
+        inside_dict = HikeInfo(
+            latitudes             = hike[1],
+            longitudes            = hike[2],
+            center_lat            = hike[3],
+            center_lon            = hike[4],
+            zoom                  = hike[5],
+            distances             = hike[6],
+            elevations            = hike[7]
+        )
 
-        property_dict[hike[0]]               = {}
-        property_dict[hike[0]]['lat']        = hike[1]
-        property_dict[hike[0]]['lon']        = hike[2]
-        property_dict[hike[0]]['center']     = (hike[3], hike[4])
-        property_dict[hike[0]]['zoom']       = hike[5]
-        property_dict[hike[0]]['distances']  = hike[6]
-        property_dict[hike[0]]['elevations'] = hike[7]
+        property_dict[hike[0]] = inside_dict
 
-    ui_elements = update_ui_after_multiple_hike_loads(
+    widgets, traces = update_ui_after_multiple_hike_loads(
         app, property_dict, [],
-        language, {},
-        magic_link_state = magic_link_state
+        language,
+        magic_link_state = session['magic-link']
     )
 
-    # Create a new figure and update all ui elements related to hikes
-    return hike_names, *ui_elements
+    return property_dict, widgets, traces
+
+def generate_hike_ui_elements_with_hike_id(
+        app      : dash.Dash, 
+        language : LANGUAGE,
+        hike_id  : int
+    ) -> tuple[dict[str, HikeInfo], list[dmc.Space], list[dl.Polyline]]:
+    r'''
+    Generate all the ui elements that need to be updated if a single hike ID is provided.
+
+    :param app: dash app
+    :param language: selected language
+
+    :returns:
+        - dictionary with hike information for each hike
+        - list of hike element widgets
+        - list of hike traces for the map
+    '''
+
+    # Query hikes database associated to the user
+    hike_properties = execute_get_query(f'''
+        SELECT name, latitude, longitude, center_lat, center_lon, zoom, distances, elevations
+        FROM hikes
+        WHERE id = {hike_id};
+    ''')
+
+    # Build the dictionary with hike properties
+    property_dict = {}
+
+    for hike in hike_properties:
+
+        inside_dict = HikeInfo(
+            latitudes             = hike[1],
+            longitudes            = hike[2],
+            center_lat            = hike[3],
+            center_lon            = hike[4],
+            zoom                  = hike[5],
+            distances             = hike[6],
+            elevations            = hike[7]
+        )
+
+        property_dict[hike[0]] = inside_dict
+
+    widgets, traces = update_ui_after_multiple_hike_loads(
+        app, property_dict, [],
+        language,
+        magic_link_state = session['magic-link']
+    )
+
+    return property_dict, widgets, traces

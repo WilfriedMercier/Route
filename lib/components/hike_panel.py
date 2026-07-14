@@ -13,8 +13,7 @@ def hikelist_layout(language_dict : dict) -> dash.html.Div:
 
 def hikelist_element_layout(
         hike_name        : str, 
-        color            : str, 
-        index            : int, 
+        color            : str,
         is_selected      : bool,
         language_dict    : dict,
         magic_link_state : bool = False
@@ -22,9 +21,8 @@ def hikelist_element_layout(
     r'''
     Widget containing a single hike shown in the sidebar.
 
-    :param hike_name: hike name to display
+    :param hike_name: hike name to display and used as unique identifier
     :param color: color associated to the hike
-    :param index: unique identifier for this widget
     :param is_selected: whether the hike is selected at startup or not (changes its default style)
     :param language_dict: dictionary containing the translation for the default language
     :param magic_link_state: True hides the share button, False keeps it visible
@@ -34,7 +32,7 @@ def hikelist_element_layout(
 
     button = dmc.Button(
         hike_name,
-        id        = {'type' : 'hikelist-button', 'index' : index},
+        id        = {'type' : 'hikelist-button', 'index' : hike_name},
         className = 'hikelist-button',
         color     = 'primary',
         style     = selected_style if is_selected else {'max-width' : '160px'}
@@ -45,21 +43,21 @@ def hikelist_element_layout(
             offLabel = DashIconify(icon="streamline:invisible-1", width=20),
             onLabel  = DashIconify(icon="streamline:visible",     width=20),
             checked  = True,
-            id        = {'type' : 'hikelist-hide-button', 'index' : index}
+            id        = {'type' : 'hikelist-hide-button', 'index' : hike_name}
         ),
         label     = language_dict['hide_button']['tooltip'],
-        id        = {'type' : 'hikelist-hide-button-tooltip', 'index' : index}
+        id        = {'type' : 'hikelist-hide-button-tooltip', 'index' : hike_name}
     )
 
     colorpicker = dmc.Tooltip(
         dmc.ActionIcon(
-            id        = {'type' : 'hikelist-colorpicker', 'index' : index},
+            id        = {'type' : 'hikelist-colorpicker', 'index' : hike_name},
             className = 'colorpicker',
             color     = color,
             size      = 'lg'
         ),
         label     = language_dict['colorpicker']['tooltip'],
-        id        = {'type' : 'hikelist-colorpicker-tooltip', 'index' : index}
+        id        = {'type' : 'hikelist-colorpicker-tooltip', 'index' : hike_name}
     )
 
     share_button = dmc.Tooltip(
@@ -67,11 +65,11 @@ def hikelist_element_layout(
             DashIconify(icon='material-symbols:share', width=20),
             className = 'custom-button',
             style     = {'display' : 'none' if magic_link_state else 'flex'},
-            id        = {'type' : 'hikelist-share-button', 'index' : index}
+            id        = {'type' : 'hikelist-share-button', 'index' : hike_name}
         ),
         label     = language_dict['share_button']['tooltip'],
         style     = {'display' : 'none' if magic_link_state else 'flex'},
-        id        = {'type' : 'hikelist-share-button-tooltip', 'index' : index}
+        id        = {'type' : 'hikelist-share-button-tooltip', 'index' : hike_name}
     )
 
     return dmc.Space(
@@ -80,7 +78,7 @@ def hikelist_element_layout(
             dmc.Group([share_button, hide_button])
         ],
         className = 'hikelist-element',
-        id        = f'hikelist-element-{index}'
+        id        = {'type' : 'hikelist-element', 'index' : hike_name}
     )
 
 def hike_panel_layout(language_dict: dict) -> dmc.Drawer:

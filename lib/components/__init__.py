@@ -1,3 +1,4 @@
+from .shortcuts     import HandleShortcut
 from .topbar        import topbar_layout
 from .hike_panel    import hike_panel_layout, hikelist_element_layout
 from .map           import map_page_layout
