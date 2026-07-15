@@ -24,7 +24,16 @@ def elevation_plot_layout(language_dict: dict) -> dmc.Stack:
         }
     )
 
-    slider = dmc.Slider(w='100%', h='10%', hiddenFrom='lg', id='elevation-plot-slider')
+    slider = dmc.Slider(
+        w          = '100%', 
+        h          = '10%', 
+        hiddenFrom = 'lg', 
+        id         = 'elevation-plot-slider',
+        updatemode = "drag",
+        #label      = None,
+        min        = 0
+
+    )
 
     return dmc.Stack([fig, slider], h='30%', id='elevation-plot-stack', style={'display' : 'none'})
 

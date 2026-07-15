@@ -113,12 +113,13 @@ def register_elevation_plot_callbacks(app: dash.Dash) -> None:
     '''
 
     @app.callback(
-        dash.Output('marker', 'center'),
-        dash.Output('marker', 'pathOptions'),
+        dash.Output('marker', 'center', allow_duplicate=True),
+        dash.Output('marker', 'pathOptions', allow_duplicate=True),
 
         dash.Input('elevation-plot', 'hoverData'),
         dash.State('selected-hike-data-for-marker', 'data'),
         dash.State('selected-hike-props', 'data'),
+        prevent_initial_call=True
     )
     def elevation_plot_hover(
             hoverData       : dict[str, typing.Any], 
@@ -147,6 +148,36 @@ def register_elevation_plot_callbacks(app: dash.Dash) -> None:
         
         return position, {'color' : props['color']}
     
+    @app.callback(   
+        dash.Output('marker', 'center'),
+        dash.Output('marker', 'pathOptions'),
+
+        dash.Input('elevation-plot-slider', 'value'),
+        dash.State('selected-hike-data-for-marker', 'data'),
+        dash.State('selected-hike-props', 'data'),
+        prevent_initial_call=True
+    )
+    def slider_value_change(
+            index           : int,
+            marker_data     : HikeDataForMarker, 
+            props           : HikeProps,
+        ):
+
+        # Associated lat, lon position
+        position  = (marker_data['latitudes'][index], marker_data['longitudes'][index])
+        
+        return position, {'color' : props['color']}
+    
+    app.clientside_callback(
+        dash.ClientsideFunction(
+            namespace     = 'clientside',
+            function_name = 'mobile_slider_interaction'
+        ),
+        dash.Output('dummy', 'data'),
+        dash.Input('elevation-plot-slider', 'value'),
+        dash.State('selected-hike-data-for-plot', 'data')
+    )
+
     return
 
 def register_keydown_callbacks(app: dash.Dash) -> None:
@@ -597,9 +628,9 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
     '''
 
     @app.callback(
-        dash.Output('selected-hike-props',         'data'),
-        dash.Output('selected-hike-data-for-marker',  'data'),
-        dash.Output('selected-hike-data-for-plot', 'data'),
+        dash.Output('selected-hike-props',           'data'),
+        dash.Output('selected-hike-data-for-marker', 'data'),
+        dash.Output('selected-hike-data-for-plot',   'data'),
 
         dash.Output({'type' : 'hikelist-button', 'index' : dash.ALL}, 'style'),
 
@@ -609,6 +640,8 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.Output('hike-panel', 'opened', allow_duplicate=True),
 
         dash.Output('elevation-plot', 'figure'),
+
+        dash.Output('elevation-plot-slider', 'max'),
 
         dash.Input( {'type' : 'hikelist-button', 'index' : dash.ALL}, 'n_clicks'),
         dash.State('hikes-info', 'data'),
@@ -628,7 +661,8 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             dict,
             typing.Literal[False], 
             typing.Literal[False],
-            go.Figure
+            go.Figure,
+            int
         ]:
         r'''
         Callback used when a hike is selected in the hike list.
@@ -646,9 +680,8 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             - False to close the navbar associated to the burger object
             - False to close the hike-panel
             - a new figure for the elevation plot with updated data and properties
+            - the maximum value of the slider in mobile mode
         '''
-
-        print('lading', theme)
 
         ctx = dash.callback_context
 
@@ -705,7 +738,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
                 'transition' : "flyTo"
             },
             False, False,
-            fig
+            fig, len(info['distances'])
         )
     
     @app.callback(
