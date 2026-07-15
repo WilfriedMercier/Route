@@ -35,9 +35,11 @@ login_modal:
   user_id_input:
     label: Entrez votre identifiant
     placeholder: MonIdentifiant
+    error: Mauvais identifiant
   user_password_input:
     label: Entrez votre mot de passe
     placeholder: MonMotDePasse
+    error: Mauvais mot de passe
   send_login_button:
     text: Se connecter à son compte
 magic_link_modal:
@@ -45,10 +47,6 @@ magic_link_modal:
   text: Copiez et partagez le lien ci-dessous pour permettre à d'autres d'ouvrir la randonnée sur la carte
 notifications:
   login:
-    fail:
-      title: Erreur de connexion
-      username: Mauvais identifiant
-      password: Mauvais mot de passe
     success:
       title: Connexion réussie
   logout:

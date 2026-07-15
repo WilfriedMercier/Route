@@ -30,11 +30,12 @@ from   .lang                   import LANGUAGE
 from   .io                     import decode_and_process_uploaded_file
 from   .components             import hikelist_element_layout, language_element, HandleShortcut
 from   .components.notifications import (
-    login_success_notification, 
-    login_password_fail_notification, 
-    login_username_fail_notification, 
+    login_success_notification,
     logout_success_notification,
-    wrong_magic_link_notification
+    wrong_magic_link_notification,
+    hike_upload_success_notification,
+    hike_upload_format_fail_notification,
+    hike_upload_already_there_fail_notification,
 )
 
 from   .components.map         import generate_new_figure, generate_leaflet_map_figure
@@ -45,16 +46,6 @@ from   .database               import (
     Magic_links_table,
     validate_credentials, 
     execute_get_query,
-)
-
-from   .components             import (
-    login_success_notification,
-    login_username_fail_notification,
-    login_password_fail_notification,
-    logout_success_notification,
-    hike_upload_success_notification,
-    hike_upload_format_fail_notification,
-    hike_upload_already_there_fail_notification
 )
 
 COLOR_PALETTE = qualitative.Plotly
@@ -78,7 +69,17 @@ def register_callbacks(app : dash.Dash) -> None:
     register_keydown_callbacks(app)
     register_colorpicker_modal_callbacks(app)
     register_elevation_plot_callbacks(app)
-    
+    register_theme_switch_callbacks(app)
+
+    return
+
+def register_theme_switch_callbacks(app: dash.Dash) -> None:
+    r'''
+    Register all callbacks associated to the theme switch.
+
+    :param app: dash application
+    '''
+
     @app.callback(
         dash.Output('elevation-plot', 'figure', allow_duplicate=True),
         dash.Output('theme', 'data'),
@@ -88,13 +89,21 @@ def register_callbacks(app : dash.Dash) -> None:
         prevent_initial_call=True
     )
     def theme_switch(theme: typing.Literal['light', 'dark'], fig_dict: dict) -> tuple[go.Figure, typing.Literal['light', 'dark']]:
+        r'''
+        Callback used when one of the theme switch buttons is clicked.
+
+        :param theme: value of the button clicked
+        :param fig_dict: dictionary holding the style of the current elevation plot figure
+
+        :returns: tuple with
+            - elevation plot with the updated theme
+            - value of the theme stored in dcc.Store
+        '''
 
         fig = go.Figure(fig_dict) 
         fig.update_layout(template = f'mantine_{theme}')       
 
         return fig, theme
-
-    return
     
 def register_elevation_plot_callbacks(app: dash.Dash) -> None:
     r'''
@@ -216,20 +225,8 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
     '''
 
     @app.callback(
-        dash.Output('map-div', 'children', allow_duplicate=True),
         dash.Output('map-div', 'style'),
-        dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'style', allow_duplicate=True),
-        dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'children'),
-        dash.Output({'type' : 'login-button-tooltip', 'index' : dash.ALL}, 'label'),
-        dash.Output('hikelist-div',           'children',          allow_duplicate=True),
-        dash.Output('number-hikes',           'data',              allow_duplicate=True),
-        dash.Output('hikes-info',             'data',              allow_duplicate=True),
-        dash.Output('map-polylines',          'children',          allow_duplicate=True),
-        dash.Output('elevation-plot-stack',   'style',             allow_duplicate=True),
-        dash.Output('upload-hike-button',     'style',             allow_duplicate=True),
-        dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
         dash.Output('base-url', 'data'),
-        dash.Output('render-ui', 'data'),
         dash.Output('magic-link', 'data'),
         dash.Output('theme', 'data', allow_duplicate=True),
 
@@ -244,33 +241,23 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
             language : LANGUAGE,
             theme    : tuple[typing.Literal['light', 'dark'], typing.Literal['light', 'dark']]
         ) -> tuple[
-            dl.Map                                | dash.NoUpdate, # map -> children
-            dict[str, typing.Any]                 | dash.NoUpdate, # map -> style
-            tuple[dict[str, str], dict[str, str]] | tuple[dash.NoUpdate, dash.NoUpdate], # all login-button -> style
-            tuple[str, str]      | tuple[dash.NoUpdate, dash.NoUpdate], # all login-button -> children
-            tuple[str, str]      | tuple[dash.NoUpdate, dash.NoUpdate], # all login-button-tooltip -> children
-            list[dmc.Space]      | dash.NoUpdate, # hikelist-div -> children
-            int                  | dash.NoUpdate, # number-hikes -> data
-            dict[str, HikeInfo]  | dash.NoUpdate, # hikes-info -> data
-            list[dl.Polyline]    | dash.NoUpdate, # map-polylines -> children
-            dict[str, str]       | dash.NoUpdate, # elevation-plot-stack -> style
-            dict[str, str]       | dash.NoUpdate, # upload-hike-button -> style
-            list[Notification]   | dash.NoUpdate, # notification-container -> sendNotifications
+            dict[str, typing.Any] | dash.NoUpdate, # map -> style
             str,  # base-url -> data
-            bool, # render-ui -> data
             str,  # magic-link -> data
-            typing.Literal['light', 'dark']
+            typing.Literal['light', 'dark'] # theme -> data
         ]:
         r'''
         Callback used at startup to define how the UI is rendered.
+
+        .. note::
+            This is the first pass of the UI rendering. It basically sets the height of the map and defines the magic-link value
+            which is used to trigger the second pass that updates all other UI elements.
 
         :param url: url of the page
         :param language: selected language
         :param notification: notification shown when the magic link is wrong
         :param theme: theme from the two theme buttons
         '''
-
-        print('hola', theme)
 
         parsed_url   = urlparse(url)
         base_url     = parsed_url.scheme + '://' + parsed_url.netloc
@@ -279,6 +266,89 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
 
         # Case without a magic link
         if (token_list is None or len(token_list) != 1):
+            return dash.no_update, base_url, '', theme[0]
+        
+        # Case with a magic link
+        return ({'height' : '70%'}, base_url, token_list[0], theme[0])
+    
+    @app.callback(
+        dash.Output('map-div', 'children', allow_duplicate=True),
+        dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'style', allow_duplicate=True),
+        dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'children', allow_duplicate=True),
+        dash.Output({'type' : 'login-button-tooltip', 'index' : dash.ALL}, 'label', allow_duplicate=True),
+        dash.Output('hikelist-div',           'children',          allow_duplicate=True),
+        dash.Output('number-hikes',           'data',              allow_duplicate=True),
+        dash.Output('hikes-info',             'data',              allow_duplicate=True),
+        dash.Output('map-polylines',          'children',          allow_duplicate=True),
+        dash.Output('elevation-plot-stack',   'style',             allow_duplicate=True),
+        dash.Output('upload-hike-button',     'style',             allow_duplicate=True),
+        dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
+
+        dash.Input('magic-link', 'data'),
+        dash.State('language', 'data'),
+
+        prevent_initial_call = True
+    )
+    def render_ui_second_pass(
+            magic_link :  str | None,
+            language   : LANGUAGE,
+        ) -> tuple[
+            dl.Map, # map -> children
+            tuple[dict[str, str], dict[str, str]] | tuple[dash.NoUpdate, dash.NoUpdate], # all login-button -> style
+            tuple[str, str]      | tuple[dash.NoUpdate, dash.NoUpdate], # all login-button -> children
+            tuple[str, str]      | tuple[dash.NoUpdate, dash.NoUpdate], # all login-button-tooltip -> label
+            list[dmc.Space]      | dash.NoUpdate, # hikelist-div -> children
+            int                  | dash.NoUpdate, # number-hikes -> data
+            dict[str, HikeInfo]  | dash.NoUpdate, # hikes-info -> data
+            list[dl.Polyline]    | dash.NoUpdate, # map-polylines -> children
+            dict[str, str]       | dash.NoUpdate, # elevation-plot-plot -> style
+            dict[str, str]       | dash.NoUpdate, # upload-hike-button -> style
+            list[Notification]   | dash.NoUpdate, # notification-container -> sendNotifications
+        ]:
+        r'''
+        Second pass of the UI rendering used to allow the leaflet map to resize before triggering other events.
+
+        :param magic_link: magic link provided in the URL or ''
+        :param language: current language of the application
+        '''
+
+        if magic_link is None: raise dash.exceptions.PreventUpdate
+
+        # Case with a magic link. Note the following are disabled when opening with a magic link:
+        # - all login/logout buttons
+        # - upload hike button
+        # - all share hike buttons
+        if magic_link != '':
+
+            try:
+                widgets, n_hikes, hikes_info, traces = handle_with_magic_link(magic_link, language)
+            except NoHikeForMagicLink: # Case when magic link incorrect
+
+                notification = wrong_magic_link_notification(
+                    app.language_handler[language]['notifications']
+                )
+
+                return (
+                    generate_leaflet_map_figure(),
+                    (dash.no_update, dash.no_update),
+                    (dash.no_update, dash.no_update),
+                    (dash.no_update, dash.no_update),
+                    dash.no_update, dash.no_update, dash.no_update, dash.no_update,
+                    dash.no_update,  dash.no_update, [notification]
+                )
+
+            # Case when magic link is correct
+            return (
+                generate_leaflet_map_figure(),
+                ({'display' : 'none'}, {'display' : 'none'}),
+                (dash.no_update, dash.no_update),
+                (dash.no_update, dash.no_update),
+                widgets, n_hikes, hikes_info, traces,
+                {'display' : 'flex'},  {'display' : 'none'}, dash.no_update
+            )
+        
+        # Case without a magic link
+        else:
 
             (
                 button_style_1, button_style_2,
@@ -288,89 +358,13 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
 
             return (
                 generate_leaflet_map_figure(),
-                dash.no_update,
                 (button_style_1, button_style_2), 
                 (login_button, login_button),
                 (login_tooltip, login_tooltip),
                 widgets, n_hikes, hikes_info, traces,
-                {'display' : 'none'}, dash.no_update, dash.no_update,
-                base_url, False, '',
-                theme[0]
+                {'display' : 'flex' if 'user_id' in session else 'none'}, 
+                dash.no_update, dash.no_update
             )
-        
-        # Case with a magic link
-        return (
-            dash.no_update,
-            {'height' : '70%'},
-            (dash.no_update, dash.no_update), (dash.no_update, dash.no_update),
-            (dash.no_update, dash.no_update),
-            dash.no_update, dash.no_update, dash.no_update, dash.no_update,
-            dash.no_update, dash.no_update, dash.no_update,
-            base_url, True, token_list[0],
-            theme[0]
-        )
-    
-    @app.callback(
-        dash.Output('map-div', 'children', allow_duplicate=True),
-        dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'style', allow_duplicate=True),
-        dash.Output('hikelist-div',           'children',          allow_duplicate=True),
-        dash.Output('number-hikes',           'data',              allow_duplicate=True),
-        dash.Output('hikes-info',             'data',              allow_duplicate=True),
-        dash.Output('map-polylines',          'children',          allow_duplicate=True),
-        dash.Output('elevation-plot-stack',   'style',             allow_duplicate=True),
-        dash.Output('upload-hike-button',     'style',             allow_duplicate=True),
-        dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
-
-        dash.Input('render-ui', 'data'),
-        dash.State('language', 'data'),
-        dash.State('magic-link', 'data'),
-
-        prevent_initial_call = True
-    )
-    def render_ui_with_magic_link(
-            render_ui  : bool, 
-            language   : LANGUAGE,
-            magic_link:  str
-        ) -> tuple[
-            dl.Map, # map -> children
-            tuple[dict[str, str], dict[str, str]] | tuple[dash.NoUpdate, dash.NoUpdate], # all login-button -> style
-            list[dmc.Space]      | dash.NoUpdate, # hikelist-div -> children
-            int                  | dash.NoUpdate, # number-hikes -> data
-            dict[str, HikeInfo]  | dash.NoUpdate, # hikes-info -> data
-            list[dl.Polyline]    | dash.NoUpdate, # map-polylines -> children
-            dict[str, str]       | dash.NoUpdate, # elevation-plot-plot -> style
-            dict[str, str]       | dash.NoUpdate, # upload-hike-button -> style
-            list[Notification]   | dash.NoUpdate, # notification-container -> sendNotifications
-        ]:
-
-        if not render_ui: raise dash.exceptions.PreventUpdate
-
-        # Case with a magic link. Note the following are disabled when opening with a magic link:
-        # - all login/logout buttons
-        # - upload hike button
-        # - all share hike buttons
-        try:
-            widgets, n_hikes, hikes_info, traces = handle_with_magic_link(magic_link, language)
-        except NoHikeForMagicLink: # Case when magic link incorrect
-
-            notification = wrong_magic_link_notification(
-                app.language_handler[language]['notifications']
-            )
-
-            return (
-                generate_leaflet_map_figure(),
-                (dash.no_update, dash.no_update),
-                dash.no_update, dash.no_update, dash.no_update, dash.no_update,
-                dash.no_update,  dash.no_update, [notification]
-            )
-
-        # Case when magic link is correct
-        return (
-            generate_leaflet_map_figure(),
-            ({'display' : 'none'}, {'display' : 'none'}),
-            widgets, n_hikes, hikes_info, traces,
-            {'display' : 'flex'},  {'display' : 'none'}, dash.no_update
-        )
         
     def handle_with_magic_link(
             magic_link : str, 
@@ -1194,6 +1188,9 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
 
         dash.Output('map-polylines', 'children', allow_duplicate=True),
         dash.Output('elevation-plot-stack', 'style', allow_duplicate=True),
+
+        dash.Output('login-modal-id-input', 'error'),
+        dash.Output('login-modal-password-input', 'error'),
         
         dash.Input('send-login-button', 'n_clicks'),
         dash.Input('login-modal-id-input', 'n_submit'),
@@ -1211,8 +1208,8 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         password                   : str,
         language                   : LANGUAGE
         ) -> tuple[
-            bool, 
-            list[Notification]  | dash.NoUpdate, 
+            bool,
+            list[Notification]  | dash.NoUpdate,
 
             tuple[str, str]     | tuple[dash.NoUpdate, dash.NoUpdate],
             tuple[str, str]     | tuple[dash.NoUpdate, dash.NoUpdate],
@@ -1222,18 +1219,20 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
             dict[str, HikeInfo] | dash.NoUpdate,
 
             list[dl.Polyline]   | dash.NoUpdate,
-            dict[str, str]      | dash.NoUpdate
+            dict[str, str]      | dash.NoUpdate,
+
+            str,
+            str
         ]:
         r'''
         Callback used when the user is trying to login.
 
         :param username: username provided in the relevant field
         :param password: password provided in the relevant field
-        :param success_notification: notification shown in case of success. This is passed as argument in order to have the right language shown.
-        :param 
+        :param language: current language of the application
         '''
 
-        translation = app.language_handler[language]['notifications']
+        translation = app.language_handler[language]
 
         # If one of the fields is empty, we let the page as is
         if password is None or username is None or password == '' or username == '':
@@ -1243,17 +1242,19 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
             validate_credentials(username, password)
         except WrongUsername:
             return (
-                True, [login_username_fail_notification(translation)], 
+                True, dash.no_update, 
                 (dash.no_update, dash.no_update), (dash.no_update, dash.no_update), 
                 dash.no_update, dash.no_update, dash.no_update,
-                dash.no_update, dash.no_update
+                dash.no_update, dash.no_update,
+                translation['login_modal']['user_id_input']['error'], ''
             )
         except WrongPassword:
             return (
-                True, [login_password_fail_notification(translation)], 
+                True, dash.no_update, 
                 (dash.no_update, dash.no_update), (dash.no_update, dash.no_update), 
                 dash.no_update, dash.no_update, dash.no_update,
-                dash.no_update, dash.no_update
+                dash.no_update, dash.no_update,
+                '', translation['login_modal']['user_password_input']['error'],
             )
         
         # Password and username are both correct, we store the user ID for later queries into the database
@@ -1268,10 +1269,11 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
 
         # Otherwise, sends a login success notification
         return (
-            False, [login_success_notification(translation)], 
+            False, [login_success_notification(translation['notifications'])], 
             (username, username), (login_button_tooltip, login_button_tooltip),
             widgets, len(widgets), hikes_info, 
-            traces, {'display' : 'flex'}
+            traces, {'display' : 'flex'},
+            '', ''
         )
     
     @app.callback(

@@ -19,40 +19,6 @@ def login_success_notification(translation: dict) -> Notification:
         icon      = DashIconify(icon='icon-park-outline:success')
     )
 
-def login_username_fail_notification(translation: dict) -> Notification:
-    r'''
-    Notification sent when the login fails because of a wrong username.
-
-    :param translation: dictionary containing the text to show
-    '''
-    
-    return Notification(
-        title     = translation['login']['fail']['title'],
-        message   = translation['login']['fail']['username'],
-        position  = 'top-center',
-        action    = 'show',
-        color     = 'red',
-        autoClose = 4000,
-        icon      = DashIconify(icon='si:error-duotone')
-    )
-
-def login_password_fail_notification(translation: dict) -> Notification:
-    r'''
-    Notification sent when the login fails because of a wrong password.
-
-    :param translation: dictionary containing the text to show
-    '''
-
-    return Notification(
-        title     = translation['login']['fail']['title'],
-        message   = translation['login']['fail']['password'],
-        position  = 'top-center',
-        action    = 'show',
-        color     = 'red',
-        autoClose = 4000,
-        icon      = DashIconify(icon='si:error-duotone')
-    )
-
 def logout_success_notification(translation: dict) -> Notification:
     r'''
     Notification sent when the login fails because of a wrong username.

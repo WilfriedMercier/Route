@@ -62,10 +62,9 @@ app.layout   = dmc.MantineProvider(
         dash.dcc.Store(   id='selected-hike-props',            data = {}),  # Contains the following properties: index, hike name, color
         dash.dcc.Store(   id='selected-hike-data-for-plot',    data = EMPTY_HIKE_DATA_FOR_PLOT), # Contains the distances and elevations for the bottom elevation plot # type: ignore
         dash.dcc.Store(   id='selected-hike-data-for-marker',  data = EMPTY_HIKE_DATA_FOR_MAP),  # Contains the lat, lon arrays for the map figure # type: ignore
-        dash.dcc.Store(   id='marker-location',                data = (0, 0)),
-        dash.dcc.Store(   id='render-ui',                      data = False),
-        dash.dcc.Store(   id='magic-link',                     data = ''),
-        dash.dcc.Store(   id='theme',                          data = 'light'),
+        dash.dcc.Store(   id='marker-location',                data = (0, 0)), # Contains the (lat, lon) location of the marker on the map
+        dash.dcc.Store(   id='magic-link',                     data = None), # magic link used to render in a second pass the UI with or without a magic link. None is the default value at startup. During the first UI render pass, if set to '', no magic link is used, otherwise the provided magic link is used
+        dash.dcc.Store(   id='theme',                          data = 'light'), # theme to apply to the elevation plot
         language,
         dmc.NotificationContainer(id="notification-container"),
         ui_layout(app.language_handler, default_language),
