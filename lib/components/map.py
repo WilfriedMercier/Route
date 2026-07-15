@@ -1,9 +1,15 @@
 import dash
-import dash_mantine_components   as dmc
-import dash_leaflet              as dl
-import plotly.graph_objects      as go
+import typing
+import dash_mantine_components   as     dmc
+import dash_leaflet              as     dl
+import plotly.graph_objects      as     go
+import plotly.express            as     px
+import numpy                     as     np
+import pandas                    as     pd
+from   numpy.typing              import NDArray
+from   textwrap                  import dedent
 
-from ..lang import LanguageHandler, LANGUAGE
+from ..lang                      import LanguageHandler, LANGUAGE
 
 def elevation_plot_layout(language_dict: dict) -> dmc.Stack:
 
@@ -140,35 +146,72 @@ def generate_layer_control(poly_lines: list[dl.Polyline] = []) -> dl.LayersContr
         id       = 'map-layer-control'
     )
 
-def generate_new_figure(distances: list, elevations: list, color: str) -> go.Figure:
+def generate_new_figure(
+        distances  : NDArray[np.floating], 
+        elevations : NDArray[np.floating], 
+        color      : str,
+        theme      : typing.Literal['light', 'dark'] = 'light'
+    ) -> go.Figure:
     r'''
     Generate a new figure for the elevation plot.
 
     :param distances: distances in km shown on the x-axis
     :param elevations: elevations in m shown on the y-axis
     :param color: color of the path
+    :param theme: theme of the application 
 
     :returns: the new figure
     '''
     
     fig = go.Figure()
 
-    fig.add_trace(go.Scatter(
+    # We convert elevations to km to match distances
+    delta_elevations = np.append([np.nan], elevations[1:] - elevations[:-1]) / 1000
+    delta_distances  = np.append([np.nan], distances[1:]  - distances[:-1])
+    slope            = np.abs(delta_elevations) / delta_distances * 100
+
+    data = pd.DataFrame({
+        'distances'           : distances, 
+        'elevations'          : elevations, 
+        'remaining_distances' : -(distances - distances[-1]),
+        'slope'               : slope
+    })
+
+    fig = px.line(
+        data_frame    = data,
         x             = distances,
         y             = elevations,
-        mode          = 'lines',
-        line          = dict(color=color, width=3),
-        hovertemplate = 'x: %{x:.2f}<br>y: %{y:.2f}<extra></extra>'
-    ))
+        template      = f'mantine_{theme}',
+        custom_data   = ['remaining_distances', 'slope']
+    )
 
     fig.update_layout(
         margin      = dict(l=0, r=0, t=0, b=0),
         xaxis_title = "Distance (km)",
         yaxis_title = "Elevation (m)",
-        hovermode   = 'x unified',
-        xaxis={'fixedrange' : True},   # Lock x-axis (no zoom/pan)
-        yaxis={'fixedrange' : True},   # Lock x-axis (no zoom/pan)
-        dragmode = False
+        hovermode   = 'x',
+        xaxis       = {'fixedrange' : True},   # Lock x-axis (no zoom/pan)
+        yaxis       = {'fixedrange' : True},   # Lock x-axis (no zoom/pan)
+        dragmode    = False,
+        showlegend  = False
     )
-    
+
+    fig.update_xaxes(
+        showspikes=True,
+        spikemode="across",
+        spikethickness=1, spikedash="dot", spikecolor="#888",
+    )
+
+    fig.update_traces(
+        line = {'color' : color, 'width' : 3},
+        hovertemplate=dedent('''\
+            <extra></extra>
+            <b>Distance:</b> %{x:.1f} km<br>
+            <b>Distance to end:</b> %{customdata[0]:.1f} km<br>
+            <b>Elevation:</b> %{y:.0f} m<br>
+            <b>Slope:</b> %{customdata[1]:.1f}%
+        '''),
+        name = ''
+    )
+
     return fig

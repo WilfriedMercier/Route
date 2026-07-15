@@ -3,6 +3,7 @@ import typing
 import dash_mantine_components as     dmc
 import plotly.graph_objects    as     go
 import dash_leaflet            as     dl
+import numpy                   as     np
 from   urllib.parse            import urlparse, parse_qs
 from   flask                   import session
 from   plotly.colors           import qualitative
@@ -78,6 +79,21 @@ def register_callbacks(app : dash.Dash) -> None:
     register_colorpicker_modal_callbacks(app)
     register_elevation_plot_callbacks(app)
     
+    @app.callback(
+        dash.Output('elevation-plot', 'figure', allow_duplicate=True),
+        dash.Output('theme', 'data'),
+
+        dash.Input({'type' : 'theme-toggle', 'index' : dash.MATCH}, "computedColorScheme"),
+        dash.State('elevation-plot', 'figure'),
+        prevent_initial_call=True
+    )
+    def theme_switch(theme: typing.Literal['light', 'dark'], fig_dict: dict) -> tuple[go.Figure, typing.Literal['light', 'dark']]:
+
+        fig = go.Figure(fig_dict) 
+        fig.update_layout(template = f'mantine_{theme}')       
+
+        return fig, theme
+
     return
     
 def register_elevation_plot_callbacks(app: dash.Dash) -> None:
@@ -215,15 +231,18 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         dash.Output('base-url', 'data'),
         dash.Output('render-ui', 'data'),
         dash.Output('magic-link', 'data'),
+        dash.Output('theme', 'data', allow_duplicate=True),
 
         dash.Input('url', 'href'),
         dash.State('language', 'data'),
+        dash.State({'type' : 'theme-toggle', 'index' : dash.ALL}, 'computedColorScheme'),
 
         prevent_initial_call = True
     )
     def render_ui(
             url      : str, 
-            language : LANGUAGE
+            language : LANGUAGE,
+            theme    : tuple[typing.Literal['light', 'dark'], typing.Literal['light', 'dark']]
         ) -> tuple[
             dl.Map                                | dash.NoUpdate, # map -> children
             dict[str, typing.Any]                 | dash.NoUpdate, # map -> style
@@ -240,6 +259,7 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
             str,  # base-url -> data
             bool, # render-ui -> data
             str,  # magic-link -> data
+            typing.Literal['light', 'dark']
         ]:
         r'''
         Callback used at startup to define how the UI is rendered.
@@ -247,7 +267,10 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         :param url: url of the page
         :param language: selected language
         :param notification: notification shown when the magic link is wrong
+        :param theme: theme from the two theme buttons
         '''
+
+        print('hola', theme)
 
         parsed_url   = urlparse(url)
         base_url     = parsed_url.scheme + '://' + parsed_url.netloc
@@ -271,7 +294,8 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
                 (login_tooltip, login_tooltip),
                 widgets, n_hikes, hikes_info, traces,
                 {'display' : 'none'}, dash.no_update, dash.no_update,
-                base_url, False, ''
+                base_url, False, '',
+                theme[0]
             )
         
         # Case with a magic link
@@ -282,7 +306,8 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
             (dash.no_update, dash.no_update),
             dash.no_update, dash.no_update, dash.no_update, dash.no_update,
             dash.no_update, dash.no_update, dash.no_update,
-            base_url, True, token_list[0]
+            base_url, True, token_list[0],
+            theme[0]
         )
     
     @app.callback(
@@ -594,6 +619,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.Input( {'type' : 'hikelist-button', 'index' : dash.ALL}, 'n_clicks'),
         dash.State('hikes-info', 'data'),
         dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'), 
+        dash.State('theme', 'data'),
 
         prevent_initial_call = True
     )
@@ -601,6 +627,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         _,
         hikes_info : dict[str, HikeInfo], 
         colors     : list[str],
+        theme      : typing.Literal['light', 'dark']
     ) -> tuple[
             HikeProps, HikeDataForMarker, HikeDataForElevationPlot,
             list[dict[str, str]], 
@@ -614,6 +641,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
 
         :param hikes_info: hike properties containing information such as center and zoom level
         :param colors: list of colors associated to each colorpicker
+        :param theme: theme to apply to the elevation plot
 
         :returns:
             - dictionary with properties corresponding to the selected hike
@@ -625,6 +653,8 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             - False to close the hike-panel
             - a new figure for the elevation plot with updated data and properties
         '''
+
+        print('lading', theme)
 
         ctx = dash.callback_context
 
@@ -662,7 +692,12 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             elevations = info['elevations']
         )
 
-        fig = generate_new_figure(info['distances'], info['elevations'], color)
+        fig = generate_new_figure(
+            np.array(info['distances']), 
+            np.array(info['elevations']), 
+            color,
+            theme = theme
+        )
 
         return (
             selected_hike_props, selected_hike_lat_lon, selected_hike_dist_elev,
@@ -703,8 +738,6 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             - the color of the clicked button to pass it as default value to the colorpicker
             - ID of the clicked colorpicker button
         '''
-
-        print(colors)
 
         if all(n is None for n in n_clicks): raise dash.exceptions.PreventUpdate
 
@@ -1109,7 +1142,11 @@ def register_colorpicker_modal_callbacks(app: dash.Dash) -> None:
         if index != hike_props['name']:
             fig = dash.no_update
         else:
-            fig = generate_new_figure(dist_elev['distances'], dist_elev['elevations'], selected_color)
+            fig = generate_new_figure(
+                np.array(dist_elev['distances']), 
+                np.array(dist_elev['elevations']), 
+                selected_color
+            )
 
         # Only update the color of the path on the map corresponding to the button being changed
         map_props = [
@@ -1347,8 +1384,8 @@ def update_ui_after_multiple_hike_loads(
     return hike_widgets, new_traces
 
 def generate_hike_ui_elements_with_login(
-        app              : dash.Dash, 
-        language         : LANGUAGE
+        app      : dash.Dash, 
+        language : LANGUAGE  
     ) -> tuple[dict[str, HikeInfo], list[dmc.Space], list[dl.Polyline]]:
     r'''
     Generate all the ui elements that need to be updated after login.

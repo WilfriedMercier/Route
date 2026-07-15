@@ -32,6 +32,7 @@ server.config["SESSION_REFRESH_EACH_REQUEST"] = True
 server.config["PERMANENT_SESSION_LIFETIME"]   = datetime.timedelta(hours=1)  # Session expires after 1 hour of inactivity
 
 dmc.pre_render_color_scheme()
+dmc.add_figure_templates()
 
 app               = dash.Dash(__name__, server=server, external_stylesheets=None) # type: ignore
 
@@ -64,11 +65,15 @@ app.layout   = dmc.MantineProvider(
         dash.dcc.Store(   id='marker-location',                data = (0, 0)),
         dash.dcc.Store(   id='render-ui',                      data = False),
         dash.dcc.Store(   id='magic-link',                     data = ''),
+        dash.dcc.Store(   id='theme',                          data = 'light'),
         language,
         dmc.NotificationContainer(id="notification-container"),
         ui_layout(app.language_handler, default_language),
     ]),
-    theme={"primaryColor": "blue", 'breakpoints' : {'md' : '450px'}}
+    theme={
+        "primaryColor" : "blue", 
+        'breakpoints'  : {'md' : '450px'}
+    }
 )
 
 

@@ -61,3 +61,8 @@ div:has(> .menubar-button) {
 div:has(> .mantine-ActionIcon-root) {
     display: flex;
 }
+
+/* Removes the hover tooltip shown along the x-axis when using the x hover mode*/
+.axistext {
+    display: none;
+}
