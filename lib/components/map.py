@@ -8,6 +8,7 @@ import numpy                     as     np
 import pandas                    as     pd
 from   numpy.typing              import NDArray
 from   textwrap                  import dedent
+from   dash_iconify              import DashIconify
 
 from ..lang                      import LanguageHandler, LANGUAGE
 
@@ -25,13 +26,15 @@ def elevation_plot_layout(language_dict: dict) -> dmc.Stack:
     )
 
     slider = dmc.Slider(
-        w          = '100%', 
-        h          = '10%', 
-        hiddenFrom = 'lg', 
-        id         = 'elevation-plot-slider',
-        updatemode = "drag",
-        #label      = None,
-        min        = 0
+        w             = '100%', 
+        h             = '10%', 
+        hiddenFrom    = 'lg', 
+        id            = 'elevation-plot-slider',
+        updatemode    = "drag",
+        thumbSize     = 30,
+        thumbChildren = DashIconify(icon='gis:hiker'),
+        label         = None,
+        min           = 0
 
     )
 
@@ -143,12 +146,6 @@ def generate_layer_control(poly_lines: list[dl.Polyline] = []) -> dl.LayersContr
 
     layers = generate_base_layers()
     layers.append(dl.LayerGroup(poly_lines, id='map-polylines'))
-    layers.append(dl.Circle(
-        radius = 80,
-        center = (45, 5),
-        color  = 'black',
-        id     = 'marker'
-    )) # type: ignore
 
     return dl.LayersControl(
         layers,
