@@ -103,7 +103,8 @@ def generate_base_layers() -> list[dl.BaseLayer | dl.LayerGroup | dl.CircleMarke
         dl.BaseLayer(
             dl.TileLayer(url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", attribution='© OpenStreetMap contributors'),
             name    = "OSM", # type: ignore
-            checked = True
+            checked = True,
+            id      = 'map-layer-OSM'
         ),
         dl.BaseLayer(
             dl.TileLayer(url='https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attribution='© OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)'),

@@ -70,8 +70,44 @@ def register_callbacks(app : dash.Dash) -> None:
     register_colorpicker_modal_callbacks(app)
     register_elevation_plot_callbacks(app)
     register_theme_switch_callbacks(app)
+    register_clientside_callbacks(app)
 
     return
+
+def register_clientside_callbacks(app: dash.Dash) -> None:
+    r'''
+    Register all clientside callbacks.
+
+    :param app: dash application
+    '''
+
+    # Callback used when the user is hovering over the elevation plot.
+    # This prevents constantly asking the server to update the marker on the map.
+    app.clientside_callback(
+        dash.ClientsideFunction(
+            namespace     = 'clientside',
+            function_name = 'update_hover_marker'
+        ),
+        dash.Output('dummy', 'data', allow_duplicate=True),
+        dash.Input('elevation-plot', 'hoverData'),
+        dash.State('map', 'bounds'),
+        dash.State('selected-hike-data-for-marker', 'data'),
+        dash.State('selected-hike-props', 'data'),
+        prevent_initial_call=True
+    )
+
+    # Callback used to update the elevation plot and the map when the slider is used in mobile mode.
+    # This is much faster than going back and forth to the server.
+    app.clientside_callback(
+        dash.ClientsideFunction(
+            namespace     = 'clientside',
+            function_name = 'mobile_slider_interaction'
+        ),
+        dash.Output('dummy', 'data'),
+        dash.Input('elevation-plot-slider', 'value'),
+        dash.State('selected-hike-data-for-plot', 'data')
+    )
+
 
 def register_theme_switch_callbacks(app: dash.Dash) -> None:
     r'''
@@ -112,6 +148,7 @@ def register_elevation_plot_callbacks(app: dash.Dash) -> None:
     :param app: dash application
     '''
 
+    """
     @app.callback(
         dash.Output('marker', 'center', allow_duplicate=True),
         dash.Output('marker', 'pathOptions', allow_duplicate=True),
@@ -138,7 +175,7 @@ def register_elevation_plot_callbacks(app: dash.Dash) -> None:
             - a dictionary indicating the color of the marker on the map
         '''
 
-        if hoverData is None: return (0, 0), {'color' : 'rgba(0, 0, 0, 0)'}
+        if hoverData is None: raise dash.exceptions.PreventUpdate #return (0, 0), {'color' : 'rgba(0, 0, 0, 0)'}
 
         # Index in the array corresponding to the hovered point
         index     = hoverData['points'][0]['pointIndex']
@@ -147,7 +184,8 @@ def register_elevation_plot_callbacks(app: dash.Dash) -> None:
         position  = (hike_properties['latitudes'][index], hike_properties['longitudes'][index])
         
         return position, {'color' : props['color']}
-    
+    """
+
     @app.callback(   
         dash.Output('marker', 'center'),
         dash.Output('marker', 'pathOptions'),
@@ -168,16 +206,6 @@ def register_elevation_plot_callbacks(app: dash.Dash) -> None:
         
         return position, {'color' : props['color']}
     
-    app.clientside_callback(
-        dash.ClientsideFunction(
-            namespace     = 'clientside',
-            function_name = 'mobile_slider_interaction'
-        ),
-        dash.Output('dummy', 'data'),
-        dash.Input('elevation-plot-slider', 'value'),
-        dash.State('selected-hike-data-for-plot', 'data')
-    )
-
     return
 
 def register_keydown_callbacks(app: dash.Dash) -> None:
@@ -730,7 +758,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             selected_hike_props, selected_hike_lat_lon, selected_hike_dist_elev,
             styles,
             {
-                'center'     : (info['center_lat'], info['center_lon']),
+                #'center'     : (info['center_lat'], info['center_lon']),
                 'bounds'     : (
                     (min(info['latitudes']), min(info['longitudes'])), 
                     (max(info['latitudes']), max(info['longitudes']))
