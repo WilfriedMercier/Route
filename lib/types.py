@@ -1,6 +1,17 @@
 from typing       import TypedDict, Final, NotRequired, Literal
 from dash_iconify import DashIconify
 
+class Dummy(TypedDict):
+    r'''
+    Class defining a dummy object used to call secondary callbacks after a first callback has finished.
+
+    :param n_clicks: an integer constantly incrementing
+    :param type: defines what operation modified the dummy n_clicks value. This is used to filter secondary callbacks.
+    '''
+
+    n_clicks : int
+    type     : Literal['login']
+
 class Notification(TypedDict):
     r'''
     Class defining the content of a notification.

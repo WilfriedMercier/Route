@@ -5,7 +5,7 @@ from   contextlib    import contextmanager
 from   psycopg2.pool import ThreadedConnectionPool
 from   psycopg2      import extras
 
-from   ..errors      import NoHikeForMagicLink, NoHikeIDInDB, NoUsernameInDB
+from   ..errors      import NoHikeForMagicLink, NoHikeIDInDB, NoUsernameInDB, NoUserIdInDB
 from   ..types       import HikeInfo
 
 # Load environment variables for database
@@ -107,7 +107,12 @@ class Users_table:
         :param user_id: identifier of the user as it appears in the database
         '''
 
-        return execute_get_query(f"SELECT username FROM users WHERE id = '{user_id}'")[0][0]
+        res = execute_get_query(f"SELECT username FROM users WHERE id = '{user_id}'")
+
+        if res is None:
+            raise NoUserIdInDB(f'User ID {user_id} not found in database.')
+
+        return res[0][0]
 
 class Hikes_table:
     r'''A class containing methods that query information in the hikes table.'''

@@ -14,6 +14,7 @@ from   .errors                 import (
     NoHikeIDInDB,
     NoMagicForHikeID,
     NoUsernameInDB,
+    NoUserIdInDB,
     WrongPassword,
     WrongUsername
 )
@@ -23,6 +24,7 @@ from   .types                  import (
     HikeInfo,
     HikeDataForElevationPlot,
     Notification,
+    Dummy,
     EMPTY_HIKE_DATA_FOR_PLOT
 )
 
@@ -92,6 +94,7 @@ def register_clientside_callbacks(app: dash.Dash) -> None:
         dash.State('map', 'bounds'),
         dash.State('selected-hike-data-for-marker', 'data'),
         dash.State('selected-hike-props', 'data'),
+        dash.State('dummy', 'data'),
         prevent_initial_call=True
     )
 
@@ -108,6 +111,7 @@ def register_clientside_callbacks(app: dash.Dash) -> None:
         dash.State('selected-hike-data-for-marker', 'data'),
         dash.State('map', 'bounds'),
         dash.State('selected-hike-props', 'data'),
+        dash.State('dummy', 'data'),
     )
 
     app.clientside_callback(
@@ -117,6 +121,7 @@ def register_clientside_callbacks(app: dash.Dash) -> None:
         ),
         dash.Output('dummy', 'data', allow_duplicate=True),
         dash.Input('map', 'zoom'),
+        dash.State('dummy', 'data'),
         prevent_initial_call=True
     )
 
@@ -236,14 +241,12 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         dash.Output('theme', 'data', allow_duplicate=True),
 
         dash.Input('url', 'href'),
-        dash.State('language', 'data'),
         dash.State({'type' : 'theme-toggle', 'index' : dash.ALL}, 'computedColorScheme'),
 
         prevent_initial_call = True
     )
     def render_ui(
-            url      : str, 
-            language : LANGUAGE,
+            url      : str,
             theme    : tuple[typing.Literal['light', 'dark'], typing.Literal['light', 'dark']]
         ) -> tuple[
             dict[str, typing.Any] | dash.NoUpdate, # map -> style
@@ -1184,59 +1187,45 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
 
     @app.callback(
         dash.Output('login-modal', 'opened', allow_duplicate=True),
-        dash.Output('notification-container', 'sendNotifications'),
 
-        dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'children', allow_duplicate=True),
-        dash.Output({'type' : 'login-button-tooltip', 'index' : dash.ALL}, 'label', allow_duplicate=True),
-
-        dash.Output('hikelist-div', 'children', allow_duplicate=True),
-        dash.Output('number-hikes', 'data', allow_duplicate=True),
-        dash.Output('hikes-info',   'data', allow_duplicate=True),
-
-        dash.Output('map-polylines', 'children', allow_duplicate=True),
+        dash.Output('map-div', 'style', allow_duplicate=True),
         dash.Output('elevation-plot-stack', 'style', allow_duplicate=True),
+        dash.Output('dummy',   'data', allow_duplicate=True),
 
         dash.Output('login-modal-id-input', 'error'),
         dash.Output('login-modal-password-input', 'error'),
-        
+
         dash.Input('send-login-button', 'n_clicks'),
         dash.Input('login-modal-id-input', 'n_submit'),
         dash.Input('login-modal-password-input', 'n_submit'),
-
         dash.State('login-modal-id-input', 'value'),
         dash.State('login-modal-password-input', 'value'),
         dash.State('language', 'data'),
-
+        dash.State('dummy', 'data'),
         prevent_initial_call=True
     )
-    def secure_login(
-        _1, _2, _3,
-        username                   : str, 
-        password                   : str,
-        language                   : LANGUAGE
+    def secure_login_first_pass(
+            _1, _2, _3,
+            username : str, 
+            password : str,
+            language : LANGUAGE,
+            dummy    : Dummy
         ) -> tuple[
             bool,
-            list[Notification]  | dash.NoUpdate,
-
-            tuple[str, str]     | tuple[dash.NoUpdate, dash.NoUpdate],
-            tuple[str, str]     | tuple[dash.NoUpdate, dash.NoUpdate],
-            
-            list[dmc.Space]     | dash.NoUpdate,
-            int                 | dash.NoUpdate,
-            dict[str, HikeInfo] | dash.NoUpdate,
-
-            list[dl.Polyline]   | dash.NoUpdate,
-            dict[str, str]      | dash.NoUpdate,
-
-            str,
-            str
+            dict[str, str] | dash.NoUpdate, dict[str, str] | dash.NoUpdate,
+            Dummy | dash.NoUpdate,
+            str   | dash.NoUpdate, str | dash.NoUpdate
         ]:
         r'''
         Callback used when the user is trying to login.
 
+        .. note:
+            This is the first pass that handles login and resizes the map. The second pass is called when
+
         :param username: username provided in the relevant field
         :param password: password provided in the relevant field
         :param language: current language of the application
+        :param dummy: a dummy object used to trigger the secondary callback if the username and password are correct
         '''
 
         translation = app.language_handler[language]
@@ -1247,40 +1236,97 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
 
         try:
             validate_credentials(username, password)
-        except WrongUsername:
-            return (
-                True, dash.no_update, 
-                (dash.no_update, dash.no_update), (dash.no_update, dash.no_update), 
-                dash.no_update, dash.no_update, dash.no_update,
-                dash.no_update, dash.no_update,
+
+        # Handle cases where the username or password are wrong
+        except WrongUsername: return (
+                True, 
+                dash.no_update, dash.no_update, 
+                dash.no_update, 
                 translation['login_modal']['user_id_input']['error'], ''
             )
-        except WrongPassword:
-            return (
-                True, dash.no_update, 
-                (dash.no_update, dash.no_update), (dash.no_update, dash.no_update), 
-                dash.no_update, dash.no_update, dash.no_update,
-                dash.no_update, dash.no_update,
-                '', translation['login_modal']['user_password_input']['error'],
+        
+        except WrongPassword: return (
+                True, 
+                dash.no_update, dash.no_update, 
+                dash.no_update, 
+                '', translation['login_modal']['user_password_input']['error']
             )
         
+
         # Password and username are both correct, we store the user ID for later queries into the database
         try:
             session['user_id'] = Users_table.get_user_id_from_username(username)
         except NoUsernameInDB: raise dash.exceptions.PreventUpdate
+        
+        return (
+            False,
+            {'height' : '70%'}, {'display' : 'flex'},
+            Dummy(n_clicks = dummy['n_clicks'] + 1, type = 'login'),
+            dash.no_update, dash.no_update
+        )
+        
+    @app.callback(
+        dash.Output('map-div', 'children', allow_duplicate=True),
+        dash.Output('notification-container', 'sendNotifications'),
+
+        dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'children', allow_duplicate=True),
+        dash.Output({'type' : 'login-button-tooltip', 'index' : dash.ALL}, 'label', allow_duplicate=True),
+
+        dash.Output('hikelist-div', 'children', allow_duplicate=True),
+        dash.Output('number-hikes', 'data', allow_duplicate=True),
+        dash.Output('hikes-info',   'data', allow_duplicate=True),
+
+        dash.Output('map-polylines', 'children', allow_duplicate=True),
+        
+        dash.Input('dummy', 'data'),
+        dash.State('language', 'data'),
+
+        prevent_initial_call=True
+    )
+    def secure_login_second_pass(
+        dummy    : Dummy,
+        language : LANGUAGE
+        ) -> tuple[
+            dl.Map, # map -> children
+            list[Notification]  | dash.NoUpdate,
+
+            tuple[str, str]     | tuple[dash.NoUpdate, dash.NoUpdate],
+            tuple[str, str]     | tuple[dash.NoUpdate, dash.NoUpdate],
+            
+            list[dmc.Space]     | dash.NoUpdate,
+            int                 | dash.NoUpdate,
+            dict[str, HikeInfo] | dash.NoUpdate,
+
+            list[dl.Polyline]   | dash.NoUpdate
+        ]:
+        r'''
+        Callback used when the user is trying to login.
+
+        :param dummy: dummy object used to trigger this callback
+        :param language: current language of the application
+        '''
+
+        # No action taken if the dummy is not triggered by the first pass of the UI update
+        if dummy['type'] != 'login': raise dash.exceptions.PreventUpdate
+
+        translation = app.language_handler[language]
 
         # Load the hike list ui elements based on the data from the db
         hikes_info, widgets, traces = generate_hike_ui_elements_with_login(app, language)
 
         login_button_tooltip = app.language_handler[language]['login_logout_buttons']['logout' if 'user_id' in session else 'login']['tooltip']
 
-        # Otherwise, sends a login success notification
+        # Recover the username
+        try:
+            username = Users_table.get_username_from_user_id(session['user_id'])
+        except NoUserIdInDB: raise dash.exceptions.PreventUpdate
+
         return (
-            False, [login_success_notification(translation['notifications'])], 
+            generate_leaflet_map_figure(),
+            [login_success_notification(translation['notifications'])], 
             (username, username), (login_button_tooltip, login_button_tooltip),
             widgets, len(widgets), hikes_info, 
-            traces, {'display' : 'flex'},
-            '', ''
+            traces
         )
     
     @app.callback(

@@ -13,6 +13,9 @@ class NoMagicForHikeID(Exception): pass
 #: Error raised when there is no 
 class NoUsernameInDB(Exception): pass
 
+#: Error raised when the user ID does not exist in the database
+class NoUserIdInDB(Exception): pass
+
 #: Error raised when the username for login is wrong
 class WrongUsername(Exception): pass
 

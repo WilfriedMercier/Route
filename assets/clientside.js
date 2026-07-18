@@ -9,13 +9,15 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         * @param {Object} lat_lon - contains two keys, latitudes and longitudes, each an array of floating values containing the coordinates of all the points on the path
         * @param {Object} bbox - latitude and longitude bounding box of the map
         * @param {Object} props - additional properties associated to the hike, in particular its color
-        * @returns null
+        * @param {Object} dummy - dummy object whose n_clicks key is always incremented by one
         */
-        slider_callback: function(index, plot_data, lat_lon, bbox, props) {
+        slider_callback: function(index, plot_data, lat_lon, bbox, props, dummy) {
 
             if (!index || !plot_data || !lat_lon || !bbox || !props) {
                 throw console.error('Missing input data to trigger the slider callback.');
             }
+
+            const out_dummy = {'n_clicks' : dummy['n_clicks'] + 1, 'type' : 'slider_update'}
 
             // Get distance associated to index
             const distance = plot_data['distances'][index];
@@ -34,7 +36,9 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
                 // Find the x position corresponding to the given distance
                 const x = init + distance / plot_data['distances'].slice(-1) * width;
 
-                if (x < 0 || x > init + width) {return null;}
+                if (x < 0 || x > init + width) {
+                    return out_dummy;
+                }
 
                 // Update or create a line to show the position of the slider
                 let line = document.getElementById('tooltip-vertical-line-mobile');
@@ -61,10 +65,10 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
                 const lat = lat_lon.latitudes[ index];
                 const lon = lat_lon.longitudes[index];
 
-                return this.update_hover_marker(lat, lon, bbox, props);
+                this.update_hover_marker(lat, lon, bbox, props);
             }
 
-            return null;
+            return out_dummy;
         },
 
         /**
@@ -74,9 +78,9 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         * @param {number[]} bbox - latitude and longitude bounding box of the map
         * @param {Object} lat_lon - contains two keys, latitudes and longitudes, each an array of floating values containing the coordinates of all the points on the path
         * @param {Object} props - additional properties associated to the hike, in particular its color
-        * @returns null
+        * @param {Object} dummy - dummy object whose n_clicks key is always incremented by one
         */
-        elevation_plot_hover_callback: function (hoverdata, bbox, lat_lon, props) {
+        elevation_plot_hover_callback: function (hoverdata, bbox, lat_lon, props, dummy) {
 
             let lat = null;
             let lon = null;
@@ -91,7 +95,8 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
                 lon = lat_lon.longitudes[index];
             }
 
-            return this.update_hover_marker(lat, lon, bbox, props);
+            this.update_hover_marker(lat, lon, bbox, props);
+            return {'n_clicks' : dummy['n_clicks'] + 1, 'type' : 'elevation-plot-hover'}
 
         },
 
@@ -176,9 +181,9 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
          * Callback used to hide the marker and the vertical line in the elevation plot when the map is zoomed in or out.
          * 
          * @param {number} zoom - zoom level
-         * @returns null
+         * @param {Object} dummy - dummy object whose n_clicks key must always be incremented by one
          */
-        hide_marker_and_highlight_line: function (zoom) {
+        hide_marker_and_highlight_line: function (zoom, dummy) {
             const path = document.getElementById('map-marker-js');
             
             if (path) {
@@ -191,7 +196,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
                 line.setAttribute('stroke', 'rgb(0, 0, 0, 0)');
             }
 
-            return null;
+            return {'n_clicks' : dummy['n_clicks'] + 1, 'type' : 'hide-marker-and-line'};
         }
     }
 });
