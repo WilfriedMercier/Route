@@ -1,4 +1,4 @@
-from   flask   import session
+from flask     import session
 
 from .database import Hikes_table
 

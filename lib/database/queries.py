@@ -128,7 +128,8 @@ class Hikes_table:
         
         res = execute_get_query(f"SELECT id FROM hikes WHERE user_id = '{user_id}' AND name = '{hike_name}'")
 
-        if res is None: raise NoHikeIDInDB(f'Hike with name {hike_name} for user {user_id} not in database.')
+        if res is None or len(res) == 0: 
+            raise NoHikeIDInDB(f'Hike with name {hike_name} for user {user_id} not in database.')
 
         return res[0][0]
     
@@ -141,7 +142,12 @@ class Hikes_table:
         :param hike_name: name of the hike as it appears in the database
         '''
 
-        return Hikes_table.get_hike_id_from_user_id_and_hike_name(user_id, hike_name) is not None
+        try:
+            Hikes_table.get_hike_id_from_user_id_and_hike_name(user_id, hike_name)
+        except NoHikeIDInDB:
+            return False
+
+        return True
     
     @staticmethod
     def insert_hikes_into_db(

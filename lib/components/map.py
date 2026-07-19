@@ -156,8 +156,7 @@ def generate_layer_control(poly_lines: list[dl.Polyline] = []) -> dl.LayersContr
 def generate_new_figure(
         distances  : NDArray[np.floating], 
         elevations : NDArray[np.floating], 
-        color      : str,
-        theme      : typing.Literal['light', 'dark'] = 'light'
+        color      : str
     ) -> go.Figure:
     r'''
     Generate a new figure for the elevation plot.
@@ -165,7 +164,6 @@ def generate_new_figure(
     :param distances: distances in km shown on the x-axis
     :param elevations: elevations in m shown on the y-axis
     :param color: color of the path
-    :param theme: theme of the application 
 
     :returns: the new figure
     '''
@@ -188,7 +186,6 @@ def generate_new_figure(
         data_frame    = data,
         x             = distances,
         y             = elevations,
-        template      = f'mantine_{theme}',
         custom_data   = ['remaining_distances', 'slope']
     )
 
@@ -200,13 +197,15 @@ def generate_new_figure(
         xaxis       = {'fixedrange' : True},   # Lock x-axis (no zoom/pan)
         yaxis       = {'fixedrange' : True},   # Lock x-axis (no zoom/pan)
         dragmode    = False,
-        showlegend  = False
+        showlegend  = False,
     )
 
     fig.update_xaxes(
-        showspikes=True,
-        spikemode="across",
-        spikethickness=1, spikedash="dot", spikecolor="#888",
+        showspikes     = True,
+        spikemode      = "across",
+        spikethickness = 1, 
+        spikedash      = "dot", 
+        spikecolor     = "#888",
     )
 
     fig.update_traces(

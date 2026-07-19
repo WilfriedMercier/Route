@@ -70,7 +70,6 @@ def register_callbacks(app : dash.Dash) -> None:
     register_burger_callbacks(app)
     register_keydown_callbacks(app)
     register_colorpicker_modal_callbacks(app)
-    register_theme_switch_callbacks(app)
     register_clientside_callbacks(app)
 
     return
@@ -126,38 +125,6 @@ def register_clientside_callbacks(app: dash.Dash) -> None:
     )
 
     return
-
-def register_theme_switch_callbacks(app: dash.Dash) -> None:
-    r'''
-    Register all callbacks associated to the theme switch.
-
-    :param app: dash application
-    '''
-
-    @app.callback(
-        dash.Output('elevation-plot', 'figure', allow_duplicate=True),
-        dash.Output('theme', 'data'),
-
-        dash.Input({'type' : 'theme-toggle', 'index' : dash.MATCH}, "computedColorScheme"),
-        dash.State('elevation-plot', 'figure'),
-        prevent_initial_call=True
-    )
-    def theme_switch(theme: typing.Literal['light', 'dark'], fig_dict: dict) -> tuple[go.Figure, typing.Literal['light', 'dark']]:
-        r'''
-        Callback used when one of the theme switch buttons is clicked.
-
-        :param theme: value of the button clicked
-        :param fig_dict: dictionary holding the style of the current elevation plot figure
-
-        :returns: tuple with
-            - elevation plot with the updated theme
-            - value of the theme stored in dcc.Store
-        '''
-
-        fig = go.Figure(fig_dict) 
-        fig.update_layout(template = f'mantine_{theme}')       
-
-        return fig, theme
 
 def register_keydown_callbacks(app: dash.Dash) -> None:
     r'''
@@ -238,21 +205,15 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         dash.Output('map-div', 'style'),
         dash.Output('base-url', 'data'),
         dash.Output('magic-link', 'data'),
-        dash.Output('theme', 'data', allow_duplicate=True),
 
         dash.Input('url', 'href'),
-        dash.State({'type' : 'theme-toggle', 'index' : dash.ALL}, 'computedColorScheme'),
 
         prevent_initial_call = True
     )
-    def render_ui(
-            url      : str,
-            theme    : tuple[typing.Literal['light', 'dark'], typing.Literal['light', 'dark']]
-        ) -> tuple[
+    def render_ui(url: str) -> tuple[
             dict[str, typing.Any] | dash.NoUpdate, # map -> style
             str,  # base-url -> data
             str,  # magic-link -> data
-            typing.Literal['light', 'dark'] # theme -> data
         ]:
         r'''
         Callback used at startup to define how the UI is rendered.
@@ -274,10 +235,10 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
 
         # Case without a magic link
         if (token_list is None or len(token_list) != 1):
-            return dash.no_update, base_url, '', theme[0]
+            return dash.no_update, base_url, ''
         
         # Case with a magic link
-        return ({'height' : '70%'}, base_url, token_list[0], theme[0])
+        return {'height' : '70%'}, base_url, token_list[0]
     
     @app.callback(
         dash.Output('map-div', 'children', allow_duplicate=True),
@@ -622,16 +583,14 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
 
         dash.Input( {'type' : 'hikelist-button', 'index' : dash.ALL}, 'n_clicks'),
         dash.State('hikes-info', 'data'),
-        dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'), 
-        dash.State('theme', 'data'),
+        dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'),
 
         prevent_initial_call = True
     )
     def hike_button(
         _,
         hikes_info : dict[str, HikeInfo], 
-        colors     : list[str],
-        theme      : typing.Literal['light', 'dark']
+        colors     : list[str]
     ) -> tuple[
             HikeProps, HikeDataForMarker, HikeDataForElevationPlot,
             list[dict[str, str]], 
@@ -700,7 +659,6 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             np.array(info['distances']), 
             np.array(info['elevations']), 
             color,
-            theme = theme
         )
 
         return (
@@ -990,7 +948,7 @@ def register_login_buttons_callbacks(app: dash.Dash) -> None:
         dash.Output('selected-hike-data-for-plot',   'data', allow_duplicate=True),
         dash.Output('selected-hike-data-for-marker', 'data', allow_duplicate=True),
 
-        dash.Output('map',                    'style',             allow_duplicate=True),
+        dash.Output('map-div',                'style',             allow_duplicate=True),
         dash.Output('elevation-plot-stack',   'style',             allow_duplicate=True),
 
         dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),

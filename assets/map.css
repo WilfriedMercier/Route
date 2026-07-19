@@ -5,10 +5,36 @@
     min-height : 0;
 }
 
-.mantine-AreaChart-axisLabel {
-    text-anchor: middle;
+/*Customize the elevation plot with light-dark colors*/
+
+.main-svg {
+    background: transparent !important;
 }
 
-.mantine-LineChart-axisLabel {
-    text-anchor: middle;
+.ytick * {
+    fill: var(--custom-text-color) !important; 
+}
+
+.xtick * {
+    fill: var(--custom-text-color) !important; 
+}
+
+.xgrid, .ygrid {
+    stroke : var(--custom-gridline-color) !important;
+}
+
+.nsewdrag {
+    fill : transparent !important;
+}
+
+.bg {
+    fill : transparent !important;
+}
+
+.xzl.zl.crisp {
+    stroke: transparent !important;
+}
+
+.xtitle, .ytitle {
+    fill : var(--custom-text-color) !important;
 }
