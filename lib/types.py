@@ -75,7 +75,6 @@ class HikeInfo(TypedDict):
     
     :param center_lat: latitude of the center of the hike
     :param center_lon: longitude of the center of the hike
-    :param zoom: zoom level
     :param distances: list of distances for the elevation plot
     :param elevations: list of elevation data for the elevation plot
     :param latitudes: latitude coordinates used to draw the path on the map and for the marker
@@ -84,7 +83,6 @@ class HikeInfo(TypedDict):
 
     center_lat            : float
     center_lon            : float
-    zoom                  : int | float
     distances             : list[float]
     elevations            : list[float]
     latitudes             : list[float]

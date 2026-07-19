@@ -1414,7 +1414,7 @@ def generate_hike_ui_elements_with_login(
 
     # Query hikes database associated to the user
     hike_properties = execute_get_query(f'''
-        SELECT name, latitude, longitude, center_lat, center_lon, zoom, distances, elevations
+        SELECT name, latitude, longitude, center_lat, center_lon, distances, elevations
         FROM hikes
         WHERE user_id = '{session["user_id"]}';
     ''')
@@ -1429,9 +1429,8 @@ def generate_hike_ui_elements_with_login(
             longitudes            = hike[2],
             center_lat            = hike[3],
             center_lon            = hike[4],
-            zoom                  = hike[5],
-            distances             = hike[6],
-            elevations            = hike[7]
+            distances             = hike[5],
+            elevations            = hike[6]
         )
 
         property_dict[hike[0]] = inside_dict
@@ -1463,7 +1462,7 @@ def generate_hike_ui_elements_with_hike_id(
 
     # Query hikes database associated to the user
     hike_properties = execute_get_query(f'''
-        SELECT name, latitude, longitude, center_lat, center_lon, zoom, distances, elevations
+        SELECT name, latitude, longitude, center_lat, center_lon, distances, elevations
         FROM hikes
         WHERE id = {hike_id};
     ''')
@@ -1478,9 +1477,8 @@ def generate_hike_ui_elements_with_hike_id(
             longitudes            = hike[2],
             center_lat            = hike[3],
             center_lon            = hike[4],
-            zoom                  = hike[5],
-            distances             = hike[6],
-            elevations            = hike[7]
+            distances             = hike[5],
+            elevations            = hike[6]
         )
 
         property_dict[hike[0]] = inside_dict
