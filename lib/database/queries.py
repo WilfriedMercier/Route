@@ -35,9 +35,11 @@ def close_pool(): DB_POOL.closeall()
 
 def execute_get_query(query: str) -> list[tuple]:
     r'''
-    Execute a fetch query given some values.
+    Execute a given fetch query.
 
     :param query: query to execute
+
+    :raises: any exception if the query execution and fetching fail
     '''
 
     try:
@@ -48,6 +50,26 @@ def execute_get_query(query: str) -> list[tuple]:
             results = cur.fetchall()
 
         return results
+        
+    except Exception as e: raise e
+
+def execute_query(query: str) -> None:
+    r'''
+    Execute a given query without fetch.
+
+    :param query: query to execute
+
+    :raises: any exception if the query execution and commit fail
+    '''
+
+    try:
+        with get_db_connection() as conn:
+
+            cur = conn.cursor()
+            cur.execute(query)
+            conn.commit()
+
+        return
         
     except Exception as e: raise e
 
@@ -64,6 +86,8 @@ def execute_insert_query(
     :param values: values to pass to the query
     :param multiple_rows: whether multiple rows are passed (True) or just a single row (False) when inserting values
     :param template: template for the values to insert (used when inserting multiple rows)
+
+    :raises: any exception if the query execution and commit fail
     '''
 
     try:
@@ -77,7 +101,6 @@ def execute_insert_query(
             conn.commit()
 
         return
-    
         
     except Exception as e: raise e
 
@@ -186,6 +209,26 @@ class Hikes_table:
         execute_insert_query(query, values, multiple_rows=True, template=template)
 
         return
+    
+    @staticmethod
+    def delete_hike_from_db_given_id(hike_id: str) -> None:
+        '''
+        Delete a hike with the given ID if it exists in the database.
+
+        :param hike_id: ID of the hike in the hikes table
+        '''
+
+        return execute_query(f"DELETE FROM hikes WHERE id = {hike_id}")
+    
+    @staticmethod
+    def delete_hike_from_db_given_name(hike_name: str) -> None:
+        '''
+        Delete a hike with the given name if it exists in the database.
+
+        :param hike_name: name of the hike in the hikes table
+        '''
+
+        return execute_query(f"DELETE FROM hikes WHERE name = '{hike_name}'")
 
 class Magic_links_table:
     r'''A class containing methods that query information in the magic links table.'''

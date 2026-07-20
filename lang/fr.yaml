@@ -16,6 +16,8 @@ hike_panel:
     tooltip: Partager cette randonnée
   upload_button:
     text: Cliquez ou faites glisser un fichier pour charger des randonnées
+  delete_button:
+    tooltip: Supprimer cette randonnée
 elevation_plot:
   xlabel: Distance (km)
   ylabel: Altitude (m)
@@ -45,6 +47,12 @@ login_modal:
 magic_link_modal:
   title: Lien partageable
   text: Copiez et partagez le lien ci-dessous pour permettre à d'autres d'ouvrir la randonnée sur la carte
+validate_modal:
+  text: Cliquez sur "Oui" pour supprimer de manière définitive la randonnée de la base de donnée.
+  yes_button:
+    text: Oui
+  no_button:
+    text: Non
 notifications:
   login:
     success:

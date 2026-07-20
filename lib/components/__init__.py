@@ -6,7 +6,8 @@ from .menubar       import menubar_layout
 from .modals        import (
     login_modal_layout, 
     magic_link_modal_layout,
-    colorpicker_modal_layout
+    colorpicker_modal_layout,
+    validate_modal_layout
 )
 from .ui            import ui_layout
 from .misc          import language_element

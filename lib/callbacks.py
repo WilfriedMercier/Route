@@ -71,6 +71,7 @@ def register_callbacks(app : dash.Dash) -> None:
     register_keydown_callbacks(app)
     register_colorpicker_modal_callbacks(app)
     register_clientside_callbacks(app)
+    register_validate_modal_callbacks(app)
 
     return
 
@@ -619,6 +620,8 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             - the maximum value of the slider in mobile mode
         '''
 
+        if _ is None: raise dash.exceptions.PreventUpdate
+
         ctx = dash.callback_context
 
         if ctx is None or not ctx.triggered: raise dash.exceptions.PreventUpdate
@@ -681,18 +684,17 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.Output('colorpicker', 'value', allow_duplicate=True),
         dash.Output('colorpicker-selected-id', 'data'),
 
-        dash.Input({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'n_clicks'),
-        dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'),
+        dash.Input({'type' : 'hikelist-colorpicker', 'index' : dash.MATCH}, 'n_clicks'),
+        dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.MATCH}, 'color'),
         prevent_initial_call=True
     )
     def colorpicker_click(
-            n_clicks        : list[int | None], 
-            colors          : list[str]
+            _     : int | None, 
+            color : str
         ) -> tuple[typing.Literal[True], str, str]:
         r'''
         Callback called whenever the given colorpicker is clicked in the hike list panel.
 
-        :param n_clicks: number of clicks for each colorpicker object
         :param colors: colors selected by the colorpickers
 
         :returns:
@@ -701,75 +703,77 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             - ID of the clicked colorpicker button
         '''
 
-        if all(n is None for n in n_clicks): raise dash.exceptions.PreventUpdate
+        if _ is None: raise dash.exceptions.PreventUpdate
 
         ctx = dash.callback_context
 
         if ctx is None or not ctx.triggered: raise dash.exceptions.PreventUpdate
-
-        for pos, n in enumerate(n_clicks):
-            if n is not None: color = colors[pos]
 
         triggered_id = ctx.triggered_id['index'] # type: ignore
         
         return True, color, triggered_id
 
     @app.callback(
-        dash.Output({'type' : 'hikelist-button',       'index' : dash.ALL}, 'disabled'),
-        dash.Output({'type' : 'hikelist-colorpicker',  'index' : dash.ALL}, 'disabled'),
-        dash.Output({'type' : 'hikelist-share-button', 'index' : dash.ALL}, 'disabled'),
-        dash.Output({'type' : 'hikelist-colorpicker-tooltip',  'index' : dash.ALL}, 'disabled'),
-        dash.Output({'type' : 'hikelist-share-button-tooltip', 'index' : dash.ALL}, 'disabled'),
-        dash.Output({'type' : 'map-trace', 'index' : dash.ALL}, 'pathOptions', allow_duplicate=True),
+        dash.Output({'type' : 'hikelist-button',               'index' : dash.MATCH}, 'disabled'),
+        dash.Output({'type' : 'hikelist-colorpicker',          'index' : dash.MATCH}, 'disabled'),
+        dash.Output({'type' : 'hikelist-share-button',         'index' : dash.MATCH}, 'disabled'),
+        dash.Output({'type' : 'hikelist-colorpicker-tooltip',  'index' : dash.MATCH}, 'disabled'),
+        dash.Output({'type' : 'hikelist-share-button-tooltip', 'index' : dash.MATCH}, 'disabled'),
+        dash.Output({'type' : 'map-trace',                     'index' : dash.MATCH}, 'pathOptions', allow_duplicate=True),
 
-        dash.Input({'type' : 'hikelist-hide-button', 'index' : dash.ALL}, 'checked'),
-        dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'),
+        dash.Input({'type' : 'hikelist-hide-button', 'index' : dash.MATCH}, 'checked'),
+        dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.MATCH}, 'color'),
 
         prevent_initial_call = True
     )
     def hide_button(
-        checked_list : list[bool], 
-        colors       : list[str], 
-    ) -> tuple[list[bool], list[bool], list[bool], list[bool], list[bool], list[dict]]:
+        checked : bool,
+        color   : str,
+    ) -> tuple[bool, bool, bool, bool, bool, dict]:
         r'''
         Callback used when the hide button is toggled.
 
-        :param checked_list: whether the hide buttons are checked
-        :param colors: current colors for each colorpicker
+        :param checked: whether the hide button is checked
+        :param color: current color for the colorpicker button
 
         :returns: a tuple containing
-            - 5 times the same list with True or False for each hike wiget UI element (True to disable, False to enable)
-            - a list with dictionaries inside specifying the color of the lines on the map (transparent if hidden)
+            - 5 times the same True or False value for each hike wiget UI element (True to disable, False to enable)
+            - a dictionary inside specifying the color of the line on the map (transparent if hidden)
         '''
 
-        output      = [not i for i in checked_list]
+        output     = not checked
 
         # Change disabled hikes color to transparent
-        hike_colors = [{'color' : color if check else 'rgba(0, 0, 0, 0)'} for color, check in zip(colors, checked_list)]
+        hike_color = {'color' : color if checked else 'rgba(0, 0, 0, 0)'}
 
-        return output, output, output, output, output, hike_colors
+        return output, output, output, output, output, hike_color
     
     @app.callback(
         dash.Output('magic-link-modal', 'opened'),
         dash.Output('magic-link-copy-button', 'value'),
         dash.Output('magic-link-copy-button', 'children'),
 
-        dash.Input({'type' : 'hikelist-share-button', 'index' : dash.ALL}, 'n_clicks'),
+        dash.Input({'type' : 'hikelist-share-button', 'index' : dash.MATCH}, 'n_clicks'),
         dash.State('base-url', 'data'),
         prevent_initial_call = True
     )
     def share_hike(
-            n_clicks : list[int | None],
+            _ : int | None,
             base_url : str
-        ) -> tuple[bool, str, str]:
+        ) -> tuple[typing.Literal[True], str, str]:
         r'''
         Callback used when any of the share buttons is clicked.
         
         :param n_clicks: number of clicks in each share button
         :param base_url: base url at which the application is accessible 
+
+        :returns: a tuple with
+            - True,
+            - magic link
+            - magic link
         '''
 
-        if all(n is None for n in n_clicks): raise dash.exceptions.PreventUpdate
+        if _ is None: raise dash.exceptions.PreventUpdate
 
         ctx = dash.callback_context
 
@@ -795,6 +799,52 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         magic_link = f'{base_url}?token={magic_link_id}'
 
         return True, magic_link, magic_link
+    
+    @app.callback(
+        dash.Output('validate-modal', 'opened'),
+        dash.Output('validate-modal', 'title'),
+        dash.Output('validate-modal-yes',  'children'),
+        dash.Output('validate-modal-no',   'children'),
+        dash.Output('validate-modal-text', 'children'),
+
+        dash.Input({'type' : 'hikelist-delete-button', 'index' : dash.MATCH}, 'n_clicks'),
+        dash.State('language', 'data')
+    )
+    def delete_hike(_: int | None, language: LANGUAGE) -> tuple[typing.Literal[True], str, str, str, str]:
+        r'''
+        Callback called when one of the delete hike buttons is clicked in the hike drawer.
+
+        :param language: current language of the application
+
+        :returns: a tuple with
+            - True,
+            - name of the hike
+            - text shown in the yes button
+            - text shown in the no button
+            - text shown in the confirm modal
+        '''
+        
+        if _ is None: raise dash.exceptions.PreventUpdate
+
+        ctx = dash.callback_context
+
+        if ctx is None or not ctx.triggered: raise dash.exceptions.PreventUpdate
+
+        triggered_id: dict = ctx.triggered_id # type: ignore
+
+        try:
+            session['hike-to-delete'] = triggered_id['index']
+        except NoHikeIDInDB: raise dash.exceptions.PreventUpdate
+
+        translation = app.language_handler[language]['validate_modal']
+
+        return (
+            True, 
+            triggered_id['index'], 
+            translation['yes_button']['text'],
+            translation['no_button']['text'],
+            translation['text'],
+        )
     
     return
 
@@ -1118,6 +1168,77 @@ def register_colorpicker_modal_callbacks(app: dash.Dash) -> None:
         ]
 
         return output_colors, hike_props, map_props, fig
+    
+def register_validate_modal_callbacks(app: dash.Dash) -> None:
+    r'''
+    Register all callbacks associated with widgets in the validate modal.
+
+    :param app: dash application
+    '''
+
+    @app.callback(
+        dash.Output('validate-modal', 'opened', allow_duplicate=True),
+        dash.Input('validate-modal-no', 'n_clicks'),
+        prevent_initial_call=True
+    )
+    def no_button(_) -> bool: 
+        r'''Callback used when the 'No' button is pressed.'''
+
+        return False
+
+    @app.callback(
+        dash.Output('validate-modal', 'opened',   allow_duplicate=True),
+        dash.Output('hikelist-div',   'children', allow_duplicate=True),
+        dash.Output('number-hikes',   'data',     allow_duplicate=True),
+        dash.Output('hikes-info',     'data',     allow_duplicate=True),
+        dash.Output('map-polylines',  'children', allow_duplicate=True),
+
+        dash.Input('validate-modal-yes', 'n_clicks'),
+        dash.State('hikelist-div', 'children'),
+        dash.State('hikes-info', 'data'),
+        dash.State('map-polylines', 'children'),
+        prevent_initial_call=True
+    )
+    def yes_button(
+            _, 
+            children   : list[dict], 
+            hikes_info : dict[str, HikeInfo], 
+            traces     : list[dict]
+        ) -> tuple[typing.Literal[False], list[dict], int, dict[str, HikeInfo], list[dict]]:
+        r'''
+        Callback used when 'Yes' button is pressed.
+
+        :param children: list of hike UI row elements in the hike panel
+        :param hikes_info: dictionary containing information about each loaded hike
+        :param traces: traces drawn on the map
+
+        :returns: a tuple with
+            - False
+            - updated list of hike UI row elements for the hike panel with one hike removed
+            - updated number of loaded hikes
+            - updated dictionary with hike information
+            - updated traces to draw on the map
+        '''
+        
+        hike_name = session.pop('hike-to-delete')
+        Hikes_table.delete_hike_from_db_given_name(hike_name)
+
+        out_children   = []
+
+        for child in children:
+
+            if child['props']['id']['index'] != hike_name:
+                out_children.append(child)
+
+        # Remove the hike information from the dictionary
+        hikes_info.pop(hike_name)
+
+        # Remove the hike from the map
+        traces = [trace for trace in traces if trace['props']['id']['index'] != hike_name]
+
+        return False, out_children, len(out_children), hikes_info, traces
+
+    return
 
 def register_login_modal_callbacks(app: dash.Dash) -> None:
     r'''

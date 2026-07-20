@@ -60,22 +60,38 @@ def hikelist_element_layout(
         id        = {'type' : 'hikelist-colorpicker-tooltip', 'index' : hike_name}
     )
 
-    share_button = dmc.Tooltip(
-        dmc.Button(
-            DashIconify(icon='material-symbols:share', width=20),
-            className = 'custom-button',
-            style     = {'display' : 'none' if magic_link_state else 'flex'},
-            id        = {'type' : 'hikelist-share-button', 'index' : hike_name}
-        ),
+    share_button = dmc.Button(
+        DashIconify(icon='material-symbols:share', width=20),
+        className = 'custom-button',
+        style     = {'display' : 'none' if magic_link_state else 'flex'},
+        id        = {'type' : 'hikelist-share-button', 'index' : hike_name}
+    )
+        
+    share_button_tooltip = dmc.Tooltip(
+        share_button,
         label     = language_dict['share_button']['tooltip'],
         style     = {'display' : 'none' if magic_link_state else 'flex'},
         id        = {'type' : 'hikelist-share-button-tooltip', 'index' : hike_name}
     )
 
+    delete_button = dmc.Button(
+        DashIconify(icon='material-symbols:delete', width=20),
+        className = 'custom-button',
+        style     = {'display' : 'none' if magic_link_state else 'flex'},
+        id        = {'type' : 'hikelist-delete-button', 'index' : hike_name}
+    )
+
+    delete_button_tooltip = dmc.Tooltip(
+        delete_button,
+        label     = language_dict['delete_button']['tooltip'],
+        style     = {'display' : 'none' if magic_link_state else 'flex'},
+        id        = {'type' : 'hikelist-delete-button-tooltip', 'index' : hike_name}
+    )
+
     return dmc.Space(
         [
             dmc.Group([colorpicker, button]),
-            dmc.Group([share_button, hide_button])
+            dmc.Group([share_button_tooltip, hide_button, delete_button_tooltip])
         ],
         className = 'hikelist-element',
         id        = {'type' : 'hikelist-element', 'index' : hike_name}

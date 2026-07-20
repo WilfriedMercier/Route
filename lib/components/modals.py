@@ -56,9 +56,41 @@ def magic_link_modal_layout(language_handler: dict) -> dmc.Modal:
     return modal
 
 def colorpicker_modal_layout() -> dmc.Modal:
+    r'''Generate a modal that contains the colorpicker to change the color of a hike.'''
 
     return dmc.Modal(
         dmc.ColorPicker(format="rgba", fullWidth=True, id='colorpicker'),
-        withCloseButton=False,
-        id='colorpicker-modal'
+        withCloseButton = False,
+        id              = 'colorpicker-modal'
+    )
+
+def validate_modal_layout(language_handler: dict) -> dmc.Modal:
+    r'''
+    Generate a modal used to validate the deletion of a hike.
+
+    :param language_handler: object handling the translation of the UI elements
+    '''
+
+    yes_button = dmc.Button(
+        language_handler['yes_button']['text'], 
+        variant = 'outline', 
+        color   = 'red', 
+        id      = 'validate-modal-yes',
+    )
+
+    no_button  = dmc.Button(
+        language_handler['no_button']['text'],  
+        variant = 'outline', 
+        id      = 'validate-modal-no'
+    )
+
+    buttons    = dmc.Group([no_button, yes_button], justify='space-evenly')
+
+    children   = dmc.Stack([dmc.Text(language_handler['text'], id='validate-modal-text'), buttons])
+
+    return dmc.Modal(
+        children,
+        withCloseButton = False,
+        title           = '',
+        id              = 'validate-modal', 
     )
