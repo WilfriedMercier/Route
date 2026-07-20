@@ -17,4 +17,5 @@ dependencies:
   - dash-mantine-components
   - dash-iconify
   - dash-extensions
+  - pandas
 prefix: /home/wilfried/miniconda3/envs/Route
