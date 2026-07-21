@@ -10,6 +10,8 @@ Route is a python webb application built with Dash whose goal is to store, show,
 
 <summary> 0. Pre-setup </summary>
 
+To install the application, go to the `build` directory.
+
 Whether you are installing with the easy install command or doing it step by step, you need first to update the `.env` file and modify the following lines with your username and password
 
 ```bash
