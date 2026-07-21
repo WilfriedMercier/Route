@@ -21,7 +21,7 @@ These environment variables will be used every time the application connects to 
 
 If the user does not already exist in PostgreSQL, you will have to create it first and grant it the privilege to create databases. You can do so by first connecting to psql with
 
-```properties
+```console
 sudo -i -u postgres psql
 ```
 
