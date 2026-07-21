@@ -1,6 +1,6 @@
-from   ..errors   import WrongPassword, WrongUsername
-from   .hashing   import compare_passwords
-from   .queries   import execute_get_query
+from ..errors import WrongPassword, WrongUsername
+from .hashing import compare_passwords
+from .queries import execute_get_query
 
 def validate_credentials(username: str, password: str) -> bool:
     r'''

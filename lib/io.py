@@ -7,16 +7,14 @@ from   .errors import UnsupportedFileFormatError, GeoJsonParsingFailed
 from   .types  import HikeInfo, ParsedFileContent
 from   .logic  import calculate_distance_from_coords
 
-from .logic import calculate_distance_from_coords, calculate_zoom_from_bounds
+from .logic import calculate_distance_from_coords
 
-def process_hike(filename: str, content: str, map_width: int = 800, map_height: int = 600) -> HikeInfo:
+def process_hike(filename: str, content: str) -> HikeInfo:
     r"""
     Load hike files from the hikes directory and parse them.
     
     :param filename: name of the file (including extension)
     :param content: decoded content of the file
-    :param map_width: width of the map used to compute the zoom level
-    :param map_height: height of the map used to compute the zoom level
 
     :returns: a `HikeInfo` object containing information about the processed hike
     """
@@ -37,9 +35,6 @@ def process_hike(filename: str, content: str, map_width: int = 800, map_height: 
 
     # Extract longitude and latitude info
 
-    # Compute estimated zoom level for the hike
-    zoom   = calculate_zoom_from_bounds(bounds, map_width=map_width, map_height=map_height)
-
     # Compute center of the hike
     center = (bounds[0][0] + (bounds[1][0] - bounds[0][0]) / 2, bounds[0][1] + (bounds[1][1] - bounds[0][1]) / 2)
                 
@@ -48,7 +43,6 @@ def process_hike(filename: str, content: str, map_width: int = 800, map_height: 
         latitudes             = info['latitudes'],
         distances             = info['distances'],
         elevations            = info['elevations'],
-        zoom                  = zoom,
         center_lat            = center[0],
         center_lon            = center[1],
     )
