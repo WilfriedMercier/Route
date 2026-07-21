@@ -5,6 +5,7 @@ channels:
   - conda-pypi
 dependencies:
   - python
+  - pip
   - flask
   - python-dotenv
   - argon2-cffi

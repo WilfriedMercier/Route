@@ -1,75 +1,98 @@
 # Route
 
-A small web app used to store, display, and share hiking trails
+Route is a python webb application built with Dash whose goal is to store, show, and share hike trails. The objective of Route is to be lightweight and easily deployable on private clouds.
 
 ## Installation
 
 ### Building from source
 
-#### 0. Pre-setup
+<details open>
+
+<summary> 0. Pre-setup </summary>
 
 Whether you are installing with the easy install command or doing it step by step, you need first to update the `.env` file and modify the following lines with your username and password
 
-```
-export DB_USER     = username
-export PGPASSWORD  = password
+```bash
+export DB_USER    = username
+export PGPASSWORD = password
 ```
 
 These environment variables will be used every time the application connects to the database.
 
-If the user does not already exist you will have to create it first and grant it the privilege to create databases. You can do so by first connecting to psql with the command
+If the user does not already exist in PostgreSQL, you will have to create it first and grant it the privilege to create databases. You can do so by first connecting to psql with
 
-```
+```bash
 sudo -i -u postgres psql
 ```
 
-and then run the following commands, replacing `username` and `password` with your values
+and then run the following commands, replacing `username` and `password` with your values,
 
-```
+```postgres
 CREATE USER username WITH PASSWORD 'password';
 ALTER USER "username" CREATEDB;
 ```
 
-#### 1. Easy install
+</details>
+
+<details open>
+
+<summary> 1. Easy install </summary>
 
 You can install the application by running the following command
 
-```
+```bash
 make install
 ```
 
-To run the application, do not forget to activate the environment with
+To run the application, use
 
-```
+```bash
 conda activate Route
+python app.py
 ```
 
-#### 2. (Alternative) Step-by-step installation
+</details>
+
+<details>
+
+<summary> 2. (Alternative) Step-by-step installation </summary>
 
 Alternatively, it is possible to run the installation manually. The first step is to create the database which can be done with
 
-```
+```bash
 make db-setup
 ```
 
-**Warning**: `make db-setup` will remove any database with the same name for which the user has the `CREATEDB` privilege. Do a backup of your database before running this command.
+**Warning**: `make db-setup` will remove any database with the same name for which the user has the `CREATEDB` privilege. This will erase any data in the database. Do a backup before running this command if you are unsure.
 
 If necessary, one can just delete the database without creating a new one with the command
 
-```
+```bash
 make db-clean
 ```
 
-XXX TBD bellow
+After that, the `.env` file from the `/build` directory is copied to the root directory so that the environment variables required to connect to the database are the same as those used for its creation. 
 
-To install the application, run
+To setup the environment, one can use the command
 
-```
-conda create --file environment.yaml
+```bash
+make env-build
 ```
 
-At the moment, there is a bug with the dsah-leaflet version available on conda-forge. Instead, it must be installed with
+If necessary, it is possible to remove the environment first with
 
+```bash
+conda deactivate
+make env-clean
 ```
-pip install dash-leaflet
+
+**Note**: the dash-leaflet version available on conda-forge or through the official pip integration of conda is not compatible with the rest of the libraries. Therefore, the current version of dash-leaflet is installed through pip. This may break and, thus, change in the future.
+
+Once the database and the environment are built, the application can be launched with
+
+```bash
+conda activate Route
+python app.py
 ```
+
+</details>
