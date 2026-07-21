@@ -40,13 +40,13 @@ ALTER USER "username" CREATEDB;
 
 You can install the application by running the following command
 
-```bash
+```console
 make install
 ```
 
 To run the application, use
 
-```bash
+```console
 conda activate Route
 python app.py
 ```
@@ -59,7 +59,7 @@ python app.py
 
 Alternatively, it is possible to run the installation manually. The first step is to create the database which can be done with
 
-```bash
+```console
 make db-setup
 ```
 
@@ -67,7 +67,7 @@ make db-setup
 
 If necessary, one can just delete the database without creating a new one with the command
 
-```bash
+```console
 make db-clean
 ```
 
@@ -75,13 +75,13 @@ After that, the `.env` file from the `/build` directory is copied to the root di
 
 To setup the environment, one can use the command
 
-```bash
+```console
 make env-build
 ```
 
 If necessary, it is possible to remove the environment first with
 
-```bash
+```console
 conda deactivate
 make env-clean
 ```
@@ -90,7 +90,7 @@ make env-clean
 
 Once the database and the environment are built, the application can be launched with
 
-```bash
+```console
 conda activate Route
 python app.py
 ```
