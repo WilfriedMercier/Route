@@ -96,3 +96,13 @@ python app.py
 ```
 
 </details>
+
+## Adding users to the database
+
+In the current version of the application, there is no way for a new user to sign-in so this step must be handled on-server by running the following code
+
+```console
+python insert_user_into_db.py -u username
+```
+
+replacing `username` by the username to add to the users table and typing the associated password in the terminal.

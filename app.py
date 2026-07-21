@@ -23,8 +23,8 @@ parser.add_argument('-l', '--language', dest='language', default='en', choices=[
 args = parser.parse_args()
 
 # Setup flask server and dash application
-server            = flask.Flask(__name__)
-server.secret_key = secrets.token_hex(32)  # Strong secret key
+server                                        = flask.Flask(__name__)
+server.secret_key                             = secrets.token_hex(32)  # Strong secret key
 server.config["SESSION_COOKIE_HTTPONLY"]      = True
 server.config["SESSION_COOKIE_SAMESITE"]      = "Lax"
 server.config["SESSION_PERMANENT"]            = True
