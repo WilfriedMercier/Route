@@ -27,7 +27,7 @@ sudo -i -u postgres psql
 
 and then run the following commands, replacing `username` and `password` with your values,
 
-```postgres
+```pgsql
 CREATE USER username WITH PASSWORD 'password';
 ALTER USER "username" CREATEDB;
 ```
@@ -40,7 +40,7 @@ ALTER USER "username" CREATEDB;
 
 You can install the application by running the following command
 
-```bash
+```make
 make install
 ```
 
