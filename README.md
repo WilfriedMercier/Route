@@ -40,7 +40,7 @@ ALTER USER "username" CREATEDB;
 
 You can install the application by running the following command
 
-```make
+```makefile
 make install
 ```
 
