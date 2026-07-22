@@ -65,6 +65,7 @@ app.layout   = dmc.MantineProvider(
         dash.dcc.Store(   id='marker-location',                data = (0, 0)), # Contains the (lat, lon) location of the marker on the map
         dash.dcc.Store(   id='magic-link',                     data = None), # magic link used to render in a second pass the UI with or without a magic link. None is the default value at startup. During the first UI render pass, if set to '', no magic link is used, otherwise the provided magic link is used
         dash.dcc.Store(   id='dummy',                          data = {'n_clicks' : 0, 'type' : ''}), # Dummy variable used to trigger secondary callbacks after a first callback has completed
+        dash.dcc.Store(   id='dummy-with-traces',              data = {'n_clicks' : 0, 'traces' : []}), # Dummy variable used to trigger secondary callbacks after a first callback has completed
         language,
         dmc.NotificationContainer(id="notification-container"),
         ui_layout(app.language_handler, default_language),

@@ -1,5 +1,7 @@
-from typing       import TypedDict, Final, NotRequired, Literal
-from dash_iconify import DashIconify
+import dash_leaflet as     dl
+from   typing       import TypedDict, Final, NotRequired, Literal
+from   dash_iconify import DashIconify
+
 
 class Dummy(TypedDict):
     r'''
@@ -10,7 +12,12 @@ class Dummy(TypedDict):
     '''
 
     n_clicks : int
-    type     : Literal['login']
+    type     : Literal['login', 'upload']
+
+class DummyWithTraces(TypedDict):
+
+    n_clicks : int
+    traces   : list[dl.Polyline]
 
 class Notification(TypedDict):
     r'''

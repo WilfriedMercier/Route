@@ -25,6 +25,7 @@ from   .types                  import (
     HikeDataForElevationPlot,
     Notification,
     Dummy,
+    DummyWithTraces,
     EMPTY_HIKE_DATA_FOR_PLOT
 )
 
@@ -203,7 +204,7 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
     '''
 
     @app.callback(
-        dash.Output('map-div', 'style'),
+        dash.Output('map-div', 'style', allow_duplicate=True),
         dash.Output('base-url', 'data'),
         dash.Output('magic-link', 'data'),
 
@@ -852,15 +853,27 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
     r'''All callbacks associated to uploading hikes.'''
 
     @app.callback(
+        dash.Output('map-div', 'children', allow_duplicate=True),
+        dash.Output('map-polylines', 'children', allow_duplicate=True),
+        dash.Input('dummy-with-traces', 'data'),
+        prevent_initial_call=True
+    )
+    def upload_hike_second_pass(dummy: DummyWithTraces) -> tuple[dl.Map, list[dl.Polyline]]:
+
+        if dummy is None: raise dash.exceptions.PreventUpdate
+
+        return generate_leaflet_map_figure(), dummy['traces']
+    
+    @app.callback(
         dash.Output('hikelist-div', 'children'),
         dash.Output('number-hikes', 'data'),
         dash.Output('hikes-info', 'data'),
 
-        dash.Output('map-polylines', 'children', allow_duplicate=True),
         dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
-
         dash.Output('elevation-plot-stack', 'style', allow_duplicate=True),
-        dash.Output('map', 'style', allow_duplicate=True),
+        dash.Output('map-div', 'style', allow_duplicate=True),
+
+        dash.Output('dummy-with-traces', 'data', allow_duplicate=True),
         
         dash.Input('upload-hike-button', 'contents'),
         dash.State('upload-hike-button', 'filename'),
@@ -868,27 +881,31 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
         dash.State('map-polylines', 'children'),
         dash.State('language', 'data'),
         dash.State('hikes-info', 'data'),
-
+        dash.State('dummy-with-traces', 'data'),
         prevent_initial_call = True
     )
-    def upload_hike(
+    def upload_hike_first_pass(
         file_contents : list[str] | None, 
         filenames     : list[str], 
         hike_widgets  : list[dmc.Space],
         traces        : list[dl.Polyline],
         language      : LANGUAGE,
-        hikes_info    : dict[str, HikeInfo]
+        hikes_info    : dict[str, HikeInfo],
+        dummy         : DummyWithTraces
     ) -> tuple[
             list[dmc.Space]     | dash.NoUpdate, 
             int                 | dash.NoUpdate, 
-            dict[str, HikeInfo] | dash.NoUpdate, 
-            list[dl.Polyline]   | dash.NoUpdate, 
+            dict[str, HikeInfo] | dash.NoUpdate,
             list[Notification],
-            dict[str, str]      | dash.NoUpdate, 
-            dict[str, str]      | dash.NoUpdate
+            dict[str, str]      | dash.NoUpdate,
+            dict[str, str]      | dash.NoUpdate,
+            DummyWithTraces     | dash.NoUpdate
         ]:
         r'''
         Actions taken when a hike is loaded through the load hike button.
+
+        .. note:
+            This is the first pass. The second pass is called when the dummy dcc.Store element changes.
 
         :param file_contents: list containing the content of each loaded file
         :param filenames: list of file names
@@ -896,15 +913,16 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
         :param traces: list of map traces already drawn
         :param language: current language of the application
         :param hikes_info: dictionary-like `HikeInfo` object containing all the information about all the loaded hikes
+        :param dummy: dummy object that will be modified
 
         :returns:
             - updated list of hike widgets
             - updated number of hikes
             - updated `HikeInfo` object
-            - traces for the map
             - notification to send if any
             - dictionary indicating whether the elevation plot should be visible or not
             - dictionary indicating the height of the map
+            - dummy object containing the traces used to trigger the second rendering pass
         '''
 
         if file_contents is None or len(file_contents) == 0: raise dash.exceptions.PreventUpdate
@@ -918,9 +936,9 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
         new_widgets    : list[dmc.Space]     | dash.NoUpdate = dash.no_update
         n_hikes        : int                 | dash.NoUpdate = dash.no_update
         out_hikes_info : dict[str, HikeInfo] | dash.NoUpdate = dash.no_update
-        out_traces     : list[dl.Polyline]   | dash.NoUpdate = dash.no_update
-        plot_style     : dict[str, str]      | dash.NoUpdate = dash.no_update
+        ev_style       : dict[str, str]      | dash.NoUpdate = dash.no_update
         map_style      : dict[str, str]      | dash.NoUpdate = dash.no_update
+        out_dummy      : DummyWithTraces     | dash.NoUpdate = dash.no_update
 
         # List of names of hikes already loaded
         hike_names   = list(hikes_info.keys())
@@ -966,13 +984,18 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
             n_hikes        = len(new_widgets)
             out_traces     = traces + new_traces
             out_hikes_info = hikes_info | hike_properties
-            plot_style     = {'display' : 'flex'}
+            ev_style       = {'display' : 'flex'}
             map_style      = {'height' : '70%'}
+
+            out_dummy = DummyWithTraces(
+                n_clicks = dummy['n_clicks'] + 1,
+                traces   = out_traces
+            )
 
         return (
             new_widgets, n_hikes, out_hikes_info, 
-            out_traces, [notification],
-            plot_style, map_style
+            [notification], ev_style, map_style,
+            out_dummy
         )
 
 def register_login_buttons_callbacks(app: dash.Dash) -> None:
