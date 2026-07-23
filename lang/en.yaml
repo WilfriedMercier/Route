@@ -20,6 +20,7 @@ elevation_plot:
     distance: Distance
     remaining_distance: Remaining distance
     elevation: Elevation
+    slope: Slope
 menubar:
   hike_panel_button:
     text: Hikes

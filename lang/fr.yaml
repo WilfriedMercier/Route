@@ -25,6 +25,7 @@ elevation_plot:
     distance: Distance
     remaining_distance: Distance restante
     elevation: Altitude
+    slope: Pente
 menubar:
   hike_panel_button: 
     text: Randonnées
