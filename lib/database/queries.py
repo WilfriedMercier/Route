@@ -12,13 +12,15 @@ from   ..types       import HikeInfo
 dotenv.load_dotenv()
 
 DB_POOL = ThreadedConnectionPool(
-    minconn  = 1,
-    maxconn  = 10,
-    host     = os.getenv("DB_HOST"),
-    dbname   = os.getenv("DB_NAME"),
-    user     = os.getenv("DB_USER"),
-    password = os.getenv("PGPASSWORD"),
-    port     = os.getenv('DB_PORT')
+    minconn     = 1,
+    maxconn     = 10,
+    host        = os.getenv("DB_HOST"),
+    dbname      = os.getenv("DB_NAME"),
+    user        = os.getenv("DB_USER"),
+    password    = os.getenv("PGPASSWORD"),
+    port        = os.getenv('DB_PORT'),
+    sslmode     = os.getenv('SSLMODE'),
+    sslrootcert = os.getenv('SSLCERTIFICATE')
 )
 
 @contextmanager
