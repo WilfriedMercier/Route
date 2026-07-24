@@ -37,13 +37,6 @@ You can install the application by running the following command
 make install
 ```
 
-To run the application, use
-
-```console
-conda activate Route
-python app.py
-```
-
 </details>
 
 <details>
@@ -93,17 +86,33 @@ python app.py
 
 <summary>3. Creating the user to interact with the database</summary>
 
+At this step, the application is installed and the database is setup correctly, but we are missing a postgres user with limited privileges to interact with the database in the application. To do so, connect to the database with
+
 ```console
-sudo -i -u postgres psql
+sudo -u postgres psql -d yourdbname
 ```
 
-and then run the following commands, replacing `username` and `password` with your values,
+replacing `yourdbname` with the name of the database that you defined in your `build/.env` file. Then, run the following commands, replacing `username`, `password`, and `yourdbname` with your values,
 
 ```pgsql
 CREATE USER username WITH PASSWORD 'password';
-ALTER USER "username" CREATEDB;
+GRANT CONNECT ON DATABASE "yourdbname" TO username;
+GRANT USAGE ON SCHEMA public TO username;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO username;
 ```
 
+</details>
+
+<details>
+
+<summary open>Running the application in development mode</summary>
+
+To run the application in development mode, simply use the following commands
+
+```console
+conda activate Route
+python app.py
+```
 
 </details>
 
