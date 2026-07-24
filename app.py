@@ -3,24 +3,13 @@ import flask
 import glob
 import secrets
 import pathlib
-import argparse
 import datetime
 import dash_mantine_components   as     dmc
 
 from   lib.types                 import EMPTY_HIKE_DATA_FOR_MAP, EMPTY_HIKE_DATA_FOR_PLOT
-from   lib.lang                  import load_languages, LanguageHandler, LANGUAGE, are_languages_correct
+from   lib.lang                  import load_languages, LanguageHandler, are_languages_correct
 from   lib.callbacks             import register_callbacks
 from   lib.components            import ui_layout
-
-# Parse command-line arguments
-parser = argparse.ArgumentParser(
-    prog        = 'Route',
-    description = 'A small web app that displays hike routes.',
-    add_help    = True
-)
-
-parser.add_argument('-l', '--language', dest='language', default='en', choices=['en', 'fr'], help='Language of the application.')
-args = parser.parse_args()
 
 # Setup flask server and dash application
 server                                        = flask.Flask(__name__)
@@ -36,7 +25,7 @@ dmc.add_figure_templates()
 
 app               = dash.Dash(__name__, server=server, external_stylesheets=None) # type: ignore
 
-default_language: LANGUAGE = args.language.lower()
+default_language = 'fr'
 
 language_files   = glob.glob(str(pathlib.Path('lang') / '*.yaml'))
 languages        = are_languages_correct([pathlib.Path(lang_file).stem.lower() for lang_file in language_files])
