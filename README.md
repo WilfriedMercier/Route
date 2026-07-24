@@ -83,9 +83,9 @@ python app.py
 
 </details>
 
-<details>
+<details open>
 
-<summary open>Running the application in development mode</summary>
+<summary>Running the application in development mode</summary>
 
 To run the application in development mode, simply use the following commands
 
