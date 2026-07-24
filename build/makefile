@@ -51,10 +51,6 @@ db-clean: db-drop user-clean
 	- rm ../.env
 	@echo "\n"
 
-	@echo "=== Removing user $$DB_USER" if it exists ===""
-	- sudo -u $${DB_ROOT_USER} psql -c "DROP USER IF EXISTS $${DB_USER};"
-	@echo "\n"
-
 #############################################
 #           User related commands           #
 #############################################
