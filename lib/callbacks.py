@@ -516,9 +516,6 @@ def register_language_callacks(app: dash.Dash) -> None:
         ]
 
         # Update the elevation plot with the right translation
-        import pprint
-        pprint.pprint(ev_plot['layout'])
-
         fig = go.Figure(ev_plot)
         fig.update_layout(
             xaxis_title = translation['elevation_plot']['xlabel'],
