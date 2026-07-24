@@ -65,5 +65,5 @@ app.layout   = dmc.MantineProvider(
     }
 )
 
-
-app.run(debug=True)
+# For development only
+if __name__ == '__main__': app.run(debug=True)
