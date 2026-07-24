@@ -82,26 +82,6 @@ python app.py
 ```
 
 </details>
-<details open>
-
-<summary>3. Creating the user to interact with the database</summary>
-
-At this step, the application is installed and the database is setup correctly, but we are missing a postgres user with limited privileges to interact with the database in the application. To do so, connect to the database with
-
-```bash
-sudo -u postgres psql -d yourdbname
-```
-
-replacing `yourdbname` with the name of the database that you defined in your `build/.env` file. Then, run the following commands, replacing `username`, `password`, and `yourdbname` with your values,
-
-```pgsql
-CREATE USER username WITH PASSWORD 'password';
-GRANT CONNECT ON DATABASE "yourdbname" TO username;
-GRANT USAGE ON SCHEMA public TO username;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO username;
-```
-
-</details>
 
 <details>
 
