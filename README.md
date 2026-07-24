@@ -12,27 +12,18 @@ Route is a python webb application built with Dash whose goal is to store, show,
 
 To install the application, go to the `build` directory.
 
-Whether you are installing with the easy install command or doing it step by step, you need first to update the `.env` file and modify the following lines with your username and password
+Whether you are installing with the easy install command or doing it step by step, you need first to create a `build/.env` file with the following content
 
 ```bash
-export DB_USER    = username
-export PGPASSWORD = password
+export DB_ROOT_USER = postgres
+export DB_NAME      = route_db
+export DB_USER      = user
+export PGPASSWORD   = password
+export DB_HOST      = localhost
+export DB_PORT      = 5432
 ```
 
-These environment variables will be used every time the application connects to the database.
-
-If the user does not already exist in PostgreSQL, you will have to create it first and grant it the privilege to create databases. You can do so by first connecting to psql with
-
-```console
-sudo -i -u postgres psql
-```
-
-and then run the following commands, replacing `username` and `password` with your values,
-
-```pgsql
-CREATE USER username WITH PASSWORD 'password';
-ALTER USER "username" CREATEDB;
-```
+`DB_ROOT_USER` must be a valid username that has privileges to create databases and grant permissions to other users. `DB_USER` and `PGPASSWORD` will be used to connect to the database and interact with it.
 
 </details>
 
@@ -98,6 +89,24 @@ python app.py
 ```
 
 </details>
+<details open>
+
+<summary>3. Creating the user to interact with the database</summary>
+
+```console
+sudo -i -u postgres psql
+```
+
+and then run the following commands, replacing `username` and `password` with your values,
+
+```pgsql
+CREATE USER username WITH PASSWORD 'password';
+ALTER USER "username" CREATEDB;
+```
+
+
+</details>
+
 
 ## Adding users to the database
 
