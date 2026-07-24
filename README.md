@@ -33,7 +33,7 @@ export DB_PORT      = 5432
 
 You can install the application by running the following command
 
-```console
+```bash
 make install
 ```
 
@@ -45,7 +45,7 @@ make install
 
 Alternatively, it is possible to run the installation manually. The first step is to create the database which can be done with
 
-```console
+```bash
 make db-setup
 ```
 
@@ -53,7 +53,7 @@ make db-setup
 
 If necessary, one can just delete the database without creating a new one with the command
 
-```console
+```bash
 make db-clean
 ```
 
@@ -61,13 +61,13 @@ After that, the `.env` file from the `/build` directory is copied to the root di
 
 To setup the environment, one can use the command
 
-```console
+```bash
 make env-build
 ```
 
 If necessary, it is possible to remove the environment first with
 
-```console
+```bash
 conda deactivate
 make env-clean
 ```
@@ -76,7 +76,7 @@ make env-clean
 
 Once the database and the environment are built, the application can be launched with
 
-```console
+```bash
 conda activate Route
 python app.py
 ```
@@ -88,7 +88,7 @@ python app.py
 
 At this step, the application is installed and the database is setup correctly, but we are missing a postgres user with limited privileges to interact with the database in the application. To do so, connect to the database with
 
-```console
+```bash
 sudo -u postgres psql -d yourdbname
 ```
 
@@ -109,7 +109,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO username;
 
 To run the application in development mode, simply use the following commands
 
-```console
+```bash
 conda activate Route
 python app.py
 ```
@@ -121,7 +121,7 @@ python app.py
 
 In the current version of the application, there is no way for a new user to sign-in so this step must be handled on-server by running the following code
 
-```console
+```bash
 python insert_user_into_db.py -u username
 ```
 

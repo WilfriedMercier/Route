@@ -1,6 +1,5 @@
 *__pycache__
 .git
 .env
-!build/.env
 .vscode
 hikes
