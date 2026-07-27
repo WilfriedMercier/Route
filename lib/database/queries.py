@@ -5,7 +5,7 @@ from   contextlib    import contextmanager
 from   psycopg2.pool import ThreadedConnectionPool
 from   psycopg2      import extras
 
-from   ..errors      import NoHikeForMagicLink, NoHikeIDInDB, NoUsernameInDB, NoUserIdInDB
+from   ..errors      import NoHikeForMagicLink, NoHikeIDInDB, NoUsernameInDB, NoUserIdInDB, NoMagicLinkForHikeID
 from   ..types       import HikeInfo
 
 # Load environment variables for database
@@ -245,7 +245,10 @@ class Magic_links_table:
 
         res = execute_get_query(f"SELECT id FROM magic_links WHERE hike_id = {hike_id}")
 
-        return res[0][0] if len(res) > 0 else None
+        if res is None or len(res) != 1: 
+            raise NoMagicLinkForHikeID(f'No magic link found for hike {hike_id}.')
+
+        return res[0][0]
     
     @staticmethod
     def get_hike_id_from_magic_link(magic_link: str) -> int:
@@ -260,7 +263,7 @@ class Magic_links_table:
         res = execute_get_query(f"SELECT hike_id FROM magic_links WHERE id = '{magic_link}'")
 
         if res is None or len(res) != 1: 
-            raise NoHikeForMagicLink(f'No hike found for the magic link {magic_link}')
+            raise NoHikeForMagicLink(f'No hike found for the magic link {magic_link}.')
             
         return res[0][0]
 

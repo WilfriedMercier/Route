@@ -13,7 +13,7 @@ from   .errors                 import (
     UnsupportedFileFormatError,
     NoHikeForMagicLink,
     NoHikeIDInDB,
-    NoMagicForHikeID,
+    NoMagicLinkForHikeID,
     NoUsernameInDB,
     NoUserIdInDB,
     WrongPassword,
@@ -816,7 +816,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         
         try:
             magic_link_id = Magic_links_table.get_magic_link_from_hike_id(hike_id)
-        except NoMagicForHikeID:
+        except NoMagicLinkForHikeID:
 
             Magic_links_table.insert_magic_link_into_db(hike_id)
 

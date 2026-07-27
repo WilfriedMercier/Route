@@ -51,7 +51,12 @@ def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.
     group = dmc.Group(
         [
             dmc.Group(
-                [burger, logo, dmc.Title('Route', order=1, className='title')], 
+                [
+                    burger, 
+                    logo, 
+                    dmc.Title('Route', order=1, className='title'),
+                    dmc.Badge('BETA (v0.5)', size='lg', variant='dot', radius='xl', style={'text-transform' : 'none'})
+                ], 
                 id = 'logo-title-group'
             ),
             button_group

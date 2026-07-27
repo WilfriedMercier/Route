@@ -8,7 +8,7 @@ class NoHikeForMagicLink(Exception): pass
 class NoHikeIDInDB(Exception): pass
 
 #: Error raised when no magic link is associated to a given hike ID.
-class NoMagicForHikeID(Exception): pass
+class NoMagicLinkForHikeID(Exception): pass
 
 #: Error raised when there is no 
 class NoUsernameInDB(Exception): pass

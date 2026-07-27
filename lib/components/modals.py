@@ -18,6 +18,7 @@ def login_modal_layout(language_handler: dict) -> dmc.Modal:
         label       = language_handler['user_password_input']['label'],
         placeholder = language_handler['user_password_input']['placeholder'],
         required    = True,
+        style       = {'font-size' : 'small'},
         id          = 'login-modal-password-input'
     )
 
