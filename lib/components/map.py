@@ -154,9 +154,10 @@ def generate_layer_control(poly_lines: list[dl.Polyline] = []) -> dl.LayersContr
     )
 
 def generate_new_figure(
-        distances  : NDArray[np.floating], 
-        elevations : NDArray[np.floating], 
-        color      : str
+        distances   : NDArray[np.floating], 
+        elevations  : NDArray[np.floating], 
+        color       : str,
+        translation : dict
     ) -> go.Figure:
     r'''
     Generate a new figure for the elevation plot.
@@ -164,6 +165,7 @@ def generate_new_figure(
     :param distances: distances in km shown on the x-axis
     :param elevations: elevations in m shown on the y-axis
     :param color: color of the path
+    :param translation: UI translation for the elevation plot
 
     :returns: the new figure
     '''
@@ -191,8 +193,8 @@ def generate_new_figure(
 
     fig.update_layout(
         margin      = dict(l=0, r=0, t=0, b=0),
-        xaxis_title = "Distance (km)",
-        yaxis_title = "Elevation (m)",
+        xaxis_title = translation['xlabel'],
+        yaxis_title = translation['ylabel'],
         hovermode   = 'x',
         xaxis       = {'fixedrange' : True},   # Lock x-axis (no zoom/pan)
         yaxis       = {'fixedrange' : True},   # Lock x-axis (no zoom/pan)
@@ -210,12 +212,12 @@ def generate_new_figure(
 
     fig.update_traces(
         line = {'color' : color, 'width' : 3},
-        hovertemplate=dedent('''\
+        hovertemplate=dedent(f'''\
             <extra></extra>
-            <b>Distance:</b> %{x:.1f} km<br>
-            <b>Distance to end:</b> %{customdata[0]:.1f} km<br>
-            <b>Elevation:</b> %{y:.0f} m<br>
-            <b>Slope:</b> %{customdata[1]:.1f}%
+            <b>{translation['hovertemplate']["distance"]}:</b> %{{x:.1f}} km<br>
+            <b>{translation['hovertemplate']["remaining_distance"]}:</b> %{{customdata[0]:.1f}} km<br>
+            <b>{translation['hovertemplate']["elevation"]}:</b> %{{y:.0f}} m<br>
+            <b>{translation['hovertemplate']["slope"]}:</b> %{{customdata[1]:.1f}}%
         '''),
         name = ''
     )

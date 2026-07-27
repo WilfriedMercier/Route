@@ -612,13 +612,15 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.Input( {'type' : 'hikelist-button', 'index' : dash.ALL}, 'n_clicks'),
         dash.State('hikes-info', 'data'),
         dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'),
+        dash.State('language', 'data'),
 
         prevent_initial_call = True
     )
     def hike_button(
         _,
         hikes_info : dict[str, HikeInfo], 
-        colors     : list[str]
+        colors     : list[str],
+        language   : LANGUAGE
     ) -> tuple[
             HikeProps, HikeDataForMarker, HikeDataForElevationPlot,
             list[dict[str, str]], 
@@ -633,7 +635,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
 
         :param hikes_info: hike properties containing information such as center and zoom level
         :param colors: list of colors associated to each colorpicker
-        :param theme: theme to apply to the elevation plot
+        :param language: current language of the UI
 
         :returns:
             - dictionary with properties corresponding to the selected hike
@@ -689,6 +691,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             np.array(info['distances']), 
             np.array(info['elevations']), 
             color,
+            app.language_handler[language]['elevation_plot']
         )
 
         return (
@@ -1155,6 +1158,8 @@ def register_colorpicker_modal_callbacks(app: dash.Dash) -> None:
         dash.State({'type' : 'hikelist-colorpicker',  'index' : dash.ALL}, 'id'),
         dash.State('selected-hike-props', 'data'),
         dash.State('selected-hike-data-for-plot', 'data'),
+        dash.State('language', 'data'),
+
         prevent_initial_call=True
     )
     def colorpicker_selection(
@@ -1162,7 +1167,8 @@ def register_colorpicker_modal_callbacks(app: dash.Dash) -> None:
             index           : str,
             colorpicker_ids : list[dict[str, str]],
             hike_props      : HikeProps,
-            dist_elev       : HikeDataForElevationPlot
+            dist_elev       : HikeDataForElevationPlot,
+            language        : LANGUAGE,
         ) -> tuple[
             list[str | dash.NoUpdate], 
             HikeProps,
@@ -1177,6 +1183,7 @@ def register_colorpicker_modal_callbacks(app: dash.Dash) -> None:
         :param colorpicker_ids: identifiers of all the colorpicker buttons in the hike list panel
         :param hike_props: properties associated to the clicked colorpicker button
         :param dist_elev: object containing distance and elevation data for the elevation plot
+        :param language: current language of the UI
 
         :returns:
             - color (or dash.no_update) for all the colorpicker buttons. Only the clicked button is updated
@@ -1206,7 +1213,8 @@ def register_colorpicker_modal_callbacks(app: dash.Dash) -> None:
             fig = generate_new_figure(
                 np.array(dist_elev['distances']), 
                 np.array(dist_elev['elevations']), 
-                selected_color
+                selected_color,
+                app.language_handler[language]['elevation_plot']
             )
 
         # Only update the color of the path on the map corresponding to the button being changed
