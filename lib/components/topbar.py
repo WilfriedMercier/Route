@@ -48,6 +48,15 @@ def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.
 
     burger = dmc.Burger(id='burger', opened=False)
 
+    badge  = dmc.Badge(
+        'BETA (v0.5)', 
+        className = 'version-badge', 
+        size      = 'lg', 
+        variant   = 'dot', 
+        radius    = 'xl', 
+        style     = {'text-transform' : 'none'}
+    )
+
     group = dmc.Group(
         [
             dmc.Group(
@@ -55,7 +64,7 @@ def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.
                     burger, 
                     logo, 
                     dmc.Title('Route', order=1, className='title'),
-                    dmc.Badge('BETA (v0.5)', size='lg', variant='dot', radius='xl', style={'text-transform' : 'none'})
+                    badge
                 ], 
                 id = 'logo-title-group'
             ),

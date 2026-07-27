@@ -3,7 +3,6 @@
     gap             : 10px;
     align-items     : center; 
     justify-content : center;
-    color           : light-dark(black, white);
 }
 
 #topbar-buttongroup {
@@ -17,6 +16,7 @@
 .logo {
     width  : 42px;
     height : 42px;
+    animation: fadeSlideUp 0.8s ease-out forwards;
 }
 
 #logo-title-group {
@@ -26,7 +26,24 @@
 }
 
 .title {
-    color : light-dark(black, white);
+    color : var(--custom-text-color);
+    animation: fadeSlideUp 0.8s ease-out forwards;
+    opacity: 0;
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.version-badge {
+    animation: fadeSlideUp 0.8s ease-out forwards;
 }
 
 #theme-toggle {
