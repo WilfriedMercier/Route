@@ -23,7 +23,7 @@ def login_modal_layout(language_handler: dict) -> dmc.Modal:
     )
 
     login_button = dmc.Button(
-        'Login',
+        language_handler['send_login_button']['text'],
         variant = 'outline',
         id      = 'send-login-button'
     )
