@@ -23,8 +23,23 @@ server.config["PERMANENT_SESSION_LIFETIME"]   = datetime.timedelta(hours=1)  # S
 dmc.pre_render_color_scheme()
 dmc.add_figure_templates()
 
-app               = dash.Dash(__name__, server=server, external_stylesheets=None) # type: ignore
-
+app              = dash.Dash(
+    __name__, 
+    server               = server, # type: ignore
+    external_stylesheets = None,
+    title                = 'Route',
+    meta_tags            = [
+        {'charset': 'UTF-8'},
+        {'name' : 'description', 'content' : 'A small web application used to store and share your hiking trails.'},
+        {'name' : 'author', 'content' : 'Wilfried Mercier'},
+        {'name' : 'viewport', 'content' : 'width=device-width, initial-scale=1.0'},
+        {'property' : 'og:title', 'content' : 'Route web app'},
+        {'property' : 'og:description', 'content' : 'Check hikes on Route now !'},
+        {'property' : 'og:type', 'content' : 'website'},
+        {'property' : 'og:url', 'content' : 'https://mydomain.com'}, # to be changed when deploying
+        {'property' : 'og:image', 'content' : 'https://mydomain.com/assets/preview.png'} # To be changed when deploying
+    ]
+) 
 default_language = 'fr'
 
 language_files   = glob.glob(str(pathlib.Path('lang') / '*.yaml'))
