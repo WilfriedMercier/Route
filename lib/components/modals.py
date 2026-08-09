@@ -1,4 +1,5 @@
-import dash_mantine_components as dmc
+import dash_mantine_components as     dmc
+from   dash_iconify            import DashIconify
 
 def login_modal_layout(language_handler: dict) -> dmc.Modal:
     r'''
@@ -51,7 +52,8 @@ def magic_link_modal_layout(language_handler: dict) -> dmc.Modal:
             link
         ]),
         title = language_handler['title'],
-        id    = 'magic-link-modal'
+        id    = 'magic-link-modal',
+        style = {'flex' : 1}
     )
 
     return modal

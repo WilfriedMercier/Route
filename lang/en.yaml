@@ -1,6 +1,8 @@
 topbar:
   theme_switcher:
     tooltip: Switch between light and dark themes
+  burger:
+    tooltip: Open or close the side panel (Ctrl + Alt + S)
 hike_panel:
   title: Available Hikes
   hide_button:
@@ -24,10 +26,13 @@ elevation_plot:
 menubar:
   hike_panel_button:
     text: Hikes
-    tooltip: Toggle the hike list panel (Alt + L)
+    tooltip: Toggle the hike list panel (Ctrl + Alt + L)
   hall_of_fame_button: 
     text: Statistics
     tooltip: Toggle the hall of fame panel
+  magic_link_button:
+    text: Magic links
+    tooltip: Toggle the magic link panel (Ctrl + Alt + M)
 login_modal:
   title: Login to your account
   user_id_input:
@@ -49,6 +54,11 @@ validate_modal:
     text: 'Yes'
   no_button:
     text: 'No'
+magic_link_panel:
+  title: Shareable magic links
+  add_button:
+    text: Create a new magic link
+    tooltip: Click to create a new shareable magic link and add hikes
 notifications:
   login:
     success:
@@ -72,6 +82,6 @@ notifications:
 login_logout_buttons:
   login:
     text: Login
-    tooltip: Login to your account (Alt + A)
+    tooltip: Login to your account (Ctrl + Alt + A)
   logout:
     tooltip: Logout of your account

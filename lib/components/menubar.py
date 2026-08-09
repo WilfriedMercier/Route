@@ -44,6 +44,7 @@ def menubar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc
         size        = 'md',
         variant     = 'outline',
         fullWidth   = True,
+        justify     = 'space-between',
         className   = 'menubar-button'
     )
 
@@ -55,12 +56,13 @@ def menubar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc
 
     hall_of_fame_button = dmc.Button(
         translation['menubar']['hall_of_fame_button']['text'],
-        leftSection = DashIconify(icon='mdi:achievement-outline', height=28, width=28),
+        leftSection = DashIconify(icon='material-symbols:share', height=28, width=28),
         id          = 'hall-of-fame-button',
         size        = 'md',
         variant     = 'outline',
         disabled    = True,
         fullWidth   = True,
+        justify     = 'space-between',
         className   = 'menubar-button'
     )
 
@@ -71,8 +73,33 @@ def menubar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc
         id       = 'hall-of-fame-button-tooltip'
     )
 
+    magic_link_button = dmc.Button(
+        translation['menubar']['magic_link_button']['text'],
+        leftSection = DashIconify(icon='mdi:achievement-outline', height=28, width=28),
+        id          = 'magic-link-button',
+        size        = 'md',
+        variant     = 'outline',
+        disabled    = True,
+        fullWidth   = True,
+        justify     = 'space-between',
+        className   = 'menubar-button'
+    )
+
+    magic_link_tooltip = dmc.Tooltip(
+        magic_link_button,
+        label    = translation['menubar']['magic_link_button']['tooltip'],
+        disabled = True,
+        id       = 'magic-link-button-tooltip'
+    )
+
     stack = dmc.Stack(
-        [top_group, dmc.Divider(hiddenFrom='md'), hike_panel_button_tooltip, hall_of_fame_button_tooltip],
+        [
+            top_group, 
+            dmc.Divider(hiddenFrom='md'), 
+            hike_panel_button_tooltip, 
+            hall_of_fame_button_tooltip,
+            magic_link_tooltip
+        ],
         id    = 'menubar',
         style = {'width' : '100%'}
     ) 

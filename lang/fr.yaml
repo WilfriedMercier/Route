@@ -1,11 +1,8 @@
 topbar:
   theme_switcher:
     tooltip: Changer de thème jour/nuit
-  login_button:
-    text: Connexion
-    tooltip: Se connecter à son espace personnel
-  logout_button:
-    tooltip: Se déconnecter
+  burger:
+    tooltip: Ouvrir ou fermer le paneau latéral (Ctrl + Alt + S)
 hike_panel:
   title: Randonnées disponibles
   hide_button:
@@ -29,10 +26,13 @@ elevation_plot:
 menubar:
   hike_panel_button: 
     text: Randonnées
-    tooltip: Ouvrir le panneau des randonnées (Alt + L)
+    tooltip: Ouvrir le panneau des randonnées (Ctrl + Alt + L)
   hall_of_fame_button: 
     text: Statistiques
     tooltip: Ouvrir le panneau des statistiques
+  magic_link_button:
+    text: Liens partageables
+    tooltip: Ouvrir le panneau des liens partageables (Ctrl + Alt + M)
 login_modal:
   title: Connexion à son compte
   user_id_input:
@@ -54,6 +54,11 @@ validate_modal:
     text: Oui
   no_button:
     text: Non
+magic_link_panel:
+  title: Liens magiques partageables
+  add_button:
+    text: Créer un nouveau lien magique
+    tooltip: Cliquez pour créer un nouveau lien magique partageable et lui ajouter des randonnées
 notifications:
   login:
     success:
@@ -77,6 +82,6 @@ notifications:
 login_logout_buttons:
   login:
     text: Connexion
-    tooltip: Se connecter à son espace personnel (Alt + A)
+    tooltip: Se connecter à son espace personnel (Ctrl + Alt + A)
   logout:
     tooltip: Se déconnecter de son espace personnel

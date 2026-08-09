@@ -11,7 +11,8 @@ from .      import (
     login_modal_layout,
     magic_link_modal_layout,
     colorpicker_modal_layout,
-    validate_modal_layout
+    validate_modal_layout,
+    magic_link_panel_layout
 )
 
 def ui_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dash.html.Div:
@@ -29,6 +30,7 @@ def ui_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dash.htm
     login_modal       = login_modal_layout(translation['login_modal'])
     colorpicker_modal = colorpicker_modal_layout()
     validate_modal    = validate_modal_layout(translation['validate_modal'])
+    magic_link_panel  = magic_link_panel_layout(translation['magic_link_panel'])
 
     appshell = appshell_layout(language_handler, language)
 
@@ -39,7 +41,8 @@ def ui_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dash.htm
             magic_modal,
             colorpicker_modal,
             validate_modal,
-            Keyboard(id='keyboard', captureKeys=['l', 'a'])
+            magic_link_panel,
+            Keyboard(id='keyboard', captureKeys=['l', 'a', 's'])
         ]
     )
 

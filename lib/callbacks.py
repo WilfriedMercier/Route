@@ -74,6 +74,7 @@ def register_callbacks(app : dash.Dash) -> None:
     register_colorpicker_modal_callbacks(app)
     register_clientside_callbacks(app)
     register_validate_modal_callbacks(app)
+    register_magic_link_panel_button_callbacks(app)
 
     return
 
@@ -139,31 +140,63 @@ def register_keydown_callbacks(app: dash.Dash) -> None:
     @app.callback(
         dash.Output('hike-panel',  'opened', allow_duplicate=True),
         dash.Output('login-modal', 'opened', allow_duplicate=True),
+        dash.Output('burger',      'opened', allow_duplicate=True),
 
         dash.Input('keyboard',   'n_keydowns'),
         dash.State('keyboard',   'keydown'),
-        dash.State('hike-panel', 'opened'), 
+        dash.State('hike-panel', 'opened'),
+        dash.State( "burger",   "opened"),
+        dash.State( "appshell",  "navbar"),
         prevent_initial_call=True
     )
-    def register_keydown(_, keydown: dict, is_hike_panel_open: bool) -> tuple[bool | dash.NoUpdate, bool | dash.NoUpdate]:
+    def register_keydown(
+            _, 
+            keydown            : dict, 
+            is_hike_panel_open : bool,
+            burger_opened      : bool,
+            navbar             : dict
+        ) -> tuple[bool | dash.NoUpdate, bool | dash.NoUpdate, bool | dash.NoUpdate]:
         r'''
-        Callaback called whenever a registered key is pressed. Used to handle shortcuts.
+        Callback called whenever a registered key is pressed. Used to handle shortcuts.
 
         :param keydown: dictionary with 'key' holding the pressed key and 'altKey' indicating whether alt is pressed as well
         :param is_hike_panel_open: whether the hike panel is open or not
 
         :returns: 
-            - if Alt + L, see :py:`HandleShortcut.alt_l_key_combination`
-            - if Alt + A, see :py:`HandleShortcut.alt_a_key_combination`
+            - if Ctrl + Alt + L, see :py:`HandleShortcut.alt_ctrl_l_key_combination`
+            - if Ctrl + Alt + A, see :py:`HandleShortcut.alt_ctrl_a_key_combination`
+            - if Ctrl + Alt + S, see :py:`HandleShortcut.alt_ctrl_s_key_combination`
         '''
 
-        # Shortcut to open/close the hike panel (not working with a magic link)
-        if keydown['key'] == 'l' and keydown['altKey']:
-            return HandleShortcut.alt_l_key_combination(is_hike_panel_open)
+        # Shortcut to open/close the hike panel
+        if keydown['key'] == 'l' and keydown['altKey'] and keydown['ctrlKey']:
+            return (
+                HandleShortcut.alt_ctrl_l_key_combination(is_hike_panel_open), 
+                dash.no_update,
+                dash.no_update
+            )
         
-        # Shortcut to switch between light and dark modes
-        elif not session['magic-link'] and keydown['key'] == 'a' and keydown['altKey']:
-            return HandleShortcut.alt_a_key_combination()
+        # Shortcut to open the connection modal
+        elif (
+            not session['magic-link'] and 
+            keydown['key'] == 'a' and 
+            keydown['altKey'] and
+            keydown['ctrlKey']
+        ):
+            return (
+                dash.no_update, 
+                HandleShortcut.alt_ctrl_a_key_combination(),
+                dash.no_update
+            )
+
+        # Shortcut to open the side panel
+        elif keydown['key'] == 's' and keydown['altKey'] and keydown['ctrlKey']:
+
+            return (
+                dash.no_update,
+                dash.no_update,
+                HandleShortcut.alt_ctrl_s_key_combination(navbar, burger_opened)
+            )
         
         raise dash.exceptions.PreventUpdate
     
@@ -255,6 +288,8 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         dash.Output('elevation-plot-stack',   'style',             allow_duplicate=True),
         dash.Output('upload-hike-button',     'style',             allow_duplicate=True),
         dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
+        dash.Output('magic-link-button',      'disabled',          allow_duplicate=True),
+        dash.Output('magic-link-button-tooltip', 'disabled',       allow_duplicate=True),
 
         dash.Input('magic-link', 'data'),
         dash.State('language', 'data'),
@@ -276,6 +311,8 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
             dict[str, str]       | dash.NoUpdate, # elevation-plot-plot -> style
             dict[str, str]       | dash.NoUpdate, # upload-hike-button -> style
             list[Notification]   | dash.NoUpdate, # notification-container -> sendNotifications
+            bool, # magic-link-button -> disabled
+            bool # magic-link-button-tooltip -> disabled
         ]:
         r'''
         Second pass of the UI rendering used to allow the leaflet map to resize before triggering other events.
@@ -290,6 +327,7 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         # - all login/logout buttons
         # - upload hike button
         # - all share hike buttons
+        # - magic link panel button
         if magic_link != '':
 
             try:
@@ -306,7 +344,8 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
                     (dash.no_update, dash.no_update),
                     (dash.no_update, dash.no_update),
                     dash.no_update, dash.no_update, dash.no_update, dash.no_update,
-                    dash.no_update,  dash.no_update, [notification]
+                    dash.no_update,  dash.no_update, [notification],
+                    True, True
                 )
 
             # Case when magic link is correct
@@ -316,7 +355,8 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
                 (dash.no_update, dash.no_update),
                 (dash.no_update, dash.no_update),
                 widgets, n_hikes, hikes_info, traces,
-                {'display' : 'flex'},  {'display' : 'none'}, dash.no_update
+                {'display' : 'flex'},  {'display' : 'none'}, dash.no_update,
+                True, True
             )
         
         # Case without a magic link
@@ -335,7 +375,9 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
                 (login_tooltip, login_tooltip),
                 widgets, n_hikes, hikes_info, traces,
                 {'display' : 'flex' if 'user_id' in session else 'none'}, 
-                dash.no_update, dash.no_update
+                dash.no_update, dash.no_update,
+                'user_id' not in session,
+                'user_id' not in session
             )
         
     def handle_with_magic_link(
@@ -1055,6 +1097,8 @@ def register_login_buttons_callbacks(app: dash.Dash) -> None:
 
         dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
 
+        dash.Output('magic-link-button', 'disabled', allow_duplicate=True),
+
         dash.Input( {'type' : 'login-button', 'index' : dash.ALL}, 'n_clicks'),
         dash.State( 'login-modal', 'opened'),
         dash.State( 'language',    'data'),
@@ -1083,7 +1127,9 @@ def register_login_buttons_callbacks(app: dash.Dash) -> None:
             dict[str, str] | dash.NoUpdate,
             dict[str, str] | dash.NoUpdate,
 
-            list[Notification] | dash.NoUpdate
+            list[Notification] | dash.NoUpdate,
+
+            typing.Literal[True]
         ]:
         r'''
         Callback used when the login/logout button on the topbar is clicked.
@@ -1119,7 +1165,8 @@ def register_login_buttons_callbacks(app: dash.Dash) -> None:
                 traces, widgets, n_hikes,
                 hikes_info, colorpicker_id, hike_props, hike_data_ev, hike_data_map,
                 {'height' : '100%'}, {'display' : 'none'},
-                [logout_success_notification(translation['notifications'])]
+                [logout_success_notification(translation['notifications'])],
+                True
             )
 
         # Handle login button click
@@ -1130,7 +1177,8 @@ def register_login_buttons_callbacks(app: dash.Dash) -> None:
             dash.no_update, dash.no_update, dash.no_update, 
             dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update,
             dash.no_update, dash.no_update,
-            dash.no_update
+            dash.no_update,
+            True
         )
 
 def register_magic_link_modal_callbacks(app: dash.Dash) -> None:
@@ -1388,7 +1436,6 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
                 '', translation['login_modal']['user_password_input']['error']
             )
         
-
         # Password and username are both correct, we store the user ID for later queries into the database
         try:
             session['user_id'] = Users_table.get_user_id_from_username(username)
@@ -1413,6 +1460,9 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         dash.Output('hikes-info',   'data', allow_duplicate=True),
 
         dash.Output('map-polylines', 'children', allow_duplicate=True),
+
+        dash.Output('magic-link-button', 'disabled'),
+        dash.Output('magic-link-button-tooltip', 'disabled'),
         
         dash.Input('dummy', 'data'),
         dash.State('language', 'data'),
@@ -1424,16 +1474,19 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         language : LANGUAGE
         ) -> tuple[
             dl.Map, # map -> children
-            list[Notification]  | dash.NoUpdate,
+            list[Notification],
 
-            tuple[str, str]     | tuple[dash.NoUpdate, dash.NoUpdate],
-            tuple[str, str]     | tuple[dash.NoUpdate, dash.NoUpdate],
+            tuple[str, str],
+            tuple[str, str],
             
-            list[dmc.Space]     | dash.NoUpdate,
-            int                 | dash.NoUpdate,
-            dict[str, HikeInfo] | dash.NoUpdate,
+            list[dmc.Space],
+            int,
+            dict[str, HikeInfo],
 
-            list[dl.Polyline]   | dash.NoUpdate
+            list[dl.Polyline],
+
+            typing.Literal[False],
+            typing.Literal[False]
         ]:
         r'''
         Callback used when the user is trying to login.
@@ -1462,7 +1515,8 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
             [login_success_notification(translation['notifications'])], 
             (username, username), (login_button_tooltip, login_button_tooltip),
             widgets, len(widgets), hikes_info, 
-            traces
+            traces,
+            False, False
         )
     
     @app.callback(
@@ -1482,6 +1536,21 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
         
         if not is_open: return '', ''
         else: raise dash.exceptions.PreventUpdate
+
+    return
+
+def register_magic_link_panel_button_callbacks(app: dash.Dash) -> None:
+
+    @app.callback(
+        dash.Output('magic-link-panel-modal', 'opened'),
+        dash.Input('magic-link-button', 'n_clicks'),
+        prevent_initial_call=True
+    )
+    def magic_link_button_click(_) -> bool: 
+
+        if _ is None: dash.exceptions.PreventUpdate
+
+        return True
 
     return
 
@@ -1508,7 +1577,7 @@ def update_ui_after_single_hike_load(
         - PolyLine that represents the path of the hike
     '''
 
-    color    = COLOR_PALETTE[pos_absolute]
+    color    = COLOR_PALETTE[pos_absolute % len(COLOR_PALETTE)]
 
     # Create a hike widget in the hike list
     widget   = hikelist_element_layout(
