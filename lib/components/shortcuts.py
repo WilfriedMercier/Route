@@ -28,14 +28,26 @@ class HandleShortcut:
         return 'user_id' not in session
 
     @staticmethod
-    def alt_ctrl_s_key_combination(navbar: dict, burger_opened: bool) -> bool:
+    def alt_ctrl_s_key_combination(burger_opened: bool) -> bool:
         r'''
         Handle the Ctrl + Alt + S combination.
 
-        :param navbar: current state of the navigation bar
         :param burger_opened: whether the burger is opened or closed
 
         :returns: True if the side panel is closed, False otherwise
         '''
 
         return not burger_opened
+
+    @staticmethod
+    def alt_ctrl_m_key_combination(is_magic_link_panel_open: bool) -> bool:
+
+        r'''
+        Handle the Ctrl + Alt + M combination.
+
+        :param is_magic_link_panel_open: whether the magic link panel is open or not
+
+        :returns: True if the magic link panel should be opened, False otherwise
+        '''
+
+        return not is_magic_link_panel_open

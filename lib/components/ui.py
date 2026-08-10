@@ -42,7 +42,7 @@ def ui_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dash.htm
             colorpicker_modal,
             validate_modal,
             magic_link_panel,
-            Keyboard(id='keyboard', captureKeys=['l', 'a', 's'])
+            Keyboard(id='keyboard', captureKeys=['l', 'a', 's', 'm'])
         ]
     )
 

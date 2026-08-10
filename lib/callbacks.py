@@ -4,6 +4,7 @@ import dash_mantine_components as     dmc
 import plotly.graph_objects    as     go
 import dash_leaflet            as     dl
 import numpy                   as     np
+from   dash_iconify            import DashIconify
 from   urllib.parse            import urlparse, parse_qs
 from   flask                   import session
 from   plotly.colors           import qualitative
@@ -76,6 +77,23 @@ def register_callbacks(app : dash.Dash) -> None:
     register_validate_modal_callbacks(app)
     register_magic_link_panel_button_callbacks(app)
 
+
+    @app.callback(
+        dash.Output({'type' : 'magic-link-collapse', 'index' : dash.MATCH}, 'opened'),
+        dash.Output({'type' : 'magic-link-collapse-button', 'index' : dash.MATCH}, 'children'),
+
+        dash.Input({'type' : 'magic-link-collapse-button', 'index' : dash.MATCH}, 'n_clicks'),
+        dash.State({'type' : 'magic-link-collapse', 'index' : dash.MATCH}, 'opened'),
+    )
+    def magic_link_collapse_button_click(_, opened: bool) -> tuple[bool, DashIconify]: 
+
+        if _ is None: raise dash.exceptions.PreventUpdate
+
+        if opened : icon = DashIconify(icon='mdi:chevron-down')
+        else      : icon = DashIconify(icon='mdi:chevron-up')
+
+        return not opened, icon
+
     return
 
 def register_clientside_callbacks(app: dash.Dash) -> None:
@@ -138,24 +156,30 @@ def register_keydown_callbacks(app: dash.Dash) -> None:
     '''
     
     @app.callback(
-        dash.Output('hike-panel',  'opened', allow_duplicate=True),
-        dash.Output('login-modal', 'opened', allow_duplicate=True),
-        dash.Output('burger',      'opened', allow_duplicate=True),
+        dash.Output('hike-panel',       'opened', allow_duplicate=True),
+        dash.Output('login-modal',      'opened', allow_duplicate=True),
+        dash.Output('burger',           'opened', allow_duplicate=True),
+        dash.Output('magic-link-panel', 'opened', allow_duplicate=True),
 
-        dash.Input('keyboard',   'n_keydowns'),
-        dash.State('keyboard',   'keydown'),
-        dash.State('hike-panel', 'opened'),
-        dash.State( "burger",   "opened"),
-        dash.State( "appshell",  "navbar"),
+        dash.Input('keyboard',          'n_keydowns'),
+        dash.State('keyboard',          'keydown'),
+        dash.State('hike-panel',        'opened'),
+        dash.State( "burger",           "opened"),
+        dash.State( "magic-link-panel", 'opened'),
         prevent_initial_call=True
     )
     def register_keydown(
             _, 
-            keydown            : dict, 
-            is_hike_panel_open : bool,
-            burger_opened      : bool,
-            navbar             : dict
-        ) -> tuple[bool | dash.NoUpdate, bool | dash.NoUpdate, bool | dash.NoUpdate]:
+            keydown                    : dict, 
+            is_hike_panel_open         : bool,
+            burger_opened              : bool,
+            is_magic_link_panel_opened : bool
+        ) -> tuple[
+            bool | dash.NoUpdate, 
+            bool | dash.NoUpdate, 
+            bool | dash.NoUpdate,
+            bool | dash.NoUpdate
+        ]:
         r'''
         Callback called whenever a registered key is pressed. Used to handle shortcuts.
 
@@ -173,6 +197,7 @@ def register_keydown_callbacks(app: dash.Dash) -> None:
             return (
                 HandleShortcut.alt_ctrl_l_key_combination(is_hike_panel_open), 
                 dash.no_update,
+                dash.no_update,
                 dash.no_update
             )
         
@@ -186,6 +211,7 @@ def register_keydown_callbacks(app: dash.Dash) -> None:
             return (
                 dash.no_update, 
                 HandleShortcut.alt_ctrl_a_key_combination(),
+                dash.no_update,
                 dash.no_update
             )
 
@@ -195,7 +221,24 @@ def register_keydown_callbacks(app: dash.Dash) -> None:
             return (
                 dash.no_update,
                 dash.no_update,
-                HandleShortcut.alt_ctrl_s_key_combination(navbar, burger_opened)
+                HandleShortcut.alt_ctrl_s_key_combination(burger_opened),
+                dash.no_update
+            )
+
+        # Shortcut to open the magic link panel
+        elif (
+            not session['magic-link'] and 
+            'user_id' in session and
+            keydown['key'] == 'm' and 
+            keydown['altKey'] and 
+            keydown['ctrlKey']
+        ):
+
+            return (
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                HandleShortcut.alt_ctrl_m_key_combination(is_magic_link_panel_opened)
             )
         
         raise dash.exceptions.PreventUpdate
@@ -1542,7 +1585,7 @@ def register_login_modal_callbacks(app: dash.Dash) -> None:
 def register_magic_link_panel_button_callbacks(app: dash.Dash) -> None:
 
     @app.callback(
-        dash.Output('magic-link-panel-modal', 'opened'),
+        dash.Output('magic-link-panel', 'opened'),
         dash.Input('magic-link-button', 'n_clicks'),
         prevent_initial_call=True
     )
