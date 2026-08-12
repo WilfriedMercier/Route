@@ -2,6 +2,18 @@ import dash_leaflet as     dl
 from   typing       import TypedDict, Final, NotRequired, Literal
 from   dash_iconify import DashIconify
 
+class DashComplexID(TypedDict):
+    r'''
+    Class defining the type of complex IDs allowed by Dash for widgets.
+
+    :param type: type of the component
+    :param index: identifier of the component
+    '''
+
+    type  : str
+    index : int | str
+
+DashID = DashComplexID | str
 
 class Dummy(TypedDict):
     r'''

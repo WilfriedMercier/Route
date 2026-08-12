@@ -1,9 +1,9 @@
 import dash
 import dash_mantine_components as     dmc
 
-from   ..lang                  import LanguageHandler, LANGUAGE
-
-from   ..icons import (
+from ..lang  import LanguageHandler, LANGUAGE
+from ..types import DashID
+from ..icons import (
     IconMoon,
     IconSun,
     IconCheck,
@@ -127,4 +127,36 @@ def theme_switcher_layout(
         visibleFrom = visibleFrom,
         hiddenFrom  = hiddenFrom,
         id          = {'type' : 'theme-toggle', 'index' : id}
+    )
+
+def custom_colorpicker(
+        color: str,
+        button_id : DashID,
+        colorpicker_id: DashID,
+        popover_id : DashID
+    ) -> dmc.Popover:
+
+    target = dmc.PopoverTarget(
+        dmc.ActionIcon(
+            id        = button_id, # type: ignore
+            className = 'colorpicker',
+            color     = color,
+            size      = 'lg'
+        )
+    )
+
+    dropdown = dmc.PopoverDropdown(
+        dmc.ColorPicker(
+            id        = colorpicker_id, # type: ignore
+            fullWidth = True,
+            focusable = True,
+            value     = color,
+        )
+    )
+
+    return dmc.Popover(
+        [target, dropdown],
+        id        = popover_id, # type: ignore
+        width     = 200,
+        withArrow = True,
     )

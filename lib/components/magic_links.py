@@ -1,5 +1,7 @@
-import dash_mantine_components as     dmc
+import dash_mantine_components as dmc
 
+from .misc   import custom_colorpicker
+from ..misc  import COLOR_PALETTE
 from ..icons import (
     IconAdd,
     IconChevronDown,
@@ -7,8 +9,6 @@ from ..icons import (
     IconList,
     IconEdit
 )
-
-from ..misc import COLOR_PALETTE
 
 def magic_link_panel_layout(language_handler: dict) -> dmc.Drawer:
     r'''
@@ -173,11 +173,11 @@ def magic_link_hike_element_row(
     ) -> dmc.Group:
 
     colorpicker = dmc.Tooltip(
-        dmc.ActionIcon(
-            id        = {'type' : 'magic-link-hike-colorpicker', 'index' : hike_name},
-            className = 'colorpicker',
-            color     = color,
-            size      = 'lg'
+        custom_colorpicker(
+            color, 
+            {'type' : 'magic-link-colorpicker-button',  'index' : hike_name},
+            {'type' : 'magic-link-colorpicker-picker',  'index' : hike_name},
+            {'type' : 'magic-link-colorpicker-popover', 'index' : hike_name}
         ),
         label     = language_handler['collapse']['colorpicker']['tooltip'],
         id        = {'type' : 'magic-link-hike-colorpicker-tooltip', 'index' : hike_name}

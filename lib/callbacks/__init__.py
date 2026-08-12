@@ -10,6 +10,7 @@ from   .menubar_callbacks      import register_menubar_callbacks
 from   .hike_drawer_callbacks  import register_hike_drawer_callbacks
 from   .upload_hike_callbacks  import register_upload_hike_callbacks
 from   .ui_init_callbacks      import register_ui_init_callbacks
+from   .delete_modal_callbacks import register_validate_modal_callbacks
 
 def register_callbacks(app : dash.Dash) -> None:
     r'''
@@ -28,5 +29,6 @@ def register_callbacks(app : dash.Dash) -> None:
     register_menubar_callbacks(app)
     register_ui_init_callbacks(app)
     register_upload_hike_callbacks(app)
+    register_validate_modal_callbacks(app)
 
     return

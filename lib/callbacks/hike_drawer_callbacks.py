@@ -9,10 +9,12 @@ from ..components.map import generate_new_figure
 from ..lang           import LANGUAGE
 from ..errors         import NoHikeIDInDB, NoMagicLinkForHikeID
 from ..types import (
+    DashComplexID,
     HikeInfo, 
     HikeProps, 
     HikeDataForElevationPlot, 
     HikeDataForMarker,
+    EMPTY_HIKE_DATA_FOR_PLOT
 )
 
 def register_hike_drawer_callbacks(app: dash.Dash) -> None:
@@ -31,16 +33,13 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
 
         dash.Output('map', 'viewport'),
 
-        dash.Output("burger", "opened"),
-        dash.Output('hike-panel', 'opened', allow_duplicate=True),
-
         dash.Output('elevation-plot', 'figure'),
 
         dash.Output('elevation-plot-slider', 'max'),
 
         dash.Input( {'type' : 'hikelist-button', 'index' : dash.ALL}, 'n_clicks'),
         dash.State('hikes-info', 'data'),
-        dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.ALL}, 'color'),
+        dash.State({'type' : 'hikelist-colorpicker-button', 'index' : dash.ALL}, 'color'),
         dash.State('language', 'data'),
 
         prevent_initial_call = True
@@ -54,8 +53,6 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             HikeProps, HikeDataForMarker, HikeDataForElevationPlot,
             list[dict[str, str]], 
             dict,
-            typing.Literal[False], 
-            typing.Literal[False],
             go.Figure,
             int
         ]:
@@ -72,8 +69,6 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             - dictionary with data for the elevation plot corresponding to the selected hike
             - list of dictionaries with styles for the hikelist buttons
             - dictionary with properties to modify the viewport of the map (i.e. center and zoom)
-            - False to close the navbar associated to the burger object
-            - False to close the hike-panel
             - a new figure for the elevation plot with updated data and properties
             - the maximum value of the slider in mobile mode
         '''
@@ -134,61 +129,25 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
                 ),
                 'transition' : "flyTo"
             },
-            False, False,
             fig, len(info['distances'])
         )
-    
-    @app.callback(
-        dash.Output('colorpicker-modal', 'opened', allow_duplicate=True),
-        dash.Output('colorpicker', 'value', allow_duplicate=True),
-        dash.Output('colorpicker-selected-id', 'data'),
-
-        dash.Input({'type' : 'hikelist-colorpicker', 'index' : dash.MATCH}, 'n_clicks'),
-        dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.MATCH}, 'color'),
-        prevent_initial_call=True
-    )
-    def colorpicker_click(
-            _     : int | None, 
-            color : str
-        ) -> tuple[typing.Literal[True], str, str]:
-        r'''
-        Callback called whenever the given colorpicker is clicked in the hike list panel.
-
-        :param colors: colors selected by the colorpickers
-
-        :returns:
-            - True to open the colorpicker modal
-            - the color of the clicked button to pass it as default value to the colorpicker
-            - ID of the clicked colorpicker button
-        '''
-
-        if _ is None: raise dash.exceptions.PreventUpdate
-
-        ctx = dash.callback_context
-
-        if ctx is None or not ctx.triggered: raise dash.exceptions.PreventUpdate
-
-        triggered_id = ctx.triggered_id['index'] # type: ignore
-        
-        return True, color, triggered_id
 
     @app.callback(
         dash.Output({'type' : 'hikelist-button',               'index' : dash.MATCH}, 'disabled'),
-        dash.Output({'type' : 'hikelist-colorpicker',          'index' : dash.MATCH}, 'disabled'),
-        dash.Output({'type' : 'hikelist-share-button',         'index' : dash.MATCH}, 'disabled'),
+        dash.Output({'type' : 'hikelist-colorpicker-button',   'index' : dash.MATCH}, 'disabled'),
+        dash.Output({'type' : 'hikelist-colorpicker-popover',  'index' : dash.MATCH}, 'disabled'),
         dash.Output({'type' : 'hikelist-colorpicker-tooltip',  'index' : dash.MATCH}, 'disabled'),
-        dash.Output({'type' : 'hikelist-share-button-tooltip', 'index' : dash.MATCH}, 'disabled'),
         dash.Output({'type' : 'map-trace',                     'index' : dash.MATCH}, 'pathOptions', allow_duplicate=True),
 
         dash.Input({'type' : 'hikelist-hide-button', 'index' : dash.MATCH}, 'checked'),
-        dash.State({'type' : 'hikelist-colorpicker', 'index' : dash.MATCH}, 'color'),
+        dash.State({'type' : 'hikelist-colorpicker-button', 'index' : dash.MATCH}, 'color'),
 
         prevent_initial_call = True
     )
     def hide_button(
         checked : bool,
         color   : str,
-    ) -> tuple[bool, bool, bool, bool, bool, dict]:
+    ) -> tuple[bool, bool, bool, bool, dict]:
         r'''
         Callback used when the hide button is toggled.
 
@@ -196,7 +155,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         :param color: current color for the colorpicker button
 
         :returns: a tuple containing
-            - 5 times the same True or False value for each hike wiget UI element (True to disable, False to enable)
+            - 4 times the same True or False value for each hike wiget UI element (True to disable, False to enable)
             - a dictionary inside specifying the color of the line on the map (transparent if hidden)
         '''
 
@@ -205,8 +164,9 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         # Change disabled hikes color to transparent
         hike_color = {'color' : color if checked else 'rgba(0, 0, 0, 0)'}
 
-        return output, output, output, output, output, hike_color
-    
+        return output, output, output, output, hike_color
+
+    # XXX to be moved to the new magic link section
     @app.callback(
         dash.Output('magic-link-modal', 'opened'),
         dash.Output('magic-link-copy-button', 'value'),
@@ -304,5 +264,85 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             translation['no_button']['text'],
             translation['text'],
         )
+
+    @app.callback(
+        dash.Output({'type' : 'hikelist-colorpicker-button',  'index' : dash.ALL}, 'color'),
+        dash.Output('selected-hike-props', 'data', allow_duplicate=True),
+        dash.Output({'type' : 'map-trace', 'index' : dash.ALL}, 'pathOptions', allow_duplicate=True),
+        dash.Output('elevation-plot', 'figure', allow_duplicate=True),
+
+        dash.Input({'type' : 'hikelist-colorpicker-picker',  'index' : dash.MATCH}, 'value'),
+        dash.State({'type' : 'hikelist-colorpicker-picker',  'index' : dash.MATCH}, 'id'),
+        dash.State({'type' : 'hikelist-colorpicker-picker',  'index' : dash.ALL},   'id'),
+        dash.State('selected-hike-props', 'data'),
+        dash.State('selected-hike-data-for-plot', 'data'),
+        dash.State('language', 'data'),
+
+        prevent_initial_call=True
+    )
+    def colorpicker_selection(
+            selected_color  : str | None, 
+            index           : DashComplexID,
+            all_ids         : list[DashComplexID],
+            hike_props      : HikeProps,
+            dist_elev       : HikeDataForElevationPlot,
+            language        : LANGUAGE,
+        ) -> tuple[
+            list[str | dash.NoUpdate], 
+            HikeProps,
+            list[dict[str, str] | dash.NoUpdate], 
+            go.Figure | dash.NoUpdate
+        ]:
+        r'''
+        Callback used whenever a color is picked in the colorpicker modal.
+
+        :param selected_color: color corresponding to the colorpicker button clicked in the hike list panel. This is used to setup the default color of the colorpicker when loading
+        :param index: index identifying the hike corresponding to the button clicked
+        :param hike_props: properties associated to the clicked colorpicker button
+        :param dist_elev: object containing distance and elevation data for the elevation plot
+        :param language: current language of the UI
+
+        :returns:
+            - color (or dash.no_update) for the colorpicker button
+            - dictionary with properties associated to the hike. The color information is updated
+            - list of dictionaries with updated colors for the map
+            - figure for the elevation plot with an updated color if it corresponds to the currently selected hike. Otherwise dash.no_update
+        '''
+
+        hike_name = index['index']
+
+        # If data is missing, we prevent any update
+        if (
+            selected_color is None or
+            hike_name == '' or 
+            hike_props == {} or 
+            dist_elev == EMPTY_HIKE_DATA_FOR_PLOT
+        ): raise dash.exceptions.PreventUpdate
+        
+        # If the user is changing the color of the selected hike, we update the color attribute in the Store
+        if hike_props['name'] == hike_name: 
+            hike_props['color'] = selected_color
+
+        # If the index of the changed color does not match the selected hike, we do not update the elevation plot color
+        if hike_name != hike_props['name']:
+            fig = dash.no_update
+        else:
+            fig = generate_new_figure(
+                np.array(dist_elev['distances']), 
+                np.array(dist_elev['elevations']), 
+                selected_color,
+                app.language_handler[language]['elevation_plot']
+            )
+
+        # Only update the color of the path on the map corresponding to the button being changed
+        map_props = [
+            {'color' : selected_color} if index == hike_id
+            else dash.no_update
+            for hike_id in all_ids
+        ]
+
+        colors = [selected_color if index == hike_id else dash.no_update for hike_id in all_ids]
+
+        return colors, hike_props, map_props, fig
     
     return

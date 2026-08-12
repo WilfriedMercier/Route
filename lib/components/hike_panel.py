@@ -1,19 +1,15 @@
 import dash
 import dash_mantine_components   as     dmc
 
-from   ..icons import (
-    IconShare,
+from .misc   import custom_colorpicker 
+from ..icons import (
     IconVisible,
     IconInvisible,
     IconDelete
 )
 
-def hikelist_layout(language_dict : dict) -> dash.html.Div:
-    r'''
-    Widget containing the list of hikes.
-    
-    :param language_dict: dictionary containing the translation for the default language
-    '''
+def hikelist_layout() -> dash.html.Div:
+    r'''Widget containing the list of hikes.'''
                
     return dash.html.Div([], className='hikelist-div', id='hikelist-div')
 
@@ -57,28 +53,14 @@ def hikelist_element_layout(
     )
 
     colorpicker = dmc.Tooltip(
-        dmc.ActionIcon(
-            id        = {'type' : 'hikelist-colorpicker', 'index' : hike_name},
-            className = 'colorpicker',
-            color     = color,
-            size      = 'lg'
+        custom_colorpicker(
+            color, 
+            {'type' : 'hikelist-colorpicker-button',  'index' : hike_name},
+            {'type' : 'hikelist-colorpicker-picker',  'index' : hike_name},
+            {'type' : 'hikelist-colorpicker-popover', 'index' : hike_name}
         ),
         label     = language_dict['colorpicker']['tooltip'],
         id        = {'type' : 'hikelist-colorpicker-tooltip', 'index' : hike_name}
-    )
-
-    share_button = dmc.Button(
-        IconShare(),
-        className = 'custom-button',
-        style     = {'display' : 'none' if magic_link_state else 'flex'},
-        id        = {'type' : 'hikelist-share-button', 'index' : hike_name}
-    )
-        
-    share_button_tooltip = dmc.Tooltip(
-        share_button,
-        label     = language_dict['share_button']['tooltip'],
-        style     = {'display' : 'none' if magic_link_state else 'flex'},
-        id        = {'type' : 'hikelist-share-button-tooltip', 'index' : hike_name}
     )
 
     delete_button = dmc.Button(
@@ -98,7 +80,7 @@ def hikelist_element_layout(
     return dmc.Space(
         [
             dmc.Group([colorpicker, button], className='hikelist-colorpicker-and-button'),
-            dmc.Group([share_button_tooltip, hide_button, delete_button_tooltip], className='hikelist-button-group')
+            dmc.Group([hide_button, delete_button_tooltip], className='hikelist-button-group')
         ],
         className = 'hikelist-element',
         id        = {'type' : 'hikelist-element', 'index' : hike_name}
@@ -111,7 +93,7 @@ def hike_panel_layout(language_dict: dict) -> dmc.Drawer:
     :param language_dict: dictionary containing the translation for the default language
     '''
 
-    hike_list = hikelist_layout(language_dict)
+    hike_list = hikelist_layout()
     upload_button = dash.dcc.Upload(
         (language_dict['upload_button']['text'],),
         className = 'custom-upload',
