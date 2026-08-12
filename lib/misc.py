@@ -1,6 +1,18 @@
-from flask     import session
+from flask         import session
+from plotly.colors import qualitative
+import dataclasses
 
-from .database import Hikes_table
+from .database     import Hikes_table
+
+@dataclasses.dataclass
+class PALETTE:
+
+    palette = qualitative.Plotly
+
+    def __getitem__(self, key: int) -> str:
+        return self.palette[key % len(self.palette)]
+
+COLOR_PALETTE = PALETTE()
 
 def check_if_hike_is_loaded(hike_name: str, hike_list: list[str]):
     r'''

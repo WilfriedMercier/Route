@@ -57,8 +57,22 @@ validate_modal:
 magic_link_panel:
   title: Liens magiques partageables
   add_button:
-    text: Créer un nouveau lien magique
     tooltip: Cliquez pour créer un nouveau lien magique partageable et lui ajouter des randonnées
+  item:
+    delete_button:
+      tooltip: Supprimer ce lien magique
+    edit_title_button:
+      edit: 
+        tooltip: Cliquez pour modifier le nom du lien magique
+      validate: 
+        tooltip: Cliquez pour valider le nom du lien magique
+    list_button:
+      tooltip: Ajouter ou supprimer des randonnées dans ce lien magique
+    collapse_button:
+      tooltip: Afficher la liste des randonnées associées à ce lien magique
+    collapse:
+      colorpicker:
+        tooltip: Modifier la couleur de la randonnée
 notifications:
   login:
     success:

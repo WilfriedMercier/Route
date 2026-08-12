@@ -57,8 +57,22 @@ validate_modal:
 magic_link_panel:
   title: Shareable magic links
   add_button:
-    text: Create a new magic link
     tooltip: Click to create a new shareable magic link and add hikes
+  item:
+    delete_button:
+      tooltip: Supprimer ce lien magique
+    edit_title_button:
+      edit: 
+        tooltip: Click to edit the name of the magic link
+      validate: 
+        tooltip: Click to validate the name of the magic link 
+    list_button:
+      tooltip: Add or delete hikes from this magic link
+    collapse_button:
+      tooltip: Show the list of hikes associated to this magic link
+    collapse:
+      colorpicker:
+        tooltip: Change the color of the hike
 notifications:
   login:
     success:

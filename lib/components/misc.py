@@ -1,8 +1,15 @@
 import dash
 import dash_mantine_components as     dmc
-from   dash_iconify            import DashIconify
 
 from   ..lang                  import LanguageHandler, LANGUAGE
+
+from   ..icons import (
+    IconMoon,
+    IconSun,
+    IconCheck,
+    IconLanguage,
+    IconUser
+)
 
 def login_button_layout(
         id          : str,
@@ -21,7 +28,7 @@ def login_button_layout(
     :param iconAlone: whether to just show the icon or icon + text
     '''
 
-    icon   = DashIconify(icon='mdi:user')
+    icon   = IconUser()
 
     button = dmc.Button(
         icon if iconAlone else translation['text'],
@@ -54,11 +61,8 @@ def language_element(id: str, text: str, lang: LANGUAGE, checkmark: bool) -> das
         dmc.Button(
             dmc.Group([
                 dmc.Text(text),
-                DashIconify(
-                    icon   = 'material-symbols:check', 
-                    style  = {'display' : 'flex' if checkmark else 'none'},
-                )]
-            ),
+                IconCheck(style  = {'display' : 'flex' if checkmark else 'none'})
+            ]),
             variant = 'subtle',
             id      = {'type': 'language-button', 'index': f'{id}-{lang}'},
         ),
@@ -95,7 +99,7 @@ def language_selector_layout(
 
     hover_card = dmc.HoverCard(
         [
-            dmc.HoverCardTarget(DashIconify(icon='mdi:language', width=20), boxWrapperProps={'style' : {'display' : 'flex'}}),
+            dmc.HoverCardTarget(IconLanguage(), boxWrapperProps={'style' : {'display' : 'flex'}}),
             dmc.HoverCardDropdown(stack_languages)
         ],
         id = {'type' : 'language-dropdown-hovercard', 'index' : id},
@@ -117,8 +121,8 @@ def theme_switcher_layout(
     '''
 
     return dmc.ColorSchemeToggle(
-        lightIcon   = DashIconify(icon="radix-icons:sun",  width=25, color = 'darkorange'),
-        darkIcon    = DashIconify(icon="radix-icons:moon", width=25, color = 'lightblue'),
+        lightIcon   = IconSun( width=25),
+        darkIcon    = IconMoon(width=25),
         size        = "lg",
         visibleFrom = visibleFrom,
         hiddenFrom  = hiddenFrom,

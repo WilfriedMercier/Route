@@ -1,6 +1,12 @@
 import dash
 import dash_mantine_components   as     dmc
-from   dash_iconify              import DashIconify
+
+from   ..icons import (
+    IconShare,
+    IconVisible,
+    IconInvisible,
+    IconDelete
+)
 
 def hikelist_layout(language_dict : dict) -> dash.html.Div:
     r'''
@@ -28,20 +34,21 @@ def hikelist_element_layout(
     :param magic_link_state: True hides the share button, False keeps it visible
     '''
 
-    selected_style = {'backgroundColor': '#0D6EFD', 'color' : 'white', 'max-width' : '160px'} 
+    selected_style = {'backgroundColor': '#0D6EFD', 'color' : 'white'} 
 
     button = dmc.Button(
         hike_name,
         id        = {'type' : 'hikelist-button', 'index' : hike_name},
         className = 'hikelist-button',
         color     = 'primary',
-        style     = selected_style if is_selected else {'max-width' : '160px'}
+        fullWidth = True,
+        style     = selected_style if is_selected else {}
     )
 
     hide_button = dmc.Tooltip(
         dmc.Switch(
-            offLabel = DashIconify(icon="streamline:invisible-1", width=20),
-            onLabel  = DashIconify(icon="streamline:visible",     width=20),
+            offLabel = IconInvisible(),
+            onLabel  = IconVisible(),
             checked  = True,
             id        = {'type' : 'hikelist-hide-button', 'index' : hike_name}
         ),
@@ -61,7 +68,7 @@ def hikelist_element_layout(
     )
 
     share_button = dmc.Button(
-        DashIconify(icon='material-symbols:share', width=20),
+        IconShare(),
         className = 'custom-button',
         style     = {'display' : 'none' if magic_link_state else 'flex'},
         id        = {'type' : 'hikelist-share-button', 'index' : hike_name}
@@ -75,7 +82,7 @@ def hikelist_element_layout(
     )
 
     delete_button = dmc.Button(
-        DashIconify(icon='material-symbols:delete', width=20),
+        IconDelete(),
         className = 'custom-button',
         style     = {'display' : 'none' if magic_link_state else 'flex'},
         id        = {'type' : 'hikelist-delete-button', 'index' : hike_name}
@@ -90,8 +97,8 @@ def hikelist_element_layout(
 
     return dmc.Space(
         [
-            dmc.Group([colorpicker, button]),
-            dmc.Group([share_button_tooltip, hide_button, delete_button_tooltip])
+            dmc.Group([colorpicker, button], className='hikelist-colorpicker-and-button'),
+            dmc.Group([share_button_tooltip, hide_button, delete_button_tooltip], className='hikelist-button-group')
         ],
         className = 'hikelist-element',
         id        = {'type' : 'hikelist-element', 'index' : hike_name}

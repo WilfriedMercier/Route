@@ -1,11 +1,16 @@
-import dash_mantine_components as     dmc
-from   dash_iconify            import DashIconify
+import dash_mantine_components as dmc
 
 from   ..lang import LanguageHandler, LANGUAGE
 from   .misc  import (
     login_button_layout, 
     language_selector_layout,
     theme_switcher_layout
+)
+
+from ..icons import (
+    IconHiker,
+    IconAchieve,
+    IconShare
 )
 
 def menubar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.AppShellNavbar:
@@ -39,7 +44,7 @@ def menubar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc
 
     hike_panel_button = dmc.Button(
         translation['menubar']['hike_panel_button']['text'],
-        leftSection = DashIconify(icon='gis:hiker', height=28, width=28),
+        leftSection = IconHiker(width=28),
         id          = 'hike-panel-button',
         size        = 'md',
         variant     = 'outline',
@@ -56,7 +61,7 @@ def menubar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc
 
     hall_of_fame_button = dmc.Button(
         translation['menubar']['hall_of_fame_button']['text'],
-        leftSection = DashIconify(icon='mdi:achievement-outline', height=28, width=28),
+        leftSection = IconAchieve(width=28),
         id          = 'hall-of-fame-button',
         size        = 'md',
         variant     = 'outline',
@@ -75,7 +80,7 @@ def menubar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc
 
     magic_link_button = dmc.Button(
         translation['menubar']['magic_link_button']['text'],
-        leftSection = DashIconify(icon='material-symbols:share', height=28, width=28),
+        leftSection = IconShare(height=28, width=28),
         id          = 'magic-link-button',
         size        = 'md',
         variant     = 'outline',

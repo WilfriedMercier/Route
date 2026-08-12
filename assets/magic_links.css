@@ -1,3 +1,30 @@
 #magic-link-panel-body {
     flex: 1;
+    overflow-x: hidden;
+}
+
+.magic-link-multiselect .mantine-MultiSelect-pill {
+    display: none;
+}
+
+.magic-link-multiselect .mantine-MultiSelect-input {
+    padding-inline-start: 0;
+}
+
+.magic-link-multiselect .mantine-MultiSelect-input:hover {
+    background-color: var(--mantine-color-blue-light-hover);
+}
+
+.magic-link-multiselect .mantine-MultiSelect-section {
+    color: var(--mantine-color-blue-light-color);
+}
+
+.magic-link-collapse-title {
+    flex : 1;
+    cursor:default;
+}
+
+.magic-link-hike-element-row-group {
+    display   : flex;
+    flex-wrap : nowrap;
 }

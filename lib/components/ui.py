@@ -54,8 +54,6 @@ def appshell_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dm
     :param language: language of the application
     '''
 
-    translation = language_handler[language]
-
     topbar      = topbar_layout(  language_handler, language)
     menubar     = menubar_layout( language_handler, language)
     map_page    = map_page_layout(language_handler, language)

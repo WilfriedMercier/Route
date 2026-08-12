@@ -1,7 +1,17 @@
+.hikelist-button-group {
+    width: 40%;
+    justify-content: right;
+}
+
+.hikelist-colorpicker-and-button {
+    width: 60%;
+}
+
 .hikelist-button {
     color            : light-dark(black, white);
     background-color : transparent;
     transition       : background-color 0.2s ease;
+    width            : 70%;
 }
 
 .hikelist-button:hover {
