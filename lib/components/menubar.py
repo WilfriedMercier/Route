@@ -40,7 +40,7 @@ def menubar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc
     theme_switcher_button = theme_switcher_layout('menubar', hiddenFrom='md')
 
     lang_theme_group = dmc.Group([language_selector, theme_switcher_button])
-    top_group        = dmc.Group([login_button, lang_theme_group], style={'justify-content' : 'space-between'})
+    top_group        = dmc.Group([login_button, lang_theme_group], style={'justifyContent' : 'space-between'})
 
     hike_panel_button = dmc.Button(
         translation['menubar']['hike_panel_button']['text'],

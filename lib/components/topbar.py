@@ -60,7 +60,7 @@ def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.
         size      = 'lg', 
         variant   = 'dot', 
         radius    = 'xl', 
-        style     = {'text-transform' : 'none'}
+        style     = {'textTransform' : 'none'}
     )
 
     group = dmc.Group(

@@ -2,10 +2,11 @@ import dash
 import dash_mantine_components as     dmc
 from   dash_iconify            import DashIconify
 
-from   ..types                  import HikeInfo
-from   ..lang                   import LANGUAGE
-from   ..components.magic_links import magic_link_container_item
-from   ..icons import (
+from ..components.notifications import share_hike_notification, hike_title_update_notification
+from ..lang                     import LANGUAGE
+from ..components.magic_links   import magic_link_container_item
+from ..types                    import HikeInfo, DashComplexID, Notification
+from ..icons import (
     IconCheck,
     IconEdit,
     IconChevronDown,
@@ -13,45 +14,94 @@ from   ..icons import (
 )
 
 def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
+    r'''
+    Register all callbacks associated to the magic link panel.
+    
+    :param app: Dash application
+    '''
 
     @app.callback(
-        dash.Output({'type' : 'magic-link-collapse-title-edit-button', 'index' : dash.MATCH}, 'children'),
-        dash.Output({'type' : 'magic-link-collapse-title', 'index' : dash.MATCH}, 'readOnly'),
-        dash.Output({'type' : 'magic-link-collapse-title', 'index' : dash.MATCH}, 'styles'),
+        dash.Output({'type' : 'magic-link-collapse-title-edit-button', 'index' : dash.ALL}, 'children'),
+        dash.Output({'type' : 'magic-link-collapse-title', 'index' : dash.ALL}, 'readOnly'),
+        dash.Output({'type' : 'magic-link-collapse-title', 'index' : dash.ALL}, 'styles'),
+        dash.Output("notification-container", 'sendNotifications', allow_duplicate = True),
 
-        dash.Input({'type' : 'magic-link-collapse-title-edit-button', 'index' : dash.MATCH}, 'n_clicks'),
-        dash.State({'type' : 'magic-link-collapse-title', 'index' : dash.MATCH}, 'readOnly'),
+        dash.Input({'type' : 'magic-link-collapse-title-edit-button', 'index' : dash.ALL}, 'n_clicks'),
+        dash.State({'type' : 'magic-link-collapse-title', 'index' : dash.ALL}, 'id'),
+        dash.State({'type' : 'magic-link-collapse-title', 'index' : dash.ALL}, 'readOnly'),
+        dash.State('language', 'data'),
         prevent_initial_call = True
     )
-    def title_edit_button_click(_, title_readonly: bool) -> tuple[DashIconify, bool, dict]:
+    def title_edit_button_click(
+            _, 
+            all_ids         : list[DashComplexID], 
+            titles_readonly : list[bool], 
+            language        : LANGUAGE
+        ) -> tuple[
+            list[DashIconify | dash.NoUpdate], 
+            list[bool | dash.NoUpdate], 
+            list[dict | dash.NoUpdate], 
+            list[Notification] | dash.NoUpdate
+        ]:
         r'''
         Callback used when on of the edit title buttons in the magic link panel is clicked.
 
         :param title_readonly: whether the title is in readonly state or not
+        :param language: language of the UI
 
-        :returns: a tuple with
+        :returns: a tuple with lists containing dash.no_update everywhere except for the element corresponding to the triggered ID with
             - the new icon for the edit title button
             - True if the title was not readonly, False otherwise
-            - a styles dictionary for the title edit widget
+            - a styles dictionary for the title edit widget,
+            - a list containing a notification to show or a no update
         '''
 
-        if _ is None: raise dash.exceptions.PreventUpdate
+        triggered_id = dash.callback_context.triggered_id
 
-        if title_readonly:
-            icon   = IconCheck()
-            styles = {
-                'input' : {
-                    'color'           : 'darkOrange',
-                    'borderColor'     : 'darkOrange', 
-                    'backgroundColor' : 'var(--input-bg)',
-                    'cursor'          : 'text'
+        if all(i is None for i in _) or triggered_id is None: raise dash.exceptions.PreventUpdate
+
+        # Find the position of the element with the right index
+        pos   = [idd['index'] == triggered_id['index'] for idd in all_ids].index(True)
+
+        if _[pos] is None: raise dash.exceptions.PreventUpdate
+
+        ll = len(all_ids)
+
+        # Do not update elements that do not match the triggered id
+        icons: list[dash.NoUpdate | DashIconify]    = [dash.no_update] * ll
+        readonly_states: list[dash.NoUpdate | bool] = [dash.no_update] * ll
+        styles: list[dash.NoUpdate | dict]          = [dash.no_update] * ll
+
+
+        if all_ids[pos]['index'] == triggered_id['index']:
+
+            # Case when the title must become editable
+            if title_readonly := titles_readonly[pos]:
+
+                notification         = dash.no_update
+                readonly_states[pos] = not title_readonly
+                icons[pos]           = IconCheck()
+                styles[pos]          = {
+                    'input' : {
+                        'color'           : 'darkOrange',
+                        'borderColor'     : 'darkOrange', 
+                        'backgroundColor' : 'var(--input-bg)',
+                        'cursor'          : 'text'
+                    }
                 }
-            }
-        else:
-            icon   = IconEdit()
-            styles = {'input' : {'backgroundColor': 'transparent', 'cursor' : 'default'}}
 
-        return icon, not title_readonly, styles
+            # Case when the title is validated
+            else:
+
+                readonly_states[pos] = not title_readonly
+                icons[pos]           = IconEdit()
+                styles[pos]          = {'input' : {'backgroundColor': 'transparent', 'cursor' : 'default'}}
+                notification         = [
+                    hike_title_update_notification(
+                        app.language_handler[language]['notifications']
+                )]
+
+        return icons, readonly_states, styles, notification
 
     @app.callback(
         dash.Output({'type' : 'magic-link-collapse', 'index' : dash.MATCH}, 'opened'),
@@ -84,7 +134,12 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
         dash.Input('add-magic-link',        'n_clicks'),
         dash.State('magic-link-container',  'children'),
         dash.State('language', 'data'),
-        dash.State('hikes-info', 'data')
+        dash.State('hikes-info', 'data'),
+        running=[
+            (dash.Output('add-magic-link', "disabled"), True, False),
+            (dash.Output('add-magic-link-tooltip', "disabled"), True, False),
+            (dash.Output('magic-link-overlay', "visible"), True, False)
+        ]
     )
     def add_magic_link_click(
             _, 
@@ -111,11 +166,91 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
         return patch
 
     @app.callback(
-        dash.Output('appshell', 'navbar', allow_duplicate=True),
-        dash.Input({'type' : 'magic-link-multiselect', 'index' : dash.MATCH}, 'value'),
+        dash.Output({'type' : 'magic-link-row', 'index' : dash.ALL}, 'display'),
+        dash.Input({'type'  : 'magic-link-multiselect', 'index' : dash.ALL}, 'value'),
+        dash.State({'type'  : 'magic-link-multiselect', 'index' : dash.ALL}, 'id'),
+        dash.State({'type'  : 'magic-link-row', 'index' : dash.ALL}, 'id'),
+        prevent_initial_call = True
+    )
+    def magic_link_multiselect_change(
+            values              : list[list[str]], 
+            indices             : list[DashComplexID],
+            row_ids             : list[DashComplexID]
+        ) -> list[str  | dash.NoUpdate]:
+
+        triggered_id = dash.callback_context.triggered_id
+        if triggered_id is None: raise dash.exceptions.PreventUpdate
+
+        # Extract the names of the hikes selected in the multiselect component
+        for checked_hikes, index in zip(values, indices):
+            if index == triggered_id: break
+
+        # Output display for all row elements
+        out = []
+
+        # Loop through output row elements
+        for row_id in row_ids:
+
+            magic_link, hike_name = row_id['index'].split('/') # type: ignore
+
+            if magic_link != triggered_id['index']: out.append(dash.no_update)
+            elif hike_name not in checked_hikes:    out.append('none')
+            else:                                   out.append('flex')
+
+        return out
+
+    @app.callback(
+        dash.Output({'type' : 'magic-link-colorpicker-button',  'index' : dash.MATCH}, 'color'),
+        dash.Input({'type'  : 'magic-link-colorpicker-picker',  'index' : dash.MATCH}, 'value'),
         prevent_initial_call=True
     )
-    def magic_link_multiselect_change(value: list):
-        raise dash.exceptions.PreventUpdate
+    def magic_link_colorpicker_selection(
+            selected_color  : str,
+        ) -> str:
+        r'''
+        Callback used whenever a color is picked in the colorpicker modal.
+
+        :param selected_color: color corresponding to the colorpicker button clicked in the hike list panel. This is used to setup the default color of the colorpicker when loading
+
+        :returns: color for the colorpicker button
+        '''
+
+        return selected_color
+
+    @app.callback(
+        dash.Output('magic-link-container', 'children', allow_duplicate=True),
+        dash.Input({'type' : 'magic-link-delete-button',  'index' : dash.MATCH}, 'n_clicks'),
+        dash.State({'type' : 'magic-link-delete-button',  'index' : dash.MATCH}, 'id'),
+        dash.State('magic-link-container', 'children'),
+        running=[
+            (dash.Output('add-magic-link', "disabled"), True, False),
+            (dash.Output('add-magic-link-tooltip', "disabled"), True, False),
+            (dash.Output('magic-link-overlay', "visible"), True, False)
+        ],
+        prevent_initial_call = True
+    )
+    def delete_magic_link_button(_, index: DashComplexID, children: list[dict]):
+
+        if _ is None: raise dash.exceptions.PreventUpdate
+
+        out = []
+
+        for child in children:
+            if child['props']['id']['index'] != index['index']:
+                out.append(child)
+
+        return out
+
+    @app.callback(
+        dash.Output("notification-container", 'sendNotifications', allow_duplicate = True),
+        dash.Input({'type' : 'magic-link-share', 'index' : dash.MATCH}, 'n_clicks'),
+        dash.State('language', 'data'),
+        prevent_initial_call = True
+    )
+    def share_magic_link_button(_, language: LANGUAGE) -> list[Notification]:
+
+        if _ is None: raise dash.exceptions.PreventUpdate
+
+        return [share_hike_notification(app.language_handler[language]['notifications'])]
 
     return

@@ -44,3 +44,9 @@ IconHiker       = functools.partial(DashIconify, icon='gis:hiker',  width=_width
 
 # Achievement icon
 IconAchieve     = functools.partial(DashIconify, icon='mdi:achievement-outline',  width=_width)
+
+# Error icon
+IconError       = functools.partial(DashIconify, icon='si:error-duotone', width=_width)
+
+# Success icon
+IconSuccess     = functools.partial(DashIconify, icon='icon-park-outline:success', width=_width)

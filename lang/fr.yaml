@@ -59,8 +59,10 @@ magic_link_panel:
   add_button:
     tooltip: Cliquez pour créer un nouveau lien magique partageable et lui ajouter des randonnées
   item:
+    share_button:
+      tooltip: Cliquez pour partager les randonnées associées à ce lien magique
     delete_button:
-      tooltip: Supprimer ce lien magique
+      tooltip: Cliquez pour supprimer ce lien magique
     edit_title_button:
       edit: 
         tooltip: Cliquez pour modifier le nom du lien magique
@@ -93,6 +95,10 @@ notifications:
     fail:
       title: Mauvais lien de partage
       text: Aucune randonnée n'est associée au lien magique fourni dans l'url.
+  share_magic_link:
+    title: Lien magique copié dans le presse papier
+  magic_link_title_update:
+    title: Titre du lien magique mis à jour
 login_logout_buttons:
   login:
     text: Connexion

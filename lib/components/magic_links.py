@@ -7,7 +7,8 @@ from ..icons import (
     IconChevronDown,
     IconDelete,
     IconList,
-    IconEdit
+    IconEdit,
+    IconShare
 )
 
 def magic_link_panel_layout(language_handler: dict) -> dmc.Drawer:
@@ -19,26 +20,34 @@ def magic_link_panel_layout(language_handler: dict) -> dmc.Drawer:
 
     add_magic_link_button = dmc.ActionIcon(
         IconAdd(), 
+        id      = 'add-magic-link',
         variant = 'subtle',
-        id      = 'add-magic-link'
     )
 
     add_magic_link_button_tooltip = dmc.Tooltip(
         add_magic_link_button,
+        id    = 'add-magic-link-tooltip',
         label = language_handler['add_button']['tooltip']
     )
 
     magic_link_list = magic_link_container(language_handler['item'])
 
+    loading_overlay = dmc.LoadingOverlay(
+        id           = 'magic-link-overlay',
+        visible      = False,
+        overlayProps = {"radius": "sm", "blur": 2},
+        zIndex       = 10,
+    )
+
     return dmc.Drawer(
-        magic_link_list,
+        [loading_overlay, magic_link_list],
         withCloseButton = True,
         title           = dmc.Group([
             language_handler['title'],
             add_magic_link_button_tooltip
         ]),
-        id              = 'magic-link-panel', 
-        opened=True
+        id              = 'magic-link-panel',
+        opened = True
     )
 
 def magic_link_container(language_handler: dict) -> dmc.Stack:
@@ -52,7 +61,7 @@ def magic_link_container(language_handler: dict) -> dmc.Stack:
         [],
         id    = 'magic-link-container',
         gap   = 10,
-        style = {'margin-top' : '20px', 'margin-bottom' : '20px'}
+        style = {'marginTop' : '20px', 'marginBottom' : '20px'},
     )
 
 def magic_link_container_item(
@@ -72,6 +81,7 @@ def magic_link_container_item(
 
     delete_button = dmc.ActionIcon(
         IconDelete(),
+        id      = {'type' : 'magic-link-delete-button', 'index' : magic_link},
         variant = 'subtle'
     )
 
@@ -100,6 +110,17 @@ def magic_link_container_item(
         id           = {'type' : 'magic-link-collapse-title', 'index' : magic_link}
     )
 
+    share_button = dmc.ActionIcon(
+        IconShare(),
+        id      = {'type' : 'magic-link-share', 'index' : magic_link},
+        variant = 'subtle'
+    )
+
+    share_button_tooltip = dmc.Tooltip(
+        share_button,
+        label = language_handler['share_button']['tooltip']
+    )
+
     multiselect = dmc.MultiSelect(
         id                = {'type' : 'magic-link-multiselect', 'index' : magic_link},
         className         = 'magic-link-multiselect',
@@ -112,15 +133,16 @@ def magic_link_container_item(
             {'value' : name, 'label' : name}
             for name in hike_names
         ],
+        value         = [],
         comboboxProps = {'width' : '300px'},
         rightSection  = IconList(),
         variant       = 'subtle'
     )
 
     multiselect_tooltip = dmc.Tooltip(
-            multiselect,
-            label = language_handler['list_button']['tooltip']
-        )
+        multiselect,
+        label = language_handler['list_button']['tooltip']
+    )
 
     collapse_button = dmc.ActionIcon(
         IconChevronDown(),
@@ -131,17 +153,26 @@ def magic_link_container_item(
 
     collapse_button_tooltip = dmc.Tooltip(
         collapse_button,
-        label = language_handler['collapse_button']['tooltip']
+        label = language_handler['collapse_button']['tooltip'],
     )
 
     # Header-like part always shown
-    control = dmc.Group([delete_button_tooltip, title, multiselect_tooltip, collapse_button_tooltip])
+    control = dmc.Group([
+        delete_button_tooltip, 
+        title, 
+        share_button_tooltip, 
+        multiselect_tooltip, 
+        collapse_button_tooltip
+    ])
 
     # Elements shown in the collapsible area
     rows = dmc.Stack(
         [
             magic_link_hike_element_row(
-                hike_name, COLOR_PALETTE[pos], language_handler
+                magic_link + '/' + hike_name, 
+                hike_name,
+                COLOR_PALETTE[pos], 
+                language_handler
             )
             for pos, hike_name in enumerate(hike_names)
         ]
@@ -159,7 +190,8 @@ def magic_link_container_item(
 
     return dmc.Stack(
         [control, panel],
-        style={
+        id    = {'type' : 'magic-link-container-item', 'index' : magic_link},
+        style = {
         'backgroundColor' : 'var(--custom-ht-background)',
         'padding' : '5px',
         'margin-bottom' : '10px',
@@ -167,22 +199,28 @@ def magic_link_container_item(
     })
 
 def magic_link_hike_element_row(
-        hike_name: str, 
-        color: str, 
-        language_handler: dict
+        index            : str,
+        hike_name        : str,
+        color            : str, 
+        language_handler : dict
     ) -> dmc.Group:
 
     colorpicker = dmc.Tooltip(
         custom_colorpicker(
             color, 
-            {'type' : 'magic-link-colorpicker-button',  'index' : hike_name},
-            {'type' : 'magic-link-colorpicker-picker',  'index' : hike_name},
-            {'type' : 'magic-link-colorpicker-popover', 'index' : hike_name}
+            {'type' : 'magic-link-colorpicker-button',  'index' : index},
+            {'type' : 'magic-link-colorpicker-picker',  'index' : index},
+            {'type' : 'magic-link-colorpicker-popover', 'index' : index}
         ),
         label     = language_handler['collapse']['colorpicker']['tooltip'],
-        id        = {'type' : 'magic-link-hike-colorpicker-tooltip', 'index' : hike_name}
+        id        = {'type' : 'magic-link-hike-colorpicker-tooltip', 'index' : index}
     )
 
     label = dmc.Text(hike_name)
 
-    return dmc.Group([colorpicker, label], className='magic-link-hike-element-row-group')
+    return dmc.Group(
+        [colorpicker, label], 
+        id        = {'type' : 'magic-link-row', 'index' : index},
+        className = 'magic-link-hike-element-row-group', 
+        display   = 'none'
+    )

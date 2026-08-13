@@ -59,8 +59,10 @@ magic_link_panel:
   add_button:
     tooltip: Click to create a new shareable magic link and add hikes
   item:
+    share_button:
+      tooltip: Click to share the hikes associated to this magic link
     delete_button:
-      tooltip: Supprimer ce lien magique
+      tooltip: Click to delete this magic link
     edit_title_button:
       edit: 
         tooltip: Click to edit the name of the magic link
@@ -93,6 +95,10 @@ notifications:
     fail:
       title: Wrong shared link
       text: No hike is associated to the magic link used in the url.
+  share_magic_link:
+    title: Magic link copied to the clipboard
+  magic_link_title_update:
+    title: Magic link title updated
 login_logout_buttons:
   login:
     text: Login

@@ -101,6 +101,6 @@ def hike_panel_layout(language_dict: dict) -> dmc.Drawer:
         multiple  = True
     )
 
-    container = dmc.Stack([hike_list, upload_button], style={'height' : '100%', 'justify-content' : 'space-between'})
+    container = dmc.Stack([hike_list, upload_button], style={'height' : '100%', 'justifyContent' : 'space-between'})
 
     return dmc.Drawer(container, title = language_dict['title'], id = 'hike-panel')

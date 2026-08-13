@@ -58,7 +58,7 @@ def register_keydown_callbacks(app: dash.Dash) -> None:
         
         # Shortcut to open the connection modal
         elif (
-            not session['magic-link'] and 
+            ('magic_link' not in session or not session['magic-link']) and 
             keydown['key'] == 'a' and 
             keydown['altKey'] and
             keydown['ctrlKey']

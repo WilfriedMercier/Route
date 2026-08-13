@@ -1,7 +1,5 @@
-from   dash_iconify import DashIconify
-from   typing       import Any
-
-from   ..types      import Notification
+from   ..types import Notification
+from   ..icons import IconError, IconSuccess
 
 def login_success_notification(translation: dict) -> Notification:
     r'''
@@ -16,7 +14,7 @@ def login_success_notification(translation: dict) -> Notification:
         action    = 'show',
         color     = 'green',
         autoClose = 4000,
-        icon      = DashIconify(icon='icon-park-outline:success')
+        icon      = IconSuccess()
     )
 
 def logout_success_notification(translation: dict) -> Notification:
@@ -32,7 +30,7 @@ def logout_success_notification(translation: dict) -> Notification:
         action    = 'show',
         color     = 'green',
         autoClose = 4000,
-        icon      = DashIconify(icon='icon-park-outline:success')
+        icon      = IconSuccess()
     )
 
 def hike_upload_success_notification(translation: dict) -> Notification:
@@ -48,7 +46,7 @@ def hike_upload_success_notification(translation: dict) -> Notification:
         action    = 'show',
         color     = 'green',
         autoClose = 4000,
-        icon      = DashIconify(icon='icon-park-outline:success')
+        icon      = IconSuccess()
     )
 
 def hike_upload_format_fail_notification(translation: dict) -> Notification:
@@ -65,7 +63,7 @@ def hike_upload_format_fail_notification(translation: dict) -> Notification:
         action    = 'show',
         color     = 'red',
         autoClose = 4000,
-        icon      = DashIconify(icon='si:error-duotone')
+        icon      = IconError()
     )
 
 def hike_upload_already_there_fail_notification(translation: dict) -> Notification:
@@ -82,7 +80,7 @@ def hike_upload_already_there_fail_notification(translation: dict) -> Notificati
         action    = 'show',
         color     = 'red',
         autoClose = 4000,
-        icon      = DashIconify(icon='si:error-duotone')
+        icon      = IconError()
     )
 
 def wrong_magic_link_notification(translation: dict) -> Notification:
@@ -99,6 +97,37 @@ def wrong_magic_link_notification(translation: dict) -> Notification:
         action    = 'show',
         color     = 'red',
         autoClose = 4000,
-        icon      = DashIconify(icon='si:error-duotone')
+        icon      = IconError()
     )
 
+def share_hike_notification(translation: dict) -> Notification:
+    r'''
+    Notification sent when one of the the share magic link buttons is clicked in the magic link panel.
+
+    :param translation: dictionary containing the text to show
+    '''
+
+    return Notification(
+        title     = translation['share_magic_link']['title'],
+        position  = 'top-center',
+        action    = 'show',
+        color     = 'green',
+        autoClose = 4000,
+        icon      = IconSuccess()
+    )
+
+def hike_title_update_notification(translation: dict) -> Notification:
+    r'''
+    Notification sent when one of the magic link titles in the magic link panel is updated.
+
+    :param translation: dictionary containing the text to show
+    '''
+
+    return Notification(
+        title     = translation['magic_link_title_update']['title'],
+        position  = 'top-center',
+        action    = 'show',
+        color     = 'green',
+        autoClose = 4000,
+        icon      = IconSuccess()
+    )
