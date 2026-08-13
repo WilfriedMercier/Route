@@ -130,10 +130,10 @@ def theme_switcher_layout(
     )
 
 def custom_colorpicker(
-        color: str,
-        button_id : DashID,
-        colorpicker_id: DashID,
-        popover_id : DashID
+        color          : str,
+        button_id      : DashID,
+        colorpicker_id : DashID,
+        popover_id     : DashID
     ) -> dmc.Popover:
 
     target = dmc.PopoverTarget(

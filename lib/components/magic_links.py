@@ -175,7 +175,8 @@ def magic_link_container_item(
                 language_handler
             )
             for pos, hike_name in enumerate(hike_names)
-        ]
+        ],
+        id = {'type' : 'magic-link-collapse-stack', 'index' : magic_link}
     )
 
     # Collapsible area
@@ -208,12 +209,12 @@ def magic_link_hike_element_row(
     colorpicker = dmc.Tooltip(
         custom_colorpicker(
             color, 
-            {'type' : 'magic-link-colorpicker-button',  'index' : index},
-            {'type' : 'magic-link-colorpicker-picker',  'index' : index},
-            {'type' : 'magic-link-colorpicker-popover', 'index' : index}
+            {'type' : 'magic-link-hike-row-colorpicker-button',  'index' : index},
+            {'type' : 'magic-link-hike-row-colorpicker-picker',  'index' : index},
+            {'type' : 'magic-link-hike-row-colorpicker-popover', 'index' : index}
         ),
         label     = language_handler['collapse']['colorpicker']['tooltip'],
-        id        = {'type' : 'magic-link-hike-colorpicker-tooltip', 'index' : index}
+        id        = {'type' : 'magic-link-hike-row-colorpicker-tooltip', 'index' : index}
     )
 
     label = dmc.Text(hike_name)

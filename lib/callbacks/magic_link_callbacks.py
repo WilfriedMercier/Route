@@ -132,7 +132,6 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
     @app.callback(
         dash.Output('magic-link-container', 'children'),
         dash.Input('add-magic-link',        'n_clicks'),
-        dash.State('magic-link-container',  'children'),
         dash.State('language', 'data'),
         dash.State('hikes-info', 'data'),
         running=[
@@ -142,66 +141,64 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
         ]
     )
     def add_magic_link_click(
-            _, 
-            children   : list[dmc.Stack], 
+            _,
             language   : LANGUAGE, 
             hikes_info : dict[str, HikeInfo]
         ) -> dash.Patch:
 
         if _ is None: raise dash.exceptions.PreventUpdate
 
+        import random
+        n = random.randint(0, 1_000_000)
+
         translation = app.language_handler[language]
-        name        = f'Magic link #{len(children)}'
+        name        = f'Magic link #{n}'
 
         new_child = magic_link_container_item(
             name, 
-            name, 
+            name,
             translation['magic_link_panel']['item'],
             list(hikes_info.keys())
         )
 
         patch = dash.Patch()
         patch.prepend(new_child)
-
+        
         return patch
 
     @app.callback(
-        dash.Output({'type' : 'magic-link-row', 'index' : dash.ALL}, 'display'),
-        dash.Input({'type'  : 'magic-link-multiselect', 'index' : dash.ALL}, 'value'),
-        dash.State({'type'  : 'magic-link-multiselect', 'index' : dash.ALL}, 'id'),
-        dash.State({'type'  : 'magic-link-row', 'index' : dash.ALL}, 'id'),
+        dash.Output({'type' : 'magic-link-collapse-stack', 'index' : dash.MATCH}, 'children'),
+        dash.Input({'type'  : 'magic-link-multiselect',    'index' : dash.MATCH}, 'value'),
+        dash.State({'type'  : 'magic-link-collapse-stack', 'index' : dash.MATCH}, 'children'),
         prevent_initial_call = True
     )
     def magic_link_multiselect_change(
-            values              : list[list[str]], 
-            indices             : list[DashComplexID],
-            row_ids             : list[DashComplexID]
-        ) -> list[str  | dash.NoUpdate]:
+            values   : list[str], 
+            children : list[dict],
+        ) -> list[dict]:
+        r'''
+        Callback used when one of the elements in one of the multiselect components in the magic link is clicked.
 
-        triggered_id = dash.callback_context.triggered_id
-        if triggered_id is None: raise dash.exceptions.PreventUpdate
+        :param values: checked values of the multiselect
+        :param children: row components in the collapse stack that contain the selected hikes
 
-        # Extract the names of the hikes selected in the multiselect component
-        for checked_hikes, index in zip(values, indices):
-            if index == triggered_id: break
+        :returns: the updated row components of the collapse stack
+        '''
 
-        # Output display for all row elements
-        out = []
 
-        # Loop through output row elements
-        for row_id in row_ids:
+        for pos, child in enumerate(children):
 
-            magic_link, hike_name = row_id['index'].split('/') # type: ignore
+            child_id = child['props']['id']['index'].split('/')[1]
+            if child_id in values and child['props']['display'] != 'flex':
+                children[pos]['props']['display'] = 'flex'
+            elif child_id not in values and child['props']['display'] != 'none':
+                children[pos]['props']['display'] = 'none'
 
-            if magic_link != triggered_id['index']: out.append(dash.no_update)
-            elif hike_name not in checked_hikes:    out.append('none')
-            else:                                   out.append('flex')
-
-        return out
+        return children
 
     @app.callback(
-        dash.Output({'type' : 'magic-link-colorpicker-button',  'index' : dash.MATCH}, 'color'),
-        dash.Input({'type'  : 'magic-link-colorpicker-picker',  'index' : dash.MATCH}, 'value'),
+        dash.Output({'type' : 'magic-link-hike-row-colorpicker-button',  'index' : dash.MATCH}, 'color'),
+        dash.Input({'type'  : 'magic-link-hike-row-colorpicker-picker',  'index' : dash.MATCH}, 'value'),
         prevent_initial_call=True
     )
     def magic_link_colorpicker_selection(
@@ -220,7 +217,6 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
     @app.callback(
         dash.Output('magic-link-container', 'children', allow_duplicate=True),
         dash.Input({'type' : 'magic-link-delete-button',  'index' : dash.MATCH}, 'n_clicks'),
-        dash.State({'type' : 'magic-link-delete-button',  'index' : dash.MATCH}, 'id'),
         dash.State('magic-link-container', 'children'),
         running=[
             (dash.Output('add-magic-link', "disabled"), True, False),
@@ -229,15 +225,21 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
         ],
         prevent_initial_call = True
     )
-    def delete_magic_link_button(_, index: DashComplexID, children: list[dict]):
+    def delete_magic_link_button(_, children: list[dict]):
 
-        if _ is None: raise dash.exceptions.PreventUpdate
+        triggered_id = dash.callback_context.triggered_id
 
-        out = []
+        if _ is None or triggered_id is None: raise dash.exceptions.PreventUpdate
 
-        for child in children:
-            if child['props']['id']['index'] != index['index']:
-                out.append(child)
+        pos : None | int = None
+
+        for pos, child in enumerate(children):
+            if child['props']['id']['index'] == triggered_id['index']: break
+
+        if pos is None: raise dash.exceptions.PreventUpdate
+
+        out = dash.Patch()
+        del out[pos]
 
         return out
 
