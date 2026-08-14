@@ -12,6 +12,10 @@ CREATE TABLE magic_links (
     id TEXT PRIMARY KEY
 );
 
+-- Add a column to store a magic link name for the UI
+ALTER TABLE magic_links
+ADD COLUMN IF NOT EXISTS name TEXT DEFAULT '';
+
 -- Add a color column for the hikes in the magic links props table
 ALTER TABLE magic_links_props
 ADD COLUMN IF NOT EXISTS color VARCHAR(7) DEFAULT '#000000';

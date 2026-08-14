@@ -3,11 +3,74 @@ import dash_mantine_components as     dmc
 import dash_leaflet            as     dl
 from   flask                   import session
 
-from   ..database              import execute_get_query
-from   ..lang                  import LANGUAGE
-from   ..types                 import HikeInfo
-from   ..misc                  import COLOR_PALETTE
-from   ..components.hike_panel import hikelist_element_layout
+from   ..lang                   import LANGUAGE
+from   ..types                  import HikeInfo
+from   ..misc                   import COLOR_PALETTE
+from   ..components.magic_links import magic_link_container_item
+from   ..components.hike_panel  import hikelist_element_layout
+from   ..database               import (
+    Magic_links_props_table, 
+    Hikes_table,
+    Magic_links_table
+)
+
+def generate_magic_link_container_rows_from_db(
+        translation : dict,
+        hike_names  : list[str]
+    ) -> list[dmc.Stack]:
+    r'''
+    Generate a list of components added into the magic link panel container.
+
+    :param translation: translation for the UI elements
+    :param hike_names: all hike names that an be toggled in the multiselect componenent. These are all hikes associated to the user.
+    '''
+
+    # By default, no color is associated to hikes shown in the multiselect
+    # If None, colors are sampled from a color palette later
+    color_props : dict[str, str | None] = {
+        hike_name : None
+        for hike_name in hike_names
+    }
+
+    # Get all magic link props associated to the user
+    rows = Magic_links_props_table.get_rows_from_user_id(session['user_id'])
+
+    # Process output to group hikes according to magic links
+    magic_links = {
+    }
+
+    for magic_link, hike_id, color in rows:
+
+        # Get hike name associated to hike ID
+        hike_name = Hikes_table.get_hike_name_from_hike_id(hike_id)
+
+        # Update color based on db table value for hikes already toggled in the magic link
+        color_props[hike_name] = color
+
+        if magic_link not in magic_links:  
+
+            magic_link_name = Magic_links_table.get_magic_link_name(magic_link)
+
+            magic_links[magic_link]          = {} 
+            magic_links[magic_link]['hikes'] = [hike_name]
+            magic_links[magic_link]['name']  = magic_link_name
+
+        else: magic_links[magic_link]['hikes'].append(hike_name)
+
+    children = []
+    for magic_link, props in magic_links.items():
+
+        children.append(
+            magic_link_container_item(
+                magic_link,
+                props['name'], # XXX to be modified soon
+                translation['item'],
+                color_props,
+                props['hikes'] 
+            )
+        )
+
+    return children
 
 def update_ui_after_single_hike_load(
         latitudes        : list[float],
@@ -115,11 +178,7 @@ def generate_hike_ui_elements_with_login(
     '''
 
     # Query hikes database associated to the user
-    hike_properties = execute_get_query(f'''
-        SELECT name, latitude, longitude, center_lat, center_lon, distances, elevations
-        FROM hikes
-        WHERE user_id = '{session["user_id"]}';
-    ''')
+    hike_properties = Hikes_table.get_rows_from_user_id(session['user_id'])
 
     # Build the dictionary with hike properties
     property_dict = {}
@@ -127,15 +186,15 @@ def generate_hike_ui_elements_with_login(
     for hike in hike_properties:
 
         inside_dict = HikeInfo(
-            latitudes             = hike[1],
-            longitudes            = hike[2],
-            center_lat            = hike[3],
-            center_lon            = hike[4],
-            distances             = hike[5],
-            elevations            = hike[6]
+            latitudes             = hike[2],
+            longitudes            = hike[3],
+            center_lat            = hike[4],
+            center_lon            = hike[5],
+            distances             = hike[6],
+            elevations            = hike[7]
         )
 
-        property_dict[hike[0]] = inside_dict
+        property_dict[hike[1]] = inside_dict
 
     widgets, traces = update_ui_after_multiple_hike_loads(
         app, property_dict, [],
@@ -163,11 +222,7 @@ def generate_hike_ui_elements_with_hike_id(
     '''
 
     # Query hikes database associated to the user
-    hike_properties = execute_get_query(f'''
-        SELECT name, latitude, longitude, center_lat, center_lon, distances, elevations
-        FROM hikes
-        WHERE id = {hike_id};
-    ''')
+    hike_properties = Hikes_table.get_row_from_hike_id(hike_id)
 
     # Build the dictionary with hike properties
     property_dict = {}
@@ -175,15 +230,15 @@ def generate_hike_ui_elements_with_hike_id(
     for hike in hike_properties:
 
         inside_dict = HikeInfo(
-            latitudes             = hike[1],
-            longitudes            = hike[2],
-            center_lat            = hike[3],
-            center_lon            = hike[4],
-            distances             = hike[5],
-            elevations            = hike[6]
+            latitudes             = hike[2],
+            longitudes            = hike[3],
+            center_lat            = hike[4],
+            center_lon            = hike[5],
+            distances             = hike[6],
+            elevations            = hike[7]
         )
 
-        property_dict[hike[0]] = inside_dict
+        property_dict[hike[1]] = inside_dict
 
     widgets, traces = update_ui_after_multiple_hike_loads(
         app, property_dict, [],

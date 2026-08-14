@@ -5,12 +5,17 @@ import dash_mantine_components as     dmc
 from   flask                   import session
 from   urllib.parse            import urlparse, parse_qs
 
-from .misc                      import generate_hike_ui_elements_with_login, generate_hike_ui_elements_with_hike_id
+from .misc                      import (
+    generate_magic_link_container_rows_from_db,
+    generate_hike_ui_elements_with_login, 
+    generate_hike_ui_elements_with_hike_id
+)
+
 from ..lang                     import LANGUAGE
 from ..errors                   import NoHikeForMagicLink
 from ..components.notifications import wrong_magic_link_notification
 from ..components.map           import generate_leaflet_map_figure
-from ..database                 import Magic_links_table, Users_table
+from ..database                 import Users_table, Magic_links_props_table
 from ..types                    import HikeInfo, Notification
 
 def register_ui_init_callbacks(app: dash.Dash) -> None:
@@ -73,6 +78,7 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
         dash.Output('magic-link-button',      'disabled',          allow_duplicate=True),
         dash.Output('magic-link-button-tooltip', 'disabled',       allow_duplicate=True),
+        dash.Output('magic-link-container',   'children',          allow_duplicate=True),
 
         dash.Input('magic-link', 'data'),
         dash.State('language', 'data'),
@@ -95,7 +101,8 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
             dict[str, str]       | dash.NoUpdate, # upload-hike-button -> style
             list[Notification]   | dash.NoUpdate, # notification-container -> sendNotifications
             bool, # magic-link-button -> disabled
-            bool # magic-link-button-tooltip -> disabled
+            bool, # magic-link-button-tooltip -> disabled
+            list[dmc.Stack] | dash.NoUpdate
         ]:
         r'''
         Second pass of the UI rendering used to allow the leaflet map to resize before triggering other events.
@@ -128,7 +135,8 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
                     (dash.no_update, dash.no_update),
                     dash.no_update, dash.no_update, dash.no_update, dash.no_update,
                     dash.no_update,  dash.no_update, [notification],
-                    True, True
+                    True, True,
+                    dash.no_update
                 )
 
             # Case when magic link is correct
@@ -139,7 +147,8 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
                 (dash.no_update, dash.no_update),
                 widgets, n_hikes, hikes_info, traces,
                 {'display' : 'flex'},  {'display' : 'none'}, dash.no_update,
-                True, True
+                True, True,
+                dash.no_update
             )
         
         # Case without a magic link
@@ -151,6 +160,12 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
                 login_button, login_tooltip
             ) = handle_without_magic_link(language)
 
+            # Generate the container items for the magic link panel
+            children = generate_magic_link_container_rows_from_db(
+                app.language_handler[language]['magic_link_panel'],
+                list(hikes_info.keys())
+            )
+
             return (
                 generate_leaflet_map_figure(),
                 (button_style_1, button_style_2), 
@@ -160,7 +175,8 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
                 {'display' : 'flex' if 'user_id' in session else 'none'}, 
                 dash.no_update, dash.no_update,
                 'user_id' not in session,
-                'user_id' not in session
+                'user_id' not in session,
+                children
             )
         
     def handle_with_magic_link(
@@ -186,9 +202,10 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         session['magic-link'] = True
 
         # Get the hike ID associated to the magic link. If None, no link 
-        hike_id = Magic_links_table.get_hike_id_from_magic_link(magic_link)
-        
-        hikes_info, widgets, traces = generate_hike_ui_elements_with_hike_id(app, language, hike_id)
+        hike_id = Magic_links_props_table.get_hike_ids_from_magic_link(magic_link)
+
+        # XXX to update so that all hikes in the magic link are rendered
+        hikes_info, widgets, traces = generate_hike_ui_elements_with_hike_id(app, language, hike_id[0])
 
         # Create a new figure and update all ui elements related to hikes
         return widgets, len(widgets), hikes_info, traces

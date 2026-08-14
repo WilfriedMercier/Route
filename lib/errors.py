@@ -4,8 +4,14 @@ class UnsupportedFileFormatError(Exception): pass
 #: Error raised when no hike ID in the database is associated to a magic link.
 class NoHikeForMagicLink(Exception): pass
 
+#: Error raised when there is no hike data associated to to the user
+class NoHikeForUser(Exception): pass
+
 #: General error raised when no hike ID in the database is found.
 class NoHikeIDInDB(Exception): pass
+
+#: General error raised when no magic link ID in the database is found.
+class NoMagicLinkIDInDB(Exception): pass
 
 #: Error raised when no magic link is associated to a given hike ID.
 class NoMagicLinkForHikeID(Exception): pass

@@ -1,8 +1,10 @@
 import dash_leaflet as     dl
-from   typing       import TypedDict, Final, NotRequired, Literal
+import typing
 from   dash_iconify import DashIconify
 
-class DashComplexID(TypedDict):
+type AllowedDisplayTypes = typing.Literal['none', 'flex']
+
+class DashComplexID(typing.TypedDict):
     r'''
     Class defining the type of complex IDs allowed by Dash for widgets.
 
@@ -15,7 +17,7 @@ class DashComplexID(TypedDict):
 
 DashID = DashComplexID | str
 
-class Dummy(TypedDict):
+class Dummy(typing.TypedDict):
     r'''
     Class defining a dummy object used to call secondary callbacks after a first callback has finished.
 
@@ -24,14 +26,14 @@ class Dummy(TypedDict):
     '''
 
     n_clicks : int
-    type     : Literal['login', 'upload']
+    type     : typing.Literal['login', 'upload']
 
-class DummyWithTraces(TypedDict):
+class DummyWithTraces(typing.TypedDict):
 
     n_clicks : int
     traces   : list[dl.Polyline]
 
-class Notification(TypedDict):
+class Notification(typing.TypedDict):
     r'''
     Class defining the content of a notification.
     
@@ -46,16 +48,16 @@ class Notification(TypedDict):
     '''
 
     title           : str
-    message         : NotRequired[str]
-    action          : Literal['show', 'update']
-    position        : Literal['top-left', 'top-right', 'bottom-left', 'bottom-right', 'top-center', 'bottom-center']
+    message         : typing.NotRequired[str]
+    action          : typing.Literal['show', 'update']
+    position        : typing.Literal['top-left', 'top-right', 'bottom-left', 'bottom-right', 'top-center', 'bottom-center']
     color           : str
-    autoClose       : NotRequired[int]
-    withBorder      : NotRequired[bool]
-    withCloseButton : NotRequired[bool]
-    icon            : NotRequired[DashIconify]
+    autoClose       : typing.NotRequired[int]
+    withBorder      : typing.NotRequired[bool]
+    withCloseButton : typing.NotRequired[bool]
+    icon            : typing.NotRequired[DashIconify]
 
-class ParsedFileContent(TypedDict):
+class ParsedFileContent(typing.TypedDict):
     r'''
     Dictionary class holding data parsed from a GPX or GeoJSON file when loading a hike.
     
@@ -70,25 +72,25 @@ class ParsedFileContent(TypedDict):
     latitudes             : list[float]
     longitudes            : list[float]
 
-class HikeDataForMarker(TypedDict):
+class HikeDataForMarker(typing.TypedDict):
     r'''Dictionary class holding latitude and longitude information to move the marker on the map when hovering over the elevation plot.'''
 
     latitudes  : list[float]
     longitudes : list[float]
 
-class HikeDataForElevationPlot(TypedDict):
+class HikeDataForElevationPlot(typing.TypedDict):
     r'''Dictionary class holding distances and elevations information a single hike.'''
 
     distances  : list[float]
     elevations : list[float]
 
-class HikeProps(TypedDict):
+class HikeProps(typing.TypedDict):
     r'''Dictionary class holding the name of a hike and its associated color.'''
 
     name  : str
     color : str
 
-class HikeInfo(TypedDict):
+class HikeInfo(typing.TypedDict):
     r'''
     Dictionary class holding all the information relative to a single hike.
     
@@ -107,12 +109,12 @@ class HikeInfo(TypedDict):
     latitudes             : list[float]
     longitudes            : list[float]
 
-EMPTY_HIKE_DATA_FOR_PLOT : Final = HikeDataForElevationPlot(
+EMPTY_HIKE_DATA_FOR_PLOT : typing.Final = HikeDataForElevationPlot(
     distances  = [],
     elevations = []
 )
 
-EMPTY_HIKE_DATA_FOR_MAP : Final = HikeDataForMarker(
+EMPTY_HIKE_DATA_FOR_MAP : typing.Final = HikeDataForMarker(
     latitudes  = [],
     longitudes = []
 )
