@@ -5,6 +5,5 @@ from .queries import (
     Users_table,
     Magic_links_table,
     Magic_links_props_table,
-    execute_get_query,
-    execute_insert_query
+    execute_get_query
 )

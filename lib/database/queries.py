@@ -4,6 +4,7 @@ import dotenv
 from   contextlib    import contextmanager
 from   psycopg2.pool import ThreadedConnectionPool
 from   psycopg2      import extras
+from   psycopg2.sql  import Identifier, SQL, Composable
 
 from   ..types       import HikeInfo
 from   ..errors      import (
@@ -44,29 +45,9 @@ def get_db_connection():
 @atexit.register
 def close_pool(): DB_POOL.closeall()
 
-def execute_get_query(query: str) -> list[tuple]:
+def execute_query(query: str | Composable) -> None:
     r'''
-    Execute a given fetch query.
-
-    :param query: query to execute
-
-    :raises: any exception if the query execution and fetching fail
-    '''
-
-    try:
-        with get_db_connection() as conn:
-
-            cur = conn.cursor()
-            cur.execute(query)
-            results = cur.fetchall()
-
-        return results
-        
-    except Exception as e: raise e
-
-def execute_query(query: str) -> None:
-    r'''
-    Execute a given query without fetch.
+    Execute a given query without parameters and without returning its output.
 
     :param query: query to execute
 
@@ -84,14 +65,14 @@ def execute_query(query: str) -> None:
         
     except Exception as e: raise e
 
-def execute_insert_query(
-        query         : str, 
+def execute_query_with_params(
+        query         : str | Composable, 
         values        : tuple | list[tuple] | None = None,
         multiple_rows : bool = False,
         template      : str | None = None
     ) -> None:
     r'''
-    Execute an insert query given some values.
+    Execute a query with parameters.
 
     :param query: query to execute
     :param values: values to pass to the query. If None, no values are passed.
@@ -112,6 +93,51 @@ def execute_insert_query(
             conn.commit()
 
         return
+        
+    except Exception as e: raise e
+
+def execute_get_query(query: str | Composable) -> list[tuple]:
+    r'''
+    Execute a query without parameters that returns its output.
+
+    :param query: query to execute
+
+    :raises: any exception if the query execution and fetching fail
+    '''
+
+    try:
+        with get_db_connection() as conn:
+
+            cur = conn.cursor()
+            cur.execute(query)
+            results = cur.fetchall()
+
+        return results
+        
+    except Exception as e: raise e
+
+def execute_get_query_with_params(
+        query         : str | Composable, 
+        values        : tuple | list[tuple] | None = None
+    ) -> list[tuple]:
+    r'''
+    Execute a query with parameters that returns its outputs.
+
+    :param query: query to execute
+    :param values: values to pass to the query. If None, no values are passed.
+
+    :raises: any exception if the query execution and commit fail
+    '''
+
+    try:
+        with get_db_connection() as conn:
+
+            cur = conn.cursor()
+            cur.execute(query, values)
+
+            results = cur.fetchall()
+
+        return results
         
     except Exception as e: raise e
 
@@ -311,7 +337,7 @@ class Hikes_table:
                 hike_dict['elevations']
             ))
 
-        execute_insert_query(query, values, multiple_rows=True, template=template)
+        execute_query_with_params(query, values, multiple_rows=True, template=template)
 
         return
     
@@ -348,22 +374,46 @@ class Magic_links_table:
         :param magic_link: magic link
         '''
 
-        res = execute_get_query(f"""
-            SELECT name FROM {cls._table}
-            WHERE id = '{magic_link}'
-        """)
+        res = execute_get_query_with_params(
+            SQL("""
+                SELECT name FROM {}
+                WHERE id = %s
+            """).format(Identifier(cls._table)),
+            values = (magic_link,)
+        )
 
         if res is None or len(res) != 1: 
             raise NoMagicLinkIDInDB(f'No magic link {magic_link} found in database.')
 
         return res[0][0]
 
+    @classmethod
+    def update_magic_link_name(cls, magic_link: str, name: str) -> None:
+        '''
+        Update the name field in the magic links table for a given magic link.
+
+        :param magic_link: magic link
+        :param name: name value to be updated in the corresponding row
+        '''
+
+        execute_query_with_params(
+            SQL('''
+                UPDATE {}
+                SET name = %s
+                WHERE id = %s
+            ''').format(Identifier(cls._table)),
+            values = (name, magic_link)
+        )
+
+        return
 
     @classmethod
     def get_rows(cls) -> list[str]:
         r'''Return all the rows from the table.'''
 
-        res = execute_get_query(f"SELECT id FROM {cls._table}")
+        res = execute_get_query(
+            SQL("SELECT id FROM {}").format(Identifier(cls._table))
+        )
 
         if res is None or len(res) == 0: return []
 
@@ -378,11 +428,11 @@ class Magic_links_table:
         :param color: color associated to the hike
         '''
 
-        execute_insert_query(
-            f'''
-            INSERT INTO {cls._table} (id) 
-            VALUES (gen_random_uuid()::text);
-            ''',
+        execute_query_with_params(
+            SQL('''
+                INSERT INTO {} (id) 
+                VALUES (gen_random_uuid()::text);
+            ''').format(Identifier(cls._table))
         )
 
         return 
@@ -471,7 +521,7 @@ class Magic_links_props_table:
         :param color: color associated to the hike
         '''
 
-        execute_insert_query(f'''
+        execute_query_with_params(f'''
                 INSERT INTO {cls._table} (id, hike_id, color) 
                 VALUES (%s, %s, %s);
             ''',

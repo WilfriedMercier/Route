@@ -2,6 +2,7 @@ import dash
 import dash_mantine_components as     dmc
 from   dash_iconify            import DashIconify
 
+from ..database                 import Magic_links_table
 from ..components.notifications import share_hike_notification, hike_title_update_notification
 from ..lang                     import LANGUAGE
 from ..components.magic_links   import magic_link_container_item
@@ -29,6 +30,7 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
         dash.Input({'type' : 'magic-link-collapse-title-edit-button', 'index' : dash.ALL}, 'n_clicks'),
         dash.State({'type' : 'magic-link-collapse-title', 'index' : dash.ALL}, 'id'),
         dash.State({'type' : 'magic-link-collapse-title', 'index' : dash.ALL}, 'readOnly'),
+        dash.State({'type' : 'magic-link-collapse-title', 'index' : dash.ALL}, 'value'),
         dash.State('language', 'data'),
         prevent_initial_call = True
     )
@@ -36,6 +38,7 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
             _, 
             all_ids         : list[DashComplexID], 
             titles_readonly : list[bool], 
+            titles          : list[str],
             language        : LANGUAGE
         ) -> tuple[
             list[DashIconify | dash.NoUpdate], 
@@ -72,34 +75,37 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
         readonly_states: list[dash.NoUpdate | bool] = [dash.no_update] * ll
         styles: list[dash.NoUpdate | dict]          = [dash.no_update] * ll
 
+        # Case when the title must become editable
+        if title_readonly := titles_readonly[pos]:
 
-        if all_ids[pos]['index'] == triggered_id['index']:
-
-            # Case when the title must become editable
-            if title_readonly := titles_readonly[pos]:
-
-                notification         = dash.no_update
-                readonly_states[pos] = not title_readonly
-                icons[pos]           = IconCheck()
-                styles[pos]          = {
-                    'input' : {
-                        'color'           : 'darkOrange',
-                        'borderColor'     : 'darkOrange', 
-                        'backgroundColor' : 'var(--input-bg)',
-                        'cursor'          : 'text'
-                    }
+            notification         = dash.no_update
+            readonly_states[pos] = not title_readonly
+            icons[pos]           = IconCheck()
+            styles[pos]          = {
+                'input' : {
+                    'color'           : 'darkOrange',
+                    'borderColor'     : 'darkOrange', 
+                    'backgroundColor' : 'var(--input-bg)',
+                    'cursor'          : 'text'
                 }
+            }
 
-            # Case when the title is validated
-            else:
+        # Case when the title is validated
+        else:
 
-                readonly_states[pos] = not title_readonly
-                icons[pos]           = IconEdit()
-                styles[pos]          = {'input' : {'backgroundColor': 'transparent', 'cursor' : 'default'}}
-                notification         = [
-                    hike_title_update_notification(
-                        app.language_handler[language]['notifications']
-                )]
+            readonly_states[pos] = not title_readonly
+            icons[pos]           = IconEdit()
+            styles[pos]          = {'input' : {'backgroundColor': 'transparent', 'cursor' : 'default'}}
+            notification         = [
+                hike_title_update_notification(
+                    app.language_handler[language]['notifications']
+            )]
+
+            # Update the name in the database
+            Magic_links_table.update_magic_link_name(
+                triggered_id['index'],
+                titles[pos]
+            )
 
         return icons, readonly_states, styles, notification
 
