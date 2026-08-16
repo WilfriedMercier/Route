@@ -1,7 +1,7 @@
 import dash_mantine_components as     dmc
+import typing
 
 from .misc   import custom_colorpicker
-from ..types import AllowedDisplayTypes
 from ..misc  import COLOR_PALETTE
 from ..icons import (
     IconAdd,
@@ -31,7 +31,7 @@ def magic_link_panel_layout(language_handler: dict) -> dmc.Drawer:
         label = language_handler['add_button']['tooltip']
     )
 
-    magic_link_list = magic_link_container(language_handler['item'])
+    magic_link_list = magic_link_container()
 
     loading_overlay = dmc.LoadingOverlay(
         id           = 'magic-link-overlay',
@@ -51,7 +51,7 @@ def magic_link_panel_layout(language_handler: dict) -> dmc.Drawer:
         opened = True
     )
 
-def magic_link_container(language_handler: dict) -> dmc.Stack:
+def magic_link_container() -> dmc.Stack:
     r'''
     Container with all magic links.
 
@@ -69,8 +69,9 @@ def magic_link_container_item(
         magic_link         : str, 
         name               : str, 
         language_handler   : dict,
-        hike_props         : dict[str, str | None] = {},
         checked_hike_names : list[str] = [],
+        colors             : typing.Sequence[str | None] = [],
+        all_hikes          : list[str] = []
     ) -> dmc.Stack:
     r'''
     Container with all magic links.
@@ -78,8 +79,9 @@ def magic_link_container_item(
     :param magic_link: magic link used as a unique identifier for all the components
     :param name: name of the magic link shown by default 
     :param language handler: current language of the UI elements associated to this container
-    :param hike_props: dictionary containing the name of hikes as keys and the color as value
     :param checked_hike_names: list containing the names of the hikes that must be checked by default
+    :param colors: list of colors associated to the checked hikes
+    :param all_hikes: list of all hike names appearing in the multiselect
     '''
 
     delete_button = dmc.ActionIcon(
@@ -134,7 +136,7 @@ def magic_link_container_item(
         clearable         = False,
         data = [
             {'value' : name, 'label' : name}
-            for name in hike_props.keys()
+            for name in all_hikes
         ],
         value         = checked_hike_names,
         comboboxProps = {'width' : '300px'},
@@ -175,10 +177,9 @@ def magic_link_container_item(
                 magic_link + '/' + hike_name, 
                 hike_name,
                 color if color is not None else COLOR_PALETTE[pos],
-                language_handler,
-                display = 'flex' if hike_name in checked_hike_names else 'none'
+                language_handler
             )
-            for pos, (hike_name, color) in enumerate(hike_props.items())
+            for pos, (hike_name, color) in enumerate(zip(checked_hike_names, colors))
         ],
         id = {'type' : 'magic-link-collapse-stack', 'index' : magic_link}
     )
@@ -207,8 +208,7 @@ def magic_link_hike_element_row(
         index       : str,
         hike_name   : str,
         color       : str, 
-        translation : dict,
-        display     : AllowedDisplayTypes = 'none'
+        translation : dict
     ) -> dmc.Group:
     r'''
     Single row element contained within the collapsible area of a magic link.
@@ -217,7 +217,6 @@ def magic_link_hike_element_row(
     :param hike_name: name of the hike as shown in the component
     :param color: color for the colorpicker
     :param translation: translation for the UI elements
-    :param display: if 'none' hides the row, if 'flex' shows it
     '''
 
     colorpicker = dmc.Tooltip(
@@ -236,6 +235,5 @@ def magic_link_hike_element_row(
     return dmc.Group(
         [colorpicker, label], 
         id        = {'type' : 'magic-link-row', 'index' : index},
-        className = 'magic-link-hike-element-row-group', 
-        display   = display
+        className = 'magic-link-hike-element-row-group'
     )

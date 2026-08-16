@@ -2,8 +2,6 @@ import dash_leaflet as     dl
 import typing
 from   dash_iconify import DashIconify
 
-type AllowedDisplayTypes = typing.Literal['none', 'flex']
-
 class DashComplexID(typing.TypedDict):
     r'''
     Class defining the type of complex IDs allowed by Dash for widgets.

@@ -1,4 +1,5 @@
 import dash
+import typing
 import dash_mantine_components as     dmc
 import dash_leaflet            as     dl
 from   flask                   import session
@@ -14,59 +15,79 @@ from   ..database               import (
     Magic_links_table
 )
 
+def generate_single_magic_link_row_from_db(
+        magic_link   : str,
+        name         : str,
+        hikes_colors : typing.Mapping[str, str | None],
+        translation  : dict,
+        all_hikes    : list[str]
+    ) -> dmc.Stack:
+    r'''
+    Generate a single magic link component for the magic link panel container.
+
+    :param magic_link: magic link
+    :param name: name of the magic link as shown in the label
+    :param hikes_colors: dict with checked hikes as keys and their associated color as values
+    :param translation: current language for the UI
+    :param all_hikes: all hike names in the user database
+    '''
+
+    return magic_link_container_item(
+        magic_link,
+        name,
+        translation['item'],
+        list(hikes_colors.keys()),
+        list(hikes_colors.values()),
+        all_hikes
+    )
+
 def generate_magic_link_container_rows_from_db(
         translation : dict,
-        hike_names  : list[str]
+        all_hikes   : list[str]
     ) -> list[dmc.Stack]:
     r'''
     Generate a list of components added into the magic link panel container.
 
     :param translation: translation for the UI elements
-    :param hike_names: all hike names that an be toggled in the multiselect componenent. These are all hikes associated to the user.
+    :param all_hikes: all hike names that an be toggled in the multiselect componenent. These are all hikes associated to the user.
     '''
 
-    # By default, no color is associated to hikes shown in the multiselect
-    # If None, colors are sampled from a color palette later
-    color_props : dict[str, str | None] = {
-        hike_name : None
-        for hike_name in hike_names
-    }
+    default_colors = {hike_name : None for hike_name in all_hikes}
 
     # Get all magic link props associated to the user
-    rows = Magic_links_props_table.get_rows_from_user_id(session['user_id'])
+    rows        = Magic_links_table.get_rows_from_user_id(session['user_id'])
+    magic_links = [row[0] for row in rows]
+    ml_names    = [row[1] for row in rows]
 
-    # Process output to group hikes according to magic links
-    magic_links = {
-    }
+    hike_names  : list[list[str]] = []
+    hike_colors : list[list[str]] = []
+    
+    # Find hikes in each magic link
+    for magic_link in magic_links:
 
-    for magic_link, hike_id, color in rows:
+        # Find all hikes associated to magic link
+        hike_props  = Magic_links_props_table.get_rows_from_magic_link(magic_link)
+        hike_ids    = [row[0] for row in hike_props]
 
-        # Get hike name associated to hike ID
-        hike_name = Hikes_table.get_hike_name_from_hike_id(hike_id)
+        hike_colors.append(
+            [prop[1] for prop in hike_props]
+        )
 
-        # Update color based on db table value for hikes already toggled in the magic link
-        color_props[hike_name] = color
-
-        if magic_link not in magic_links:  
-
-            magic_link_name = Magic_links_table.get_magic_link_name(magic_link)
-
-            magic_links[magic_link]          = {} 
-            magic_links[magic_link]['hikes'] = [hike_name]
-            magic_links[magic_link]['name']  = magic_link_name
-
-        else: magic_links[magic_link]['hikes'].append(hike_name)
+        hike_names.append(
+            [row[1] for row in Hikes_table.get_rows_from_hike_ids(hike_ids, columns=['name'])]
+        )
 
     children = []
-    for magic_link, props in magic_links.items():
+    for magic_link, ml_name, colors, names in zip(magic_links, ml_names, hike_colors, hike_names):
 
         children.append(
             magic_link_container_item(
                 magic_link,
-                props['name'], # XXX to be modified soon
+                ml_name,
                 translation['item'],
-                color_props,
-                props['hikes'] 
+                names,
+                colors,
+                all_hikes
             )
         )
 

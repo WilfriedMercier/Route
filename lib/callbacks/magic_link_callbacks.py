@@ -1,7 +1,9 @@
 import dash
-import dash_mantine_components as     dmc
-from   dash_iconify            import DashIconify
+import random
+from   dash_iconify import DashIconify
+from   flask        import session
 
+from ..misc                     import COLOR_PALETTE
 from ..database                 import Magic_links_table
 from ..components.notifications import share_hike_notification, hike_title_update_notification
 from ..lang                     import LANGUAGE
@@ -151,19 +153,29 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
             language   : LANGUAGE, 
             hikes_info : dict[str, HikeInfo]
         ) -> dash.Patch:
+        r'''
+        Callback used when the add magic link button is clicked.
+
+        :param language: current language of the UI
+        :param hikes_info: information about the hikes
+        '''
 
         if _ is None: raise dash.exceptions.PreventUpdate
 
-        import random
-        n = random.randint(0, 1_000_000)
-
         translation = app.language_handler[language]
-        name        = f'Magic link #{n}'
+
+        # Create a new magic link in the database with a random name
+        n          = random.randint(0, 1_000_000)
+        name       = f'Magic link #{n}'
+
+        magic_link = Magic_links_table.insert_row(name, session['user_id'])
 
         new_child = magic_link_container_item(
-            name, 
+            magic_link, 
             name,
             translation['magic_link_panel']['item'],
+            [],
+            [],
             list(hikes_info.keys())
         )
 
@@ -190,7 +202,6 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
 
         :returns: the updated row components of the collapse stack
         '''
-
 
         for pos, child in enumerate(children):
 
@@ -231,13 +242,16 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
         ],
         prevent_initial_call = True
     )
-    def delete_magic_link_button(_, children: list[dict]):
+    def delete_magic_link_button(_, children: list[dict]) -> dash.Patch:
 
         triggered_id = dash.callback_context.triggered_id
 
         if _ is None or triggered_id is None: raise dash.exceptions.PreventUpdate
 
         pos : None | int = None
+
+        # Delete hike from the magic links table and cascade the delete to the magic links props automatically
+        Magic_links_table.delete_row(triggered_id['index'])
 
         for pos, child in enumerate(children):
             if child['props']['id']['index'] == triggered_id['index']: break
