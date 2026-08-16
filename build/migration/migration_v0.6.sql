@@ -16,6 +16,15 @@ CREATE TABLE magic_links (
 ALTER TABLE magic_links
 ADD COLUMN IF NOT EXISTS name TEXT DEFAULT '';
 
+-- Add a column storing the user associated to the magic link
+ALTER TABLE magic_links
+ADD COLUMN IF NOT EXISTS user_id INTEGER;
+
+UPDATE magic_links SET user_id = COALESCE(user_id, "XXX");
+
+ALTER TABLE magic_links
+ALTER COLUMN user_id SET NO NULL;
+
 -- Add a color column for the hikes in the magic links props table
 ALTER TABLE magic_links_props
 ADD COLUMN IF NOT EXISTS color VARCHAR(7) DEFAULT '#000000';
