@@ -20,10 +20,15 @@ ADD COLUMN IF NOT EXISTS name TEXT DEFAULT '';
 ALTER TABLE magic_links
 ADD COLUMN IF NOT EXISTS user_id INTEGER;
 
-UPDATE magic_links SET user_id = COALESCE(user_id, "XXX");
+ALTER TABLE magic_links
+ADD CONSTRAINT fk_user_id_magic_links
+FOREIGN KEY (user_id) REFERENCES users(id)
+ON DELETE CASCADE;
+
+UPDATE magic_links SET user_id = COALESCE(user_id, 4);
 
 ALTER TABLE magic_links
-ALTER COLUMN user_id SET NO NULL;
+ALTER COLUMN user_id SET NOT NULL;
 
 -- Add a color column for the hikes in the magic links props table
 ALTER TABLE magic_links_props
