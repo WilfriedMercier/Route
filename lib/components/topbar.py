@@ -28,7 +28,7 @@ def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.
 
     logo = dash.html.Img(src="/assets/logo.svg", className='logo')
 
-    language_selector    = language_selector_layout(
+    language_selector = language_selector_layout(
         'topbar', 
         language_handler, 
         language,
@@ -56,11 +56,19 @@ def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.
 
     badge  = dmc.Badge(
         'BETA (v0.5)', 
-        className = 'version-badge', 
-        size      = 'lg', 
-        variant   = 'dot', 
-        radius    = 'xl', 
-        style     = {'textTransform' : 'none'}
+        className   = 'version-badge', 
+        size        = 'lg', 
+        variant     = 'dot', 
+        radius      = 'xl', 
+        style       = {'textTransform' : 'none'},
+        visibleFrom = 'sm'
+    )
+
+    hike_title = dmc.Title(
+        '',
+        id    = 'hike-super-title', 
+        order = 3, 
+        style = {'maxWidth' : '40%', 'overflow' : 'scroll', 'textWrap' : 'nowrap'}
     )
 
     group = dmc.Group(
@@ -69,11 +77,12 @@ def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.
                 [
                     burger_tooltip, 
                     logo, 
-                    dmc.Title('Route', order=1, className='title'),
+                    dmc.Title('Route', order=1, className='title', visibleFrom='sm'),
                     badge
                 ], 
                 id = 'logo-title-group'
             ),
+            hike_title,
             button_group
         ],
         id = 'topbar'

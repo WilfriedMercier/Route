@@ -37,6 +37,8 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
 
         dash.Output('elevation-plot-slider', 'max'),
 
+        dash.Output('hike-super-title', 'children'),
+
         dash.Input( {'type' : 'hikelist-button', 'index' : dash.ALL}, 'n_clicks'),
         dash.State('hikes-info', 'data'),
         dash.State({'type' : 'hikelist-colorpicker-button', 'index' : dash.ALL}, 'color'),
@@ -54,7 +56,8 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             list[dict[str, str]], 
             dict,
             go.Figure,
-            int
+            int, 
+            str
         ]:
         r'''
         Callback used when a hike is selected in the hike list.
@@ -71,6 +74,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             - dictionary with properties to modify the viewport of the map (i.e. center and zoom)
             - a new figure for the elevation plot with updated data and properties
             - the maximum value of the slider in mobile mode
+            - the hike title for the hike super title component in the topbar
         '''
 
         if _ is None: raise dash.exceptions.PreventUpdate
@@ -129,7 +133,8 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
                 ),
                 'transition' : "flyTo"
             },
-            fig, len(info['distances'])
+            fig, len(info['distances']),
+            hike_name
         )
 
     @app.callback(
