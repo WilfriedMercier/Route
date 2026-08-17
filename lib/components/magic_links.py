@@ -1,10 +1,9 @@
 import dash_mantine_components as     dmc
 import typing
 
-from .misc   import custom_colorpicker
+from .misc   import custom_colorpicker, magic_link_title_layout
 from ..misc  import COLOR_PALETTE
 from ..icons import (
-    IconAdd,
     IconChevronDown,
     IconDelete,
     IconList,
@@ -12,24 +11,12 @@ from ..icons import (
     IconShare
 )
 
-def magic_link_panel_layout(language_handler: dict) -> dmc.Drawer:
+def magic_link_panel_layout(translation: dict) -> dmc.Drawer:
     r'''
     Panel containing magic links.
 
-    :param language handler: current language of the UI
+    :param translation: current language of the UI
     '''
-
-    add_magic_link_button = dmc.ActionIcon(
-        IconAdd(), 
-        id      = 'add-magic-link',
-        variant = 'subtle',
-    )
-
-    add_magic_link_button_tooltip = dmc.Tooltip(
-        add_magic_link_button,
-        id    = 'add-magic-link-tooltip',
-        label = language_handler['add_button']['tooltip']
-    )
 
     magic_link_list = magic_link_container()
 
@@ -40,13 +27,12 @@ def magic_link_panel_layout(language_handler: dict) -> dmc.Drawer:
         zIndex       = 10,
     )
 
+    header = dmc.Group(magic_link_title_layout(translation), id = 'magic-link-header')
+
     return dmc.Drawer(
         [loading_overlay, magic_link_list],
         withCloseButton = True,
-        title           = dmc.Group([
-            language_handler['title'],
-            add_magic_link_button_tooltip
-        ]),
+        title           = header,
         id     = 'magic-link-panel',
         opened = False
     )
@@ -93,6 +79,7 @@ def magic_link_container_item(
 
     delete_button_tooltip = dmc.Tooltip(
         delete_button,
+        id    = {'type' : 'magic-link-delete-button-tooltip', 'index' : magic_link},
         label = language_handler['delete_button']['tooltip']
     )
 
@@ -104,6 +91,7 @@ def magic_link_container_item(
 
     edit_title_button_tooltip = dmc.Tooltip(
         edit_title_button,
+        id    = {'type' : 'magic-link-collapse-title-edit-button-tooltip', 'index' : magic_link},
         label = language_handler['edit_title_button']['edit']['tooltip']
     )
 
@@ -126,6 +114,7 @@ def magic_link_container_item(
 
     share_button_tooltip = dmc.Tooltip(
         share_button,
+        id    = {'type' : 'magic-link-share-tooltip', 'index' : magic_link},
         label = language_handler['share_button']['tooltip']
     )
 
@@ -149,6 +138,7 @@ def magic_link_container_item(
 
     multiselect_tooltip = dmc.Tooltip(
         multiselect,
+        id    = {'type' : 'magic-link-multiselect-tooltip', 'index' : magic_link},
         label = language_handler['list_button']['tooltip']
     )
 
@@ -161,6 +151,7 @@ def magic_link_container_item(
 
     collapse_button_tooltip = dmc.Tooltip(
         collapse_button,
+        id    = {'type' : 'magic-link-collapse-button-tooltip', 'index' : name},
         label = language_handler['collapse_button']['tooltip'],
     )
 

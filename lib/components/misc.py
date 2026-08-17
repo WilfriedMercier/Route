@@ -8,8 +8,28 @@ from ..icons import (
     IconSun,
     IconCheck,
     IconLanguage,
-    IconUser
+    IconUser,
+    IconAdd
 )
+
+def magic_link_title_layout(translation: dict) -> tuple[str, dmc.Tooltip]:
+
+    add_magic_link_button = dmc.ActionIcon(
+        IconAdd(), 
+        id      = 'add-magic-link',
+        variant = 'subtle',
+    )
+
+    add_magic_link_button_tooltip = dmc.Tooltip(
+        add_magic_link_button,
+        id    = 'add-magic-link-tooltip',
+        label = translation['add_button']['tooltip']
+    )
+
+    return (
+        translation['title'],
+        add_magic_link_button_tooltip,
+    )
 
 def login_button_layout(
         id          : str,

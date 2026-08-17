@@ -156,6 +156,9 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         # Case without a magic link
         else:
 
+            # XXX
+            session['user_id'] = 4
+
             (
                 button_style_1, button_style_2,
                 widgets, n_hikes, hikes_info, traces,

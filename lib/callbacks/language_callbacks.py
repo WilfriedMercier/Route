@@ -1,10 +1,12 @@
 import dash
-import plotly.graph_objects as     go
-from   textwrap             import dedent
-from   flask                import session
+import dash_mantine_components as     dmc
+import plotly.graph_objects    as     go
+from   textwrap                import dedent
+from   flask                   import session
 
-from ..components.misc import language_element
+from ..components.misc import language_element, magic_link_title_layout
 from ..lang            import LANGUAGE
+from ..types           import DashComplexID
 
 def register_language_callacks(app: dash.Dash) -> None:
     r'''
@@ -27,7 +29,6 @@ def register_language_callacks(app: dash.Dash) -> None:
         dash.Output({'type' : 'hikelist-delete-button-tooltip', 'index' : dash.ALL}, 'label'),
         dash.Output({'type' : 'hikelist-hide-button-tooltip',   'index' : dash.ALL}, 'label'),
         dash.Output({'type' : 'hikelist-colorpicker-tooltip',   'index' : dash.ALL}, 'label'),
-        dash.Output({'type' : 'hikelist-share-button-tooltip',  'index' : dash.ALL}, 'label'),
         dash.Output('upload-hike-button', 'children'),
 
         dash.Output({'type' : 'login-button', 'index' : dash.ALL}, 'children', allow_duplicate=True),
@@ -45,31 +46,54 @@ def register_language_callacks(app: dash.Dash) -> None:
         dash.Output('magic-link-modal', 'title'),
 
         dash.Output('elevation-plot', 'figure', allow_duplicate=True),
+
+        dash.Output('magic-link-button', 'children'),
+        dash.Output('magic-link-header', 'children'),
+        dash.Output({'type' : 'magic-link-delete-button-tooltip', 'index' : dash.ALL}, 'label'),
+        dash.Output({'type' : 'magic-link-collapse-title-edit-button-tooltip', 'index' : dash.ALL}, 'label'),
+        dash.Output({'type' : 'magic-link-share-tooltip', 'index' : dash.ALL}, 'label'),
+        dash.Output({'type' : 'magic-link-multiselect-tooltip', 'index' : dash.ALL}, 'label'),
+        dash.Output({'type' : 'magic-link-collapse-button-tooltip', 'index' : dash.ALL}, 'label'),
+        dash.Output({'type' : 'magic-link-hike-row-colorpicker-tooltip', 'index' : dash.ALL}, 'label'),
   
         dash.Input({'type': 'language-button', 'index': dash.ALL}, 'n_clicks'),
         dash.State('number-hikes', 'data'),
         dash.State('elevation-plot', 'figure'),
+        dash.State({'type' : 'magic-link-container-item', 'index' : dash.ALL}, 'id'),
+        dash.State({'type' : 'magic-link-collapse-title', 'index' : dash.ALL}, 'readOnly'),
+        dash.State({'type' : 'magic-link-hike-row-colorpicker-tooltip', 'index' : dash.ALL}, 'label'),
 
         prevent_initial_call=True,
     )
-    def language_selection(n_clicks, n_hikes: int, ev_plot) -> tuple[
-        str, 
-        str, str, str, str, str, str,
-        list[str], list[str], list[str], list[str], tuple[str],
-        tuple[str, dash.NoUpdate] | tuple[dash.NoUpdate, dash.NoUpdate], tuple[str, str],
-        str, str, str, str, str, str,
-        tuple[list, list],
-        str, str,
-        go.Figure
-    ]:
+    def language_selection(
+            _, 
+            n_hikes              : int, 
+            ev_plot              : dict, 
+            magic_links_container_items_ids : list[DashComplexID],
+            titles_readonly      : list[bool],
+            colorpicker_tooltips : list[str]
+        ) -> tuple[
+            str, 
+            str, str, str, str, str, str,
+            list[str], list[str], list[str], tuple[str],
+            tuple[str, dash.NoUpdate] | tuple[dash.NoUpdate, dash.NoUpdate], tuple[str, str],
+            str, str, str, str, str, str,
+            tuple[list, list],
+            str, str,
+            go.Figure,
+            str, tuple[str, dmc.Tooltip], list[str], list[str], list[str], list[str], list[str], list[str]
+        ]:
         r'''
         Callback used when the language of the application is changed.
 
-        :param n_clicks: which language was selected
         :param n_hikes: total number of hike elements
+        :param ev_plot: dictionary containing the current instance of the elevation plot
+        :param magic_links_container_items_ids: list of ids of the magic link container items. This is used to determine how many components there are.
+        :param titles_readonly: list with True for titles of magic link components that are readonly and True for those that are editable
+        :param colorpicker_tooltips: list of tooltips of the colorpickers within the collapsible areas in the magic link panel. This is used to determine how many components there are.
         '''
 
-        if all(i is not None for i in n_clicks): raise dash.exceptions.PreventUpdate
+        if all(i is not None for i in _): raise dash.exceptions.PreventUpdate
 
         ctx = dash.callback_context
 
@@ -112,6 +136,16 @@ def register_language_callacks(app: dash.Dash) -> None:
             ''')
         )
 
+        # Number of magic link components in the magic link panel
+        n_magic_links = len(magic_links_container_items_ids)
+
+        edit_title_tooltip = [
+            translation['magic_link_panel']['item']['edit_title_button']['edit']['tooltip']
+            if readonly else
+            translation['magic_link_panel']['item']['edit_title_button']['validate']['tooltip']
+            for readonly in titles_readonly
+        ]
+
         return (
             lang,
             translation['topbar']['theme_switcher']['tooltip'],
@@ -124,7 +158,6 @@ def register_language_callacks(app: dash.Dash) -> None:
             [translation['hike_panel']['delete_button']['tooltip']] * n_hikes,
             [translation['hike_panel']['hide_button'][  'tooltip']] * n_hikes,
             [translation['hike_panel']['colorpicker'][  'tooltip']] * n_hikes,
-            [translation['hike_panel']['share_button'][ 'tooltip']] * n_hikes,
             (translation['hike_panel']['upload_button']['text'],),
 
             (login_button_text, login_button_text),
@@ -142,7 +175,16 @@ def register_language_callacks(app: dash.Dash) -> None:
             translation['magic_link_modal']['text'],
             translation['magic_link_modal']['title'],
 
-            fig
+            fig,
+
+            translation['menubar']['magic_link_button']['text'],
+            magic_link_title_layout(translation['magic_link_panel']),
+            [translation['magic_link_panel']['item']['delete_button']['tooltip']] * n_magic_links,
+            edit_title_tooltip,
+            [translation['magic_link_panel']['item']['share_button']['tooltip']] * n_magic_links,
+            [translation['magic_link_panel']['item']['list_button']['tooltip']] * n_magic_links,
+            [translation['magic_link_panel']['item']['collapse_button']['tooltip']] * n_magic_links,
+            [translation['magic_link_panel']['item']['collapse']['colorpicker']['tooltip']] * len(colorpicker_tooltips),
         )
     
     return

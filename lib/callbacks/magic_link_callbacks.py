@@ -28,6 +28,7 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
         dash.Output({'type' : 'magic-link-collapse-title-edit-button', 'index' : dash.ALL}, 'children'),
         dash.Output({'type' : 'magic-link-collapse-title', 'index' : dash.ALL}, 'readOnly'),
         dash.Output({'type' : 'magic-link-collapse-title', 'index' : dash.ALL}, 'styles'),
+        dash.Output({'type' : 'magic-link-collapse-title-edit-button-tooltip', 'index' : dash.ALL}, 'label', allow_duplicate=True),
         dash.Output("notification-container", 'sendNotifications', allow_duplicate = True),
 
         dash.Input({'type' : 'magic-link-collapse-title-edit-button', 'index' : dash.ALL}, 'n_clicks'),
@@ -47,18 +48,22 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
             list[DashIconify | dash.NoUpdate], 
             list[bool | dash.NoUpdate], 
             list[dict | dash.NoUpdate], 
+            list[str  | dash.NoUpdate],
             list[Notification] | dash.NoUpdate
         ]:
         r'''
         Callback used when on of the edit title buttons in the magic link panel is clicked.
 
-        :param title_readonly: whether the title is in readonly state or not
+        :param all_ids: ids of all the titles
+        :param titles_readonly: whether each title is in readonly state or not
+        :param titles: all the titles
         :param language: language of the UI
 
         :returns: a tuple with lists containing dash.no_update everywhere except for the element corresponding to the triggered ID with
             - the new icon for the edit title button
             - True if the title was not readonly, False otherwise
             - a styles dictionary for the title edit widget,
+            - a list containing an updated tooltip for the edit title button
             - a list containing a notification to show or a no update
         '''
 
@@ -77,10 +82,12 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
         icons: list[dash.NoUpdate | DashIconify]    = [dash.no_update] * ll
         readonly_states: list[dash.NoUpdate | bool] = [dash.no_update] * ll
         styles: list[dash.NoUpdate | dict]          = [dash.no_update] * ll
+        tooltips: list[dash.NoUpdate | str]         = [dash.no_update] * ll
 
         # Case when the title must become editable
         if title_readonly := titles_readonly[pos]:
 
+            tooltips[pos]        = app.language_handler[language]['magic_link_panel']['item']['edit_title_button']['validate']['tooltip']
             notification         = dash.no_update
             readonly_states[pos] = not title_readonly
             icons[pos]           = IconCheck()
@@ -96,6 +103,7 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
         # Case when the title is validated
         else:
 
+            tooltips[pos]        = app.language_handler[language]['magic_link_panel']['item']['edit_title_button']['edit']['tooltip']
             readonly_states[pos] = not title_readonly
             icons[pos]           = IconEdit()
             styles[pos]          = {'input' : {'backgroundColor': 'transparent', 'cursor' : 'default'}}
@@ -110,7 +118,7 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
                 titles[pos]
             )
 
-        return icons, readonly_states, styles, notification
+        return icons, readonly_states, styles, tooltips, notification
 
     @app.callback(
         dash.Output({'type' : 'magic-link-collapse', 'index' : dash.MATCH}, 'opened'),
