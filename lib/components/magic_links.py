@@ -71,7 +71,8 @@ def magic_link_container_item(
         language_handler   : dict,
         checked_hike_names : list[str] = [],
         colors             : typing.Sequence[str | None] = [],
-        all_hikes          : list[str] = []
+        all_hikes          : list[str] = [],
+        base_url           : str       = ""
     ) -> dmc.Stack:
     r'''
     Container with all magic links.
@@ -115,10 +116,12 @@ def magic_link_container_item(
         id           = {'type' : 'magic-link-collapse-title', 'index' : magic_link}
     )
 
-    share_button = dmc.ActionIcon(
+    share_button = dmc.CopyButton(
         IconShare(),
         id      = {'type' : 'magic-link-share', 'index' : magic_link},
-        variant = 'subtle'
+        value   = base_url + '/?token=' + magic_link,
+        variant = 'subtle',
+        style   = {'padding' : '5px'}
     )
 
     share_button_tooltip = dmc.Tooltip(

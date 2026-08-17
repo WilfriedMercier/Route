@@ -34,7 +34,7 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
 
         prevent_initial_call = True
     )
-    def render_ui(url: str) -> tuple[
+    def render_ui_first_pass(url: str) -> tuple[
             dict[str, typing.Any] | dash.NoUpdate, # map -> style
             str,  # base-url -> data
             str,  # magic-link -> data
@@ -82,12 +82,14 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
 
         dash.Input('magic-link', 'data'),
         dash.State('language', 'data'),
+        dash.State('base-url', 'data'),
 
         prevent_initial_call = True
     )
     def render_ui_second_pass(
             magic_link :  str | None,
             language   : LANGUAGE,
+            base_url   : str
         ) -> tuple[
             dl.Map, # map -> children
             tuple[dict[str, str], dict[str, str]] | tuple[dash.NoUpdate, dash.NoUpdate], # all login-button -> style
@@ -163,7 +165,8 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
             # Generate the container items for the magic link panel
             children = generate_magic_link_container_rows_from_db(
                 app.language_handler[language]['magic_link_panel'],
-                list(hikes_info.keys())
+                list(hikes_info.keys()),
+                base_url=base_url
             )
 
             return (
@@ -201,11 +204,12 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         # Store in session manager that a magic link is used
         session['magic-link'] = True
 
-        # Get the hike ID associated to the magic link. If None, no link 
-        hike_id = Magic_links_props_table.get_hike_ids_from_magic_link(magic_link)
+        # Get the hike IDs associated to the magic link. If None, no link 
+        hike_ids = Magic_links_props_table.get_hike_ids_from_magic_link(magic_link)
 
-        # XXX to update so that all hikes in the magic link are rendered
-        hikes_info, widgets, traces = generate_hike_ui_elements_with_hike_id(app, language, hike_id[0])
+        hikes_info, widgets, traces = generate_hike_ui_elements_with_hike_id(
+            app, language, hike_ids, magic_link
+        )
 
         # Create a new figure and update all ui elements related to hikes
         return widgets, len(widgets), hikes_info, traces

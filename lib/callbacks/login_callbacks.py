@@ -153,12 +153,14 @@ def register_login_callbacks(app: dash.Dash) -> None:
         
         dash.Input('dummy', 'data'),
         dash.State('language', 'data'),
+        dash.State('base-url', 'data'),
 
         prevent_initial_call=True
     )
     def secure_login_second_pass(
         dummy    : Dummy,
-        language : LANGUAGE
+        language : LANGUAGE,
+        base_url : str
         ) -> tuple[
             dl.Map, # map -> children
             list[Notification],
@@ -202,7 +204,8 @@ def register_login_callbacks(app: dash.Dash) -> None:
         # Generate the container items for the magic link panel
         children = generate_magic_link_container_rows_from_db(
             app.language_handler[language]['magic_link_panel'],
-            list(hikes_info.keys())
+            list(hikes_info.keys()),
+            base_url = base_url
         )
 
         return (

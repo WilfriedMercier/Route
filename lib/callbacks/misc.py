@@ -43,13 +43,15 @@ def generate_single_magic_link_row_from_db(
 
 def generate_magic_link_container_rows_from_db(
         translation : dict,
-        all_hikes   : list[str]
+        all_hikes   : list[str],
+        base_url    : str = ''
     ) -> list[dmc.Stack]:
     r'''
     Generate a list of components added into the magic link panel container.
 
     :param translation: translation for the UI elements
     :param all_hikes: all hike names that an be toggled in the multiselect componenent. These are all hikes associated to the user.
+    :param base_url: base url appended to the magic links to create a fullly workable magic link
     '''
 
     # If the user is not connected, there are no children
@@ -88,7 +90,8 @@ def generate_magic_link_container_rows_from_db(
                 translation['item'],
                 names,
                 colors,
-                all_hikes
+                all_hikes,
+                base_url=base_url
             )
         )
 
@@ -229,9 +232,10 @@ def generate_hike_ui_elements_with_login(
     return property_dict, widgets, traces
 
 def generate_hike_ui_elements_with_hike_id(
-        app      : dash.Dash, 
-        language : LANGUAGE,
-        hike_id  : int
+        app        : dash.Dash, 
+        language   : LANGUAGE,
+        hike_ids   : list[int],
+        magic_link : str
     ) -> tuple[dict[str, HikeInfo], list[dmc.Space], list[dl.Polyline]]:
     r'''
     Generate all the ui elements that need to be updated if a single hike ID is provided.
@@ -246,24 +250,29 @@ def generate_hike_ui_elements_with_hike_id(
     '''
 
     # Query hikes database associated to the user
-    hike_properties = Hikes_table.get_row_from_hike_id(hike_id)
+    hike_properties = Hikes_table.get_rows_from_hike_ids(hike_ids)
+
+    # Get colors for each hike
+    hike_colors     = Magic_links_props_table.get_colors_from_magic_link_and_hike_ids(
+        magic_link, hike_ids
+    )
 
     # Build the dictionary with hike properties
     property_dict = {}
 
-    for hike in hike_properties:
+    for hike, hike_color in zip(hike_properties, hike_colors):
 
         inside_dict = HikeInfo(
-            latitudes  = hike[2],
-            longitudes = hike[3],
-            center_lat = hike[4],
-            center_lon = hike[5],
-            distances  = hike[6],
-            elevations = hike[7],
-            color      = hike[8]
+            latitudes  = hike[3],
+            longitudes = hike[4],
+            center_lat = hike[5],
+            center_lon = hike[6],
+            distances  = hike[7],
+            elevations = hike[8],
+            color      = hike_color
         )
 
-        property_dict[hike[1]] = inside_dict
+        property_dict[hike[2]] = inside_dict
 
     widgets, traces = update_ui_after_multiple_hike_loads(
         app, property_dict, [],

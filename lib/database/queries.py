@@ -311,7 +311,7 @@ class Hikes_table:
     def get_rows_from_hike_ids(
         cls,
         hike_ids : list[int],
-        columns  : list[str] | None
+        columns  : list[str] | None = None
     ) -> list[tuple]:
         r'''
         Return the rows associated to the hike IDs in the same order as they appear in hike_ids.
@@ -336,7 +336,7 @@ class Hikes_table:
         '''
 
         if columns is None:
-            columns = ["id", "user_id", "name", "latitude", "longitude", "center_lat", "center_lon", "distances", "elevations"]
+            columns = ["id", "user_id", "name", "latitude", "longitude", "center_lat", "center_lon", "distances", "elevations", 'color']
         else:
 
             # Make sure that id is always the first columns
@@ -498,7 +498,7 @@ class Hikes_table:
         :param color: color to update in the row
         :param hike_id: id of the hike
         '''
-        
+
         execute_query_with_params(
             SQL('''
                 UPDATE {}
@@ -685,6 +685,40 @@ class Magic_links_props_table:
             raise NoHikeForMagicLink(f'No hike with ID {hike_id} found for magic link {magic_link}.')
 
         return res[0][0]
+
+    @classmethod
+    def get_colors_from_magic_link_and_hike_ids(cls, magic_link: str, hike_ids: list[int]) -> list[str]:
+        r'''
+        Return the colors associated to each hike id.
+
+        :param magic link: magic link
+        :param hike ids: all hike IDs to get the colors from
+        '''
+
+        res = execute_get_query_with_params(
+            SQL("""
+                SELECT hike_id, color
+                FROM {}
+                WHERE hike_id = ANY(%s)
+                AND id = %s
+            """).format(Identifier(cls._table)),
+            (hike_ids, magic_link)
+        )
+
+        if res is None or len(res) == 0: 
+            raise NoHikeIDInDB(f'No hike with id in {hike_ids} in database.')
+
+        # We reorder the outputs so that it matches the input order
+        res_ids = [i[0] for i in res]
+        
+        out     = []
+
+        for hike_id in hike_ids:
+
+            pos = res_ids.index(hike_id)
+            out.append(res[pos][1])
+
+        return out
 
     @classmethod    
     def get_magic_links_from_hike_id(cls, hike_id: int) -> list[str]:

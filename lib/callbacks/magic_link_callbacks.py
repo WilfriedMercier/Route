@@ -329,6 +329,9 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
         prevent_initial_call = True
     )
     def share_magic_link_button(_, language: LANGUAGE) -> list[Notification]:
+        r'''
+        Callback used when one of the share magic link buttons is clicked.
+        '''
 
         if _ is None: raise dash.exceptions.PreventUpdate
 
