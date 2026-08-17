@@ -242,7 +242,7 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         session['magic-link'] = False
 
         # XXX to be removed
-        session['user_id'] = Users_table.get_user_id_from_username('wilfried')
+        #session['user_id'] = Users_table.get_user_id_from_username('wilfried')
 
         # User session still active in the cookies
         if 'user_id' in session:

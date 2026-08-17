@@ -52,7 +52,8 @@ def generate_magic_link_container_rows_from_db(
     :param all_hikes: all hike names that an be toggled in the multiselect componenent. These are all hikes associated to the user.
     '''
 
-    default_colors = {hike_name : None for hike_name in all_hikes}
+    # If the user is not connected, there are no children
+    if 'user_id' not in session: return []
 
     # Get all magic link props associated to the user
     rows        = Magic_links_table.get_rows_from_user_id(session['user_id'])
