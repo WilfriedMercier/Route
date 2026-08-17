@@ -98,14 +98,16 @@ class HikeInfo(typing.TypedDict):
     :param elevations: list of elevation data for the elevation plot
     :param latitudes: latitude coordinates used to draw the path on the map and for the marker
     :param longitudes: longitude coordinates used to draw the path on the map and for the marker
+    :param color: color of the hike
     '''
 
-    center_lat            : float
-    center_lon            : float
-    distances             : list[float]
-    elevations            : list[float]
-    latitudes             : list[float]
-    longitudes            : list[float]
+    center_lat : float
+    center_lon : float
+    distances  : list[float]
+    elevations : list[float]
+    latitudes  : list[float]
+    longitudes : list[float]
+    color      : str
 
 EMPTY_HIKE_DATA_FOR_PLOT : typing.Final = HikeDataForElevationPlot(
     distances  = [],

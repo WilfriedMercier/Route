@@ -165,59 +165,6 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         hike_color = {'color' : color if checked else 'rgba(0, 0, 0, 0)'}
 
         return output, output, output, output, hike_color
-
-    # XXX to be moved to the new magic link section
-    @app.callback(
-        dash.Output('magic-link-modal', 'opened'),
-        dash.Output('magic-link-copy-button', 'value'),
-        dash.Output('magic-link-copy-button', 'children'),
-
-        dash.Input({'type' : 'hikelist-share-button', 'index' : dash.MATCH}, 'n_clicks'),
-        dash.State('base-url', 'data'),
-        prevent_initial_call = True
-    )
-    def share_hike(
-            _ : int | None,
-            base_url : str
-        ) -> tuple[typing.Literal[True], str, str]:
-        r'''
-        Callback used when any of the share buttons is clicked.
-        
-        :param n_clicks: number of clicks in each share button
-        :param base_url: base url at which the application is accessible 
-
-        :returns: a tuple with
-            - True,
-            - magic link
-            - magic link
-        '''
-
-        if _ is None: raise dash.exceptions.PreventUpdate
-
-        ctx = dash.callback_context
-
-        if ctx is None or not ctx.triggered: raise dash.exceptions.PreventUpdate
-
-        triggered_id: dict = ctx.triggered_id # type: ignore
-        
-        try:
-            hike_id      = Hikes_table.get_hike_id_from_user_id_and_hike_name(
-                session['user_id'], triggered_id['index']
-            )
-        except NoHikeIDInDB: raise dash.exceptions.PreventUpdate
-        
-        try:
-            magic_link_id = Magic_links_table.get_magic_link_from_hike_id(hike_id)
-        except NoMagicLinkForHikeID:
-
-            Magic_links_table.insert_magic_link_into_db(hike_id)
-
-            # Retrieve the magic link
-            magic_link_id = Magic_links_table.get_magic_link_from_hike_id(hike_id)
-
-        magic_link = f'{base_url}?token={magic_link_id}'
-
-        return True, magic_link, magic_link
     
     @app.callback(
         dash.Output('validate-modal', 'opened'),
@@ -272,7 +219,6 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.Output('elevation-plot', 'figure', allow_duplicate=True),
 
         dash.Input({'type' : 'hikelist-colorpicker-picker',  'index' : dash.MATCH}, 'value'),
-        dash.State({'type' : 'hikelist-colorpicker-picker',  'index' : dash.MATCH}, 'id'),
         dash.State({'type' : 'hikelist-colorpicker-picker',  'index' : dash.ALL},   'id'),
         dash.State('selected-hike-props', 'data'),
         dash.State('selected-hike-data-for-plot', 'data'),
@@ -281,8 +227,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         prevent_initial_call=True
     )
     def colorpicker_selection(
-            selected_color  : str | None, 
-            index           : DashComplexID,
+            selected_color  : str | None,
             all_ids         : list[DashComplexID],
             hike_props      : HikeProps,
             dist_elev       : HikeDataForElevationPlot,
@@ -297,7 +242,6 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         Callback used whenever a color is picked in the colorpicker modal.
 
         :param selected_color: color corresponding to the colorpicker button clicked in the hike list panel. This is used to setup the default color of the colorpicker when loading
-        :param index: index identifying the hike corresponding to the button clicked
         :param hike_props: properties associated to the clicked colorpicker button
         :param dist_elev: object containing distance and elevation data for the elevation plot
         :param language: current language of the UI
@@ -309,7 +253,11 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             - figure for the elevation plot with an updated color if it corresponds to the currently selected hike. Otherwise dash.no_update
         '''
 
-        hike_name = index['index']
+        triggered_id = dash.ctx.triggered_id
+
+        if triggered_id is None: raise dash.exceptions.PreventUpdate
+
+        hike_name = triggered_id['index']
 
         # If data is missing, we prevent any update
         if (
@@ -336,12 +284,17 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
 
         # Only update the color of the path on the map corresponding to the button being changed
         map_props = [
-            {'color' : selected_color} if index == hike_id
+            {'color' : selected_color} if triggered_id == hike_id
             else dash.no_update
             for hike_id in all_ids
         ]
 
-        colors = [selected_color if index == hike_id else dash.no_update for hike_id in all_ids]
+        colors = [selected_color if triggered_id == hike_id else dash.no_update for hike_id in all_ids]
+
+        # Update the color of the hike in the database
+        hike_id = Hikes_table.get_hike_id_from_name(triggered_id['index'])
+
+        Hikes_table.update_color_in_row(selected_color, hike_id)
 
         return colors, hike_props, map_props, fig
     

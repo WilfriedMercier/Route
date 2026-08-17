@@ -490,6 +490,26 @@ class Hikes_table:
 
         return
 
+    @classmethod
+    def update_color_in_row(cls, color: str, hike_id: int) -> None:
+        '''
+        Update the color of a given row.
+
+        :param color: color to update in the row
+        :param hike_id: id of the hike
+        '''
+        
+        execute_query_with_params(
+            SQL('''
+                UPDATE {}
+                SET color = %s
+                WHERE id = %s
+            ''').format(Identifier(cls._table)),
+            values = (color, hike_id)
+        )
+
+        return
+
 class Magic_links_table:
     r'''A class containing methods that query information in the magic links table.'''
 

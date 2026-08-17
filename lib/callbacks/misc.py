@@ -98,6 +98,7 @@ def update_ui_after_single_hike_load(
         longitudes       : list[float],
         pos_absolute     : int,
         hike_name        : str,
+        color            : str,
         language_dict    : dict,
         magic_link_state : bool = False
     ) -> tuple[dmc.Space, dl.Polyline]:
@@ -108,6 +109,7 @@ def update_ui_after_single_hike_load(
     :param longitudes: longitudes of the hike plotted on the map
     :param pos_absolute: absolute index of the hike in the hike list
     :param hike_name: name of the hike
+    :param color: color of the hike
     :param language_dict: dictionary for the hikelist element
     :param magic_link_state: True triggers a special UI for magic links, False triggers the normal UI
 
@@ -115,8 +117,6 @@ def update_ui_after_single_hike_load(
         - hikelist element widget
         - PolyLine that represents the path of the hike
     '''
-
-    color    = COLOR_PALETTE[pos_absolute]
 
     # Create a hike widget in the hike list
     widget   = hikelist_element_layout(
@@ -169,6 +169,7 @@ def update_ui_after_multiple_hike_loads(
             properties['longitudes'],
             pos_init + pos,
             hike_name,
+            properties['color'],
             language_dict,
             magic_link_state = magic_link_state
         )
@@ -207,12 +208,13 @@ def generate_hike_ui_elements_with_login(
     for hike in hike_properties:
 
         inside_dict = HikeInfo(
-            latitudes             = hike[2],
-            longitudes            = hike[3],
-            center_lat            = hike[4],
-            center_lon            = hike[5],
-            distances             = hike[6],
-            elevations            = hike[7]
+            latitudes  = hike[2],
+            longitudes = hike[3],
+            center_lat = hike[4],
+            center_lon = hike[5],
+            distances  = hike[6],
+            elevations = hike[7],
+            color      = hike[8]   
         )
 
         property_dict[hike[1]] = inside_dict
@@ -251,12 +253,13 @@ def generate_hike_ui_elements_with_hike_id(
     for hike in hike_properties:
 
         inside_dict = HikeInfo(
-            latitudes             = hike[2],
-            longitudes            = hike[3],
-            center_lat            = hike[4],
-            center_lon            = hike[5],
-            distances             = hike[6],
-            elevations            = hike[7]
+            latitudes  = hike[2],
+            longitudes = hike[3],
+            center_lat = hike[4],
+            center_lon = hike[5],
+            distances  = hike[6],
+            elevations = hike[7],
+            color      = hike[8]
         )
 
         property_dict[hike[1]] = inside_dict
