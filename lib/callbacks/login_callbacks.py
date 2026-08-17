@@ -4,11 +4,15 @@ import dash_leaflet            as     dl
 import dash_mantine_components as     dmc
 from   flask                   import session
 
-from .misc                      import generate_hike_ui_elements_with_login
 from ..lang                     import LANGUAGE
 from ..database                 import validate_credentials, Users_table
 from ..components.map           import generate_leaflet_map_figure
 from ..components.notifications import login_success_notification, logout_success_notification
+
+from .misc                      import (
+    generate_hike_ui_elements_with_login,
+    generate_magic_link_container_rows_from_db
+)
 
 from ..errors   import (
     WrongPassword, 
@@ -144,6 +148,8 @@ def register_login_callbacks(app: dash.Dash) -> None:
 
         dash.Output('magic-link-button', 'disabled'),
         dash.Output('magic-link-button-tooltip', 'disabled'),
+
+        dash.Output('magic-link-container', 'children', allow_duplicate=True),
         
         dash.Input('dummy', 'data'),
         dash.State('language', 'data'),
@@ -167,7 +173,9 @@ def register_login_callbacks(app: dash.Dash) -> None:
             list[dl.Polyline],
 
             typing.Literal[False],
-            typing.Literal[False]
+            typing.Literal[False],
+
+            list[dmc.Stack]
         ]:
         r'''
         Callback used when the user is trying to login.
@@ -191,13 +199,20 @@ def register_login_callbacks(app: dash.Dash) -> None:
             username = Users_table.get_username_from_user_id(session['user_id'])
         except NoUserIdInDB: raise dash.exceptions.PreventUpdate
 
+        # Generate the container items for the magic link panel
+        children = generate_magic_link_container_rows_from_db(
+            app.language_handler[language]['magic_link_panel'],
+            list(hikes_info.keys())
+        )
+
         return (
             generate_leaflet_map_figure(),
             [login_success_notification(translation['notifications'])], 
             (username, username), (login_button_tooltip, login_button_tooltip),
             widgets, len(widgets), hikes_info, 
             traces,
-            False, False
+            False, False,
+            children
         )
     
     @app.callback(
@@ -240,6 +255,7 @@ def register_login_callbacks(app: dash.Dash) -> None:
         dash.Output('notification-container', 'sendNotifications', allow_duplicate=True),
 
         dash.Output('magic-link-button', 'disabled', allow_duplicate=True),
+        dash.Output('magic-link-container', 'children', allow_duplicate=True),
 
         dash.Input( {'type' : 'login-button', 'index' : dash.ALL}, 'n_clicks'),
         dash.State( 'login-modal', 'opened'),
@@ -271,7 +287,8 @@ def register_login_callbacks(app: dash.Dash) -> None:
 
             list[Notification] | dash.NoUpdate,
 
-            typing.Literal[True]
+            typing.Literal[True],
+            list | dash.NoUpdate
         ]:
         r'''
         Callback used when the login/logout button on the topbar is clicked.
@@ -308,7 +325,8 @@ def register_login_callbacks(app: dash.Dash) -> None:
                 hikes_info, colorpicker_id, hike_props, hike_data_ev, hike_data_map,
                 {'height' : '100%'}, {'display' : 'none'},
                 [logout_success_notification(translation['notifications'])],
-                True
+                True,
+                []
             )
 
         # Handle login button click
@@ -320,7 +338,8 @@ def register_login_callbacks(app: dash.Dash) -> None:
             dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update,
             dash.no_update, dash.no_update,
             dash.no_update,
-            True
+            True,
+            dash.no_update
         )
 
     return
