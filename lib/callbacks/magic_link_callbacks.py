@@ -3,11 +3,12 @@ import random
 from   dash_iconify import DashIconify
 from   flask        import session
 
+from ..errors                   import NoHikeForMagicLink
 from ..misc                     import COLOR_PALETTE
-from ..database                 import Magic_links_table
+from ..database                 import Magic_links_table, Magic_links_props_table, Hikes_table
 from ..components.notifications import share_hike_notification, hike_title_update_notification
 from ..lang                     import LANGUAGE
-from ..components.magic_links   import magic_link_container_item
+from ..components.magic_links   import magic_link_container_item, magic_link_hike_element_row
 from ..types                    import HikeInfo, DashComplexID, Notification
 from ..icons import (
     IconCheck,
@@ -187,29 +188,70 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
     @app.callback(
         dash.Output({'type' : 'magic-link-collapse-stack', 'index' : dash.MATCH}, 'children'),
         dash.Input({'type'  : 'magic-link-multiselect',    'index' : dash.MATCH}, 'value'),
-        dash.State({'type'  : 'magic-link-collapse-stack', 'index' : dash.MATCH}, 'children'),
+        dash.State('hikes-info', 'data'),
+        dash.State('language', 'data'),
         prevent_initial_call = True
     )
     def magic_link_multiselect_change(
-            values   : list[str], 
-            children : list[dict],
+            values     : list[str], 
+            hikes_info : dict[str, HikeInfo],
+            language   : LANGUAGE
         ) -> list[dict]:
         r'''
         Callback used when one of the elements in one of the multiselect components in the magic link is clicked.
 
         :param values: checked values of the multiselect
-        :param children: row components in the collapse stack that contain the selected hikes
-
-        :returns: the updated row components of the collapse stack
+        :param hikes_info: dict of HikeInfo objects with hike names given as keys
         '''
 
-        for pos, child in enumerate(children):
+        triggered_id = dash.ctx.triggered_id
 
-            child_id = child['props']['id']['index'].split('/')[1]
-            if child_id in values and child['props']['display'] != 'flex':
-                children[pos]['props']['display'] = 'flex'
-            elif child_id not in values and child['props']['display'] != 'none':
-                children[pos]['props']['display'] = 'none'
+        if triggered_id is None: raise dash.exceptions.PreventUpdate
+
+        magic_link = triggered_id['index']
+        children   = []
+
+        for pos, hike_name in enumerate(hikes_info.keys()):
+
+            hike_id       = Hikes_table.get_hike_id_from_name(hike_name)
+            is_hike_in_db = Magic_links_props_table.is_hike_id_in_magic_link(
+                magic_link, hike_id
+            )
+
+            # Case when the hike is selected
+            if hike_name in values:
+
+                # If the hike is already in the database, we get and apply its color
+                if is_hike_in_db:
+                    color = Magic_links_props_table.get_color_from_magic_link_and_hike_id(
+                        magic_link, hike_id
+                    )
+                else: color = None
+
+                # Create the component
+                children.append(
+                    magic_link_hike_element_row(
+                        magic_link + '/' + hike_name,
+                        hike_name,
+                        new_color := (color if color is not None else COLOR_PALETTE[pos]),
+                        app.language_handler[language]['magic_link_panel']['item'],
+                    )
+                )
+
+                # Add hike to the props database if not already there
+                if not is_hike_in_db:
+                    Magic_links_props_table.insert_row(
+                        magic_link,
+                        hike_id,
+                        new_color
+                    )
+
+            # Case when the hike is not selected -> remove the hike from the database if in there
+            elif hike_name not in values and is_hike_in_db:
+
+                Magic_links_props_table.delete_row(
+                    magic_link, hike_id
+                )
 
         return children
 
@@ -229,6 +271,18 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
         :returns: color for the colorpicker button
         '''
 
+        triggered_id = dash.ctx.triggered_id
+
+        if triggered_id is None: raise dash.exceptions.PreventUpdate
+
+        # Update the color of the hike in the database
+        magic_link, hike_name = triggered_id['index'].split('/')
+        hike_id               = Hikes_table.get_hike_id_from_name(hike_name)
+
+        Magic_links_props_table.update_color_in_row(
+            selected_color, magic_link, hike_id
+        )
+
         return selected_color
 
     @app.callback(
@@ -243,6 +297,11 @@ def register_magic_link_panel_callbacks(app: dash.Dash) -> None:
         prevent_initial_call = True
     )
     def delete_magic_link_button(_, children: list[dict]) -> dash.Patch:
+        r'''
+        Callback used when one of the delete buttons is clicked.
+
+        :param children: current children (magic link items) of the magic link container
+        '''
 
         triggered_id = dash.callback_context.triggered_id
 

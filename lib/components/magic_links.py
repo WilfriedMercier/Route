@@ -47,8 +47,8 @@ def magic_link_panel_layout(language_handler: dict) -> dmc.Drawer:
             language_handler['title'],
             add_magic_link_button_tooltip
         ]),
-        id              = 'magic-link-panel',
-        opened = True
+        id     = 'magic-link-panel',
+        opened = False
     )
 
 def magic_link_container() -> dmc.Stack:

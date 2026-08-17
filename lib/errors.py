@@ -7,10 +7,13 @@ class NoHikeForMagicLink(Exception): pass
 #: Error raised when there is no hike data associated to to the user
 class NoHikeForUser(Exception): pass
 
-#: General error raised when no hike ID in the database is found.
+#: Error raised when no hike ID in the database is found.
 class NoHikeIDInDB(Exception): pass
 
-#: General error raised when no magic link ID in the database is found.
+#/ Error raised when there is no hike with the given name in the database
+class NoHikeNameInDb(Exception): pass
+
+#: Error raised when no magic link ID in the database is found.
 class NoMagicLinkIDInDB(Exception): pass
 
 #: Error raised when no magic link is associated to a given hike ID.

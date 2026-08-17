@@ -14,7 +14,8 @@ from   ..errors      import (
     NoUserIdInDB, 
     NoMagicLinkForHikeID,
     NoHikeForUser,
-    NoMagicLinkIDInDB
+    NoMagicLinkIDInDB,
+    NoHikeNameInDb
 )
 
 
@@ -196,6 +197,28 @@ class Hikes_table:
     r'''A class containing methods that query information in the hikes table.'''
 
     _table = 'hikes'
+
+    @classmethod
+    def get_hike_id_from_name(cls, hike_name: str) -> int:
+        r'''
+        Return the hike ID associated to a given name.
+
+        :param hike_name: name of the hike
+        '''
+
+        res = execute_get_query_with_params(
+            SQL('''
+                SELECT id
+                FROM {}
+                WHERE name = %s
+            ''').format(Identifier(cls._table)),
+            (hike_name,)
+        )
+
+        if res is None or len(res) == 0:
+            raise NoHikeNameInDb(f'No hike with name {hike_name} found in database.')
+
+        return res[0][0]
 
     @classmethod
     def get_rows_from_user_id(
@@ -599,6 +622,50 @@ class Magic_links_props_table:
 
     _table = 'magic_links_props'
 
+    @classmethod
+    def is_hike_id_in_magic_link(cls, magic_link: str, hike_id: int) -> bool:
+        r'''
+        Return True if the given hike ID is in the given magic link.
+
+        :param magic_link: magic link
+        :param hike_id: ID of the hike
+        '''
+
+        res = execute_get_query_with_params(
+            SQL('''
+                SELECT id FROM {} 
+                WHERE id = %s
+                AND hike_id = %s
+            ''').format(Identifier(cls._table)),
+            values = (magic_link, hike_id)
+        )
+
+        return res is not None and len(res) > 0
+
+    @classmethod
+    def get_color_from_magic_link_and_hike_id(cls, magic_link: str, hike_id: int) -> str:
+        r'''
+        Return the color associated to a given hike in a given magic link.
+
+        :param magic link: magic link
+        :param hike id: ID of the hike
+        '''
+
+        res = execute_get_query_with_params(
+            SQL('''
+                SELECT color
+                FROM {}
+                WHERE id = %s
+                AND hike_id = %s
+            ''').format(Identifier(cls._table)),
+            values = (magic_link, hike_id)
+        )
+
+        if res is None or len(res) == 0:
+            raise NoHikeForMagicLink(f'No hike with ID {hike_id} found for magic link {magic_link}.')
+
+        return res[0][0]
+
     @classmethod    
     def get_magic_links_from_hike_id(cls, hike_id: int) -> list[str]:
         r'''
@@ -705,3 +772,45 @@ class Magic_links_props_table:
         )
 
         return 
+
+    @classmethod
+    def delete_row(cls, magic_link: str, hike_id: int) -> None:
+        r'''
+        Insert a new row in the table.
+        
+        :param magic_link: magic link associated to the hike
+        :param hike_id: identifier of the hike as it appears in the database
+        '''
+
+        execute_query_with_params(
+            SQL('''
+                DELETE FROM {}
+                WHERE id = %s
+                AND hike_id = %s
+            ''').format(Identifier(cls._table)),
+            (magic_link, hike_id)
+        )
+
+        return 
+
+    @classmethod
+    def update_color_in_row(cls, color: str, magic_link: str, hike_id: int) -> None:
+        '''
+        Update the color of a given row.
+
+        :param color: color to update in the row
+        :param magic_link: magic link
+        :param hike_id: id of the hike
+        '''
+
+        execute_query_with_params(
+            SQL('''
+                UPDATE {}
+                SET color = %s
+                WHERE id = %s
+                AND hike_id = %s
+            ''').format(Identifier(cls._table)),
+            values = (color, magic_link, hike_id)
+        )
+
+        return
