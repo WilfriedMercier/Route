@@ -177,14 +177,22 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.Output('validate-modal-yes',  'children'),
         dash.Output('validate-modal-no',   'children'),
         dash.Output('validate-modal-text', 'children'),
+        dash.Output('hike-super-title',    'children', allow_duplicate=True),
 
         dash.Input({'type' : 'hikelist-delete-button', 'index' : dash.MATCH}, 'n_clicks'),
-        dash.State('language', 'data')
+        dash.State({'type' : 'hikelist-delete-button', 'index' : dash.ALL},   'n_clicks'),
+        dash.State('language', 'data'),
+        prevent_initial_call = True
     )
-    def delete_hike(_: int | None, language: LANGUAGE) -> tuple[typing.Literal[True], str, str, str, str]:
+    def delete_hike(
+            _                     : int | None, 
+            delete_buttons_clicks : list[int | None],
+            language              : LANGUAGE
+        ) -> tuple[typing.Literal[True], str, str, str, str, str | dash.NoUpdate]:
         r'''
         Callback called when one of the delete hike buttons is clicked in the hike drawer.
 
+        :param delete_buttons_clicks: list of n_clicks for each delete button. This is used to know how many buttons there are before one is deleted.
         :param language: current language of the application
 
         :returns: a tuple with
@@ -193,6 +201,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             - text shown in the yes button
             - text shown in the no button
             - text shown in the confirm modal
+            - '' for the super title in the topbar if the list is going to be empty after the hike is deleted or dash.no_update
         '''
         
         if _ is None: raise dash.exceptions.PreventUpdate
@@ -209,12 +218,16 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
 
         translation = app.language_handler[language]['validate_modal']
 
+        # If one button is remaining, this means the list will be empty and therefore we remove the super title
+        super_title = '' if len(delete_buttons_clicks) == 1 else dash.no_update
+
         return (
             True, 
             triggered_id['index'], 
             translation['yes_button']['text'],
             translation['no_button']['text'],
             translation['text'],
+            super_title
         )
 
     @app.callback(
