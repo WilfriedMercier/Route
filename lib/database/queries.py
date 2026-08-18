@@ -437,11 +437,11 @@ class Hikes_table:
         '''
 
         query      = f'''
-            INSERT INTO {cls._table} (user_id, name, center_lat, center_lon, latitude, longitude, distances, elevations)
+            INSERT INTO {cls._table} (user_id, name, center_lat, center_lon, color, latitude, longitude, distances, elevations)
             VALUES %s;
         '''
 
-        template = "(%s, %s, %s, %s, %s::double precision[], %s::double precision[], %s::double precision[], %s::double precision[])"
+        template = "(%s, %s, %s, %s, %s, %s::double precision[], %s::double precision[], %s::double precision[], %s::double precision[])"
 
         values = []
 
@@ -452,6 +452,7 @@ class Hikes_table:
                 hike_name,
                 hike_dict['center_lat'],
                 hike_dict['center_lon'],
+                hike_dict['color'],
                 hike_dict['latitudes'],
                 hike_dict['longitudes'],
                 hike_dict['distances'],
