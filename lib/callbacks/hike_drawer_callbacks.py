@@ -4,17 +4,19 @@ import plotly.graph_objects as     go
 import numpy                as     np
 from   flask                import session
 
-from ..database       import Hikes_table, Magic_links_table
+from ..database       import Hikes_table
 from ..components.map import generate_new_figure
 from ..lang           import LANGUAGE
-from ..errors         import NoHikeIDInDB, NoMagicLinkForHikeID
+from ..errors         import NoHikeIDInDB
 from ..types import (
     DashComplexID,
     HikeInfo, 
     HikeProps, 
     HikeDataForElevationPlot, 
     HikeDataForMarker,
-    EMPTY_HIKE_DATA_FOR_PLOT
+    EMPTY_HIKE_DATA_FOR_PLOT,
+    MultiselectData,
+    MultiselectDataRow
 )
 
 def register_hike_drawer_callbacks(app: dash.Dash) -> None:
@@ -178,21 +180,35 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.Output('validate-modal-no',   'children'),
         dash.Output('validate-modal-text', 'children'),
         dash.Output('hike-super-title',    'children', allow_duplicate=True),
+        dash.Output({'type' : 'magic-link-multiselect', 'index' : dash.ALL}, 'data'),
+        dash.Output({'type' : 'magic-link-multiselect', 'index' : dash.ALL}, 'value'),
 
         dash.Input({'type' : 'hikelist-delete-button', 'index' : dash.MATCH}, 'n_clicks'),
-        dash.State({'type' : 'hikelist-delete-button', 'index' : dash.ALL},   'n_clicks'),
+        dash.State({'type' : 'hikelist-button', 'index' : dash.ALL}, 'id'),
+        dash.State({'type' : 'magic-link-multiselect', 'index' : dash.ALL}, 'value'),
         dash.State('language', 'data'),
         prevent_initial_call = True
     )
     def delete_hike(
-            _                     : int | None, 
-            delete_buttons_clicks : list[int | None],
-            language              : LANGUAGE
-        ) -> tuple[typing.Literal[True], str, str, str, str, str | dash.NoUpdate]:
+            _         : int | None, 
+            all_ids   : list[DashComplexID],
+            ml_values : list[list[str]],
+            language  : LANGUAGE
+        ) -> tuple[
+            typing.Literal[True], 
+            str, 
+            str, 
+            str, 
+            str, 
+            str | dash.NoUpdate,
+            list[MultiselectData],
+            list[list[str]]
+        ]:
         r'''
         Callback called when one of the delete hike buttons is clicked in the hike drawer.
 
-        :param delete_buttons_clicks: list of n_clicks for each delete button. This is used to know how many buttons there are before one is deleted.
+        :param all_ids: list of IDs of all the hike buttons containing the name of the hikes as indices
+        :param ml_value: XXX
         :param language: current language of the application
 
         :returns: a tuple with
@@ -211,23 +227,44 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         if ctx is None or not ctx.triggered: raise dash.exceptions.PreventUpdate
 
         triggered_id: dict = ctx.triggered_id # type: ignore
+        triggered_name = triggered_id['index']
 
         try:
-            session['hike-to-delete'] = triggered_id['index']
+            session['hike-to-delete'] = triggered_name
         except NoHikeIDInDB: raise dash.exceptions.PreventUpdate
 
         translation = app.language_handler[language]['validate_modal']
 
         # If one button is remaining, this means the list will be empty and therefore we remove the super title
-        super_title = '' if len(delete_buttons_clicks) == 1 else dash.no_update
+        super_title = '' if len(all_ids) == 1 else dash.no_update
+
+        # Update the data in the multiselect objects
+        hike_names = [idd['index'] for idd in all_ids if idd['index'] != triggered_name]
+
+        new_data: MultiselectData = [
+            MultiselectDataRow(
+                value = hike_name, 
+                label = hike_name
+            )
+            for hike_name in hike_names
+        ]
+
+        # Update the values in the multiselect objects by removing the hike to-be-deleted if it appears as selected
+        print(ml_values)
+        for pos, ml_value_list in enumerate(ml_values):
+
+            if triggered_name in ml_value_list:
+                ml_values[pos].remove(triggered_name)
 
         return (
             True, 
-            triggered_id['index'], 
+            triggered_name, 
             translation['yes_button']['text'],
             translation['no_button']['text'],
             translation['text'],
-            super_title
+            super_title,
+            [new_data] * len(ml_values),
+            ml_values
         )
 
     @app.callback(

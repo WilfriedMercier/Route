@@ -2,6 +2,20 @@ import dash_leaflet as     dl
 import typing
 from   dash_iconify import DashIconify
 
+class MultiselectDataRow(typing.TypedDict):
+    r'''
+    Class defining the inner type expected for the data field of a dash mantine multiselect component.
+
+    :param value: the value of a row in the multiselect provided when the row is checked
+    :param label: the associated label shown in the multiselect
+    '''
+
+    value : typing.Any
+    label : typing.Any
+
+#: Class defining the data type expected for the data field of a dash mantine multiselect component.
+type MultiselectData = list[MultiselectDataRow]
+
 class DashComplexID(typing.TypedDict):
     r'''
     Class defining the type of complex IDs allowed by Dash for widgets.
