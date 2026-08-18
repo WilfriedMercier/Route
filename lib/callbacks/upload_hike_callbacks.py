@@ -3,13 +3,13 @@ import dash_leaflet            as     dl
 import dash_mantine_components as     dmc
 from   flask                   import session
 
-from .misc            import update_ui_after_multiple_hike_loads, COLOR_PALETTE
+from .misc            import update_ui_after_multiple_hike_loads
 from ..components.map import generate_leaflet_map_figure
 from ..types          import DummyWithTraces, Notification, HikeInfo
 from ..lang           import LANGUAGE
 from ..errors         import UnsupportedFileFormatError
 from ..database       import Hikes_table
-from ..misc           import check_if_hike_is_loaded
+from ..misc           import check_if_hike_is_loaded, COLOR_PALETTE
 from ..io             import decode_and_process_uploaded_file
 
 from ..components.notifications import (

@@ -32,8 +32,8 @@ env-clean:
 
 db-setup: db-clean
 	@echo "=== Creating PostgreSQL database $$DB_NAME ==="
-	sudo createdb -h $${DB_HOST} -p $${DB_PORT} -U $${DB_ROOT_USER} $${DB_NAME}
-	sudo psql -h $${DB_HOST} -p $${DB_PORT} -U $${DB_ROOT_USER} -d $${DB_NAME} -f schema.sql
+	sudo -u $${DB_ROOT_USER} createdb -h $${DB_HOST} -p $${DB_PORT} $${DB_NAME}
+	sudo -u $${DB_ROOT_USER} psql -h $${DB_HOST} -p $${DB_PORT} -d $${DB_NAME} -f schema.sql
 	@echo "\n"
 
 	@echo "=== Copying .env file into root directory ==="
@@ -43,7 +43,7 @@ db-setup: db-clean
 # Drop the db from postgres
 db-drop:
 	@echo "=== Removing PostgreSQL database $$DB_NAME if it exists ==="
-	- sudo dropdb -h $${DB_HOST} -p $${DB_PORT} -U $${DB_ROOT_USER} --if-exists $${DB_NAME}
+	- sudo -u $${DB_ROOT_USER} dropdb -h $${DB_HOST} -p $${DB_PORT} --if-exists $${DB_NAME}
 	@echo "\n"
 
 db-clean: db-drop user-clean
@@ -58,13 +58,13 @@ db-clean: db-drop user-clean
 # Remove the user from the DB
 user-clean:
 	@echo "=== Removing user $$DB_USER" if it exists ===""
-	- sudo -u $${DB_ROOT_USER} psql -c "DROP USER IF EXISTS $${DB_USER};"
+	- sudo -u $${DB_ROOT_USER} psql -c "DROP USER IF EXISTS \"$${DB_USER}\";"
 	@echo "\n"
 
 # Create a user
 user-create:
 	@echo "=== Creating user $$DB_USER ==="
-	sudo -u $${DB_ROOT_USER} psql -c "CREATE USER $${DB_USER} WITH PASSWORD '$${PGPASSWORD}';"
+	sudo -u $${DB_ROOT_USER} psql -c "CREATE USER \"$${DB_USER}\" WITH PASSWORD '$${PGPASSWORD}';"
 	@echo "\n"
 
 # (Re-)create a new user and set limited privileges
@@ -73,11 +73,11 @@ user-setup: user-clean user-create user-add-permissions
 # Add permissions to the user
 user-add-permissions:
 	@echo "=== Granting Permissions ==="
-	@echo "GRANT CONNECT ON DATABASE "$${DB_NAME}" TO $${DB_USER}; \
-GRANT USAGE ON SCHEMA public TO $${DB_USER}; \
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO $${DB_USER}; \
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO $${DB_USER}; \
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO $${DB_USER}; \
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO $${DB_USER};" \
+	@echo "GRANT CONNECT ON DATABASE \"$${DB_NAME}\" TO \"$${DB_USER}\"; \
+GRANT USAGE ON SCHEMA public TO \"$${DB_USER}\"; \
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO \"$${DB_USER}\"; \
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO \"$${DB_USER}\"; \
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO \"$${DB_USER}\"; \
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO \"$${DB_USER}\";" \
 	| sudo -u $${DB_ROOT_USER} psql -d $${DB_NAME}
 	@echo "\n"

@@ -4,15 +4,15 @@ import dash_mantine_components as     dmc
 import dash_leaflet            as     dl
 from   flask                   import session
 
+from   ..errors                 import NoHikeForUser
 from   ..lang                   import LANGUAGE
 from   ..types                  import HikeInfo
-from   ..misc                   import COLOR_PALETTE
 from   ..components.magic_links import magic_link_container_item
 from   ..components.hike_panel  import hikelist_element_layout
 from   ..database               import (
     Magic_links_props_table, 
     Hikes_table,
-    Magic_links_table
+    Magic_links_table,
 )
 
 def generate_single_magic_link_row_from_db(
@@ -204,7 +204,10 @@ def generate_hike_ui_elements_with_login(
     '''
 
     # Query hikes database associated to the user
-    hike_properties = Hikes_table.get_rows_from_user_id(session['user_id'])
+    try:
+        hike_properties = Hikes_table.get_rows_from_user_id(session['user_id'])
+    except NoHikeForUser:
+        return {}, [], []
 
     # Build the dictionary with hike properties
     property_dict = {}
