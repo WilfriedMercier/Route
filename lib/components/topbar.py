@@ -1,4 +1,5 @@
 import dash
+import yaml
 import dash_mantine_components as     dmc
 
 from   ..lang                  import LANGUAGE, LanguageHandler
@@ -7,6 +8,8 @@ from   .misc                   import (
     language_selector_layout,
     theme_switcher_layout
 )
+
+with open('configuration.yaml') as f: CONFIG = yaml.load(f, Loader=yaml.SafeLoader)
 
 def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.AppShellHeader:
     r'''
@@ -26,7 +29,7 @@ def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.
         id        = 'theme-toggle-tooltip'
     )
 
-    logo = dash.html.Img(src="/assets/logo.svg", className='logo')
+    logo = dash.html.Img(src=CONFIG['logo'], className='logo')
 
     language_selector = language_selector_layout(
         'topbar', 
@@ -55,7 +58,7 @@ def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.
     )
 
     badge  = dmc.Badge(
-        'BETA (v0.5)', 
+        CONFIG['version'], 
         className   = 'version-badge', 
         size        = 'lg', 
         variant     = 'dot', 
@@ -77,7 +80,7 @@ def topbar_layout(language_handler: LanguageHandler, language: LANGUAGE) -> dmc.
                 [
                     burger_tooltip, 
                     logo, 
-                    dmc.Title('Route', order=1, className='title', visibleFrom='sm'),
+                    dmc.Title(CONFIG['title'], order=1, className='title', visibleFrom='sm'),
                     badge
                 ], 
                 id = 'logo-title-group'
