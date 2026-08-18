@@ -99,8 +99,11 @@ class HikeDataForElevationPlot(typing.TypedDict):
 class HikeProps(typing.TypedDict):
     r'''Dictionary class holding the name of a hike and its associated color.'''
 
-    name  : str
-    color : str
+    name       : str
+    color      : str
+    center_lon : float
+    center_lat : float
+    bounds     : tuple[tuple[float, float], tuple[float, float]]
 
 class HikeInfo(typing.TypedDict):
     r'''

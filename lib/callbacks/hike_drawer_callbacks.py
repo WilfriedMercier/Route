@@ -103,8 +103,14 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
 
         # Store info about the selected hike
         selected_hike_props = HikeProps(
-            name  = hike_name,
-            color = color
+            name       = hike_name,
+            color      = color,
+            center_lon = info['center_lon'],
+            center_lat = info['center_lat'],
+            bounds     = (
+                (min(info['latitudes']), min(info['longitudes'])), 
+                (max(info['latitudes']), max(info['longitudes']))
+            )
         )
 
         selected_hike_lat_lon = HikeDataForMarker(
@@ -128,11 +134,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
             selected_hike_props, selected_hike_lat_lon, selected_hike_dist_elev,
             styles,
             {
-                #'center'     : (info['center_lat'], info['center_lon']),
-                'bounds'     : (
-                    (min(info['latitudes']), min(info['longitudes'])), 
-                    (max(info['latitudes']), max(info['longitudes']))
-                ),
+                'bounds'     : selected_hike_props['bounds'],
                 'transition' : "flyTo"
             },
             fig, len(info['distances']),

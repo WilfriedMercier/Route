@@ -68,14 +68,12 @@ def map_page_layout(
 def generate_leaflet_map_figure(
         lon  : float = 4.8357, 
         lat  : float = 45.7640,
-        zoom : int   = 10
     ) -> dl.Map:
     r'''
     Generate an empty leaflet figure serving as baseline every time the map has to be updated.
 
     :param lon: center's longitude
     :param lat: center's latitude
-    :param zoom: zoom level
     '''
 
     layer_control = generate_layer_control()
@@ -94,7 +92,7 @@ def generate_leaflet_map_figure(
             ),
         ],
         center   = [lat, lon],  # type: ignore
-        zoom     = zoom,
+        zoom     = 10,
         id       = 'map', 
         style    = {'zIndex': 0},
     ) # type: ignore

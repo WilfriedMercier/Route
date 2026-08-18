@@ -16,7 +16,8 @@ from ..types          import (
     Notification, 
     HikeInfo, 
     MultiselectData, 
-    MultiselectDataRow
+    MultiselectDataRow,
+    HikeProps
 )
 
 from ..components.notifications import (
@@ -31,14 +32,21 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
     @app.callback(
         dash.Output('map-div', 'children', allow_duplicate=True),
         dash.Output('map-polylines', 'children', allow_duplicate=True),
+        dash.Output('map', 'viewport', allow_duplicate=True),
+
         dash.Input('dummy-with-traces', 'data'),
+        dash.State('selected-hike-props', 'data'),
         prevent_initial_call=True
     )
-    def upload_hike_second_pass(dummy: DummyWithTraces) -> tuple[dl.Map, list[dl.Polyline]]:
+    def upload_hike_second_pass(
+            dummy               : DummyWithTraces, 
+            selected_hike_props : HikeProps
+        ) -> tuple[dl.Map, list[dl.Polyline], dict]:
         r'''
         Second pass of the hike upload that updates the figure.
 
         :param dummy: a dummy object containing the traces to add on the map
+        :param selected_hike_props: hike name and color for the selected hike
 
         :returns: a tuple with
             - an empty map
@@ -47,7 +55,17 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
 
         if dummy is None: raise dash.exceptions.PreventUpdate
 
-        return generate_leaflet_map_figure(), dummy['traces']
+        fig = generate_leaflet_map_figure(
+            lon = selected_hike_props['center_lon'],
+            lat = selected_hike_props['center_lat']
+        )
+
+        viewport = {
+            'bounds'     : selected_hike_props['bounds'],
+            'transition' : "flyTo"
+        }
+
+        return fig, dummy['traces'], viewport
     
     @app.callback(
         dash.Output('hikelist-div', 'children'),
