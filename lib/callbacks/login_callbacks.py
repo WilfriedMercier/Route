@@ -259,6 +259,7 @@ def register_login_callbacks(app: dash.Dash) -> None:
 
         dash.Output('magic-link-button', 'disabled', allow_duplicate=True),
         dash.Output('magic-link-container', 'children', allow_duplicate=True),
+        dash.Output('hike-super-title', 'children', allow_duplicate=True),
 
         dash.Input( {'type' : 'login-button', 'index' : dash.ALL}, 'n_clicks'),
         dash.State( 'login-modal', 'opened'),
@@ -291,7 +292,8 @@ def register_login_callbacks(app: dash.Dash) -> None:
             list[Notification] | dash.NoUpdate,
 
             typing.Literal[True],
-            list | dash.NoUpdate
+            list | dash.NoUpdate,
+            str | dash.NoUpdate
         ]:
         r'''
         Callback used when the login/logout button on the topbar is clicked.
@@ -329,7 +331,7 @@ def register_login_callbacks(app: dash.Dash) -> None:
                 {'height' : '100%'}, {'display' : 'none'},
                 [logout_success_notification(translation['notifications'])],
                 True,
-                []
+                [], ''
             )
 
         # Handle login button click
@@ -342,7 +344,7 @@ def register_login_callbacks(app: dash.Dash) -> None:
             dash.no_update, dash.no_update,
             dash.no_update,
             True,
-            dash.no_update
+            dash.no_update, dash.no_update
         )
 
     return

@@ -156,9 +156,6 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
         # Case without a magic link
         else:
 
-            # XXX
-            session['user_id'] = 4
-
             (
                 button_style_1, button_style_2,
                 widgets, n_hikes, hikes_info, traces,
@@ -247,9 +244,6 @@ def register_ui_init_callbacks(app: dash.Dash) -> None:
 
         # Store in session manager that a magic link is not used
         session['magic-link'] = False
-
-        # XXX to be removed
-        #session['user_id'] = Users_table.get_user_id_from_username('wilfried')
 
         # User session still active in the cookies
         if 'user_id' in session:
