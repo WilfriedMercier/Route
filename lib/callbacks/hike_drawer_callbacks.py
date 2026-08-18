@@ -224,6 +224,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         dash.Output('elevation-plot', 'figure', allow_duplicate=True),
 
         dash.Input({'type' : 'hikelist-colorpicker-picker',  'index' : dash.MATCH}, 'value'),
+        dash.State({'type' : 'hikelist-colorpicker-button',  'index' : dash.MATCH}, 'n_clicks'),
         dash.State({'type' : 'hikelist-colorpicker-picker',  'index' : dash.ALL},   'id'),
         dash.State('selected-hike-props', 'data'),
         dash.State('selected-hike-data-for-plot', 'data'),
@@ -233,6 +234,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
     )
     def colorpicker_selection(
             selected_color  : str | None,
+            n_clicks        : list[int | None],
             all_ids         : list[DashComplexID],
             hike_props      : HikeProps,
             dist_elev       : HikeDataForElevationPlot,
@@ -247,12 +249,14 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
         Callback used whenever a color is picked in the colorpicker modal.
 
         :param selected_color: color corresponding to the colorpicker button clicked in the hike list panel. This is used to setup the default color of the colorpicker when loading
+        :param n_clicks: number of clicks on the button associated to the colorpicker. If None, it means it was triggered programmatically when loading data.
+        :param all_ids: all the IDs of the color pickers
         :param hike_props: properties associated to the clicked colorpicker button
         :param dist_elev: object containing distance and elevation data for the elevation plot
         :param language: current language of the UI
 
-        :returns:
-            - color (or dash.no_update) for the colorpicker button
+        :returns: a tuple with
+            - a list of dash.no_update everywhere except for the right colorpicker button which takes a color
             - dictionary with properties associated to the hike. The color information is updated
             - list of dictionaries with updated colors for the map
             - figure for the elevation plot with an updated color if it corresponds to the currently selected hike. Otherwise dash.no_update
@@ -260,7 +264,7 @@ def register_hike_drawer_callbacks(app: dash.Dash) -> None:
 
         triggered_id = dash.ctx.triggered_id
 
-        if triggered_id is None: raise dash.exceptions.PreventUpdate
+        if triggered_id is None or n_clicks is None: raise dash.exceptions.PreventUpdate
 
         hike_name = triggered_id['index']
 

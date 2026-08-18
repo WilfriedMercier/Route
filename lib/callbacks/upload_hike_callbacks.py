@@ -3,7 +3,7 @@ import dash_leaflet            as     dl
 import dash_mantine_components as     dmc
 from   flask                   import session
 
-from .misc            import update_ui_after_multiple_hike_loads
+from .misc            import update_ui_after_multiple_hike_loads, COLOR_PALETTE
 from ..components.map import generate_leaflet_map_figure
 from ..types          import DummyWithTraces, Notification, HikeInfo
 from ..lang           import LANGUAGE
@@ -28,6 +28,15 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
         prevent_initial_call=True
     )
     def upload_hike_second_pass(dummy: DummyWithTraces) -> tuple[dl.Map, list[dl.Polyline]]:
+        r'''
+        Second pass of the hike upload that updates the figure.
+
+        :param dummy: a dummy object containing the traces to add on the map
+
+        :returns: a tuple with
+            - an empty map
+            - traces to add to the map
+        '''
 
         if dummy is None: raise dash.exceptions.PreventUpdate
 
@@ -96,7 +105,11 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
 
         if file_contents is None or len(file_contents) == 0: raise dash.exceptions.PreventUpdate
 
+
         translation = app.language_handler[language]['notifications']
+
+        # Number of widgets currently displayed
+        n_widgets = len(hike_widgets)
 
         # Default notification is success
         notification = hike_upload_success_notification(translation)
@@ -115,9 +128,14 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
         # Extract the properties of the loaded hikes
         hike_properties : dict[str, HikeInfo] = {}
 
-        for content, filename in zip(file_contents, filenames):
+        for pos, (content, filename) in enumerate(zip(file_contents, filenames)):
 
-            try: hike_name, properties = decode_and_process_uploaded_file(content, filename)
+            pos_absolute = n_widgets + pos
+
+            try: 
+
+                hike_name, properties = decode_and_process_uploaded_file(content, filename)
+                properties['color']   = COLOR_PALETTE[pos_absolute]
 
             # Wrong file format cancels loading hikes
             except UnsupportedFileFormatError:

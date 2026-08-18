@@ -45,6 +45,7 @@ def process_hike(filename: str, content: str) -> HikeInfo:
         elevations            = info['elevations'],
         center_lat            = center[0],
         center_lon            = center[1],
+        color                 = '#000000'
     )
 
     return hike_data
