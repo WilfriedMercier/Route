@@ -5,12 +5,19 @@ from   flask                   import session
 
 from .misc            import update_ui_after_multiple_hike_loads
 from ..components.map import generate_leaflet_map_figure
-from ..types          import DummyWithTraces, Notification, HikeInfo
 from ..lang           import LANGUAGE
 from ..errors         import UnsupportedFileFormatError
 from ..database       import Hikes_table
 from ..misc           import check_if_hike_is_loaded, COLOR_PALETTE
 from ..io             import decode_and_process_uploaded_file
+
+from ..types          import (
+    DummyWithTraces, 
+    Notification, 
+    HikeInfo, 
+    MultiselectData, 
+    MultiselectDataRow
+)
 
 from ..components.notifications import (
     hike_upload_success_notification,
@@ -52,6 +59,7 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
         dash.Output('map-div', 'style', allow_duplicate=True),
 
         dash.Output('dummy-with-traces', 'data', allow_duplicate=True),
+        dash.Output({'type' : 'magic-link-multiselect', 'index' : dash.ALL}, 'data', allow_duplicate=True),
         
         dash.Input('upload-hike-button', 'contents'),
         dash.State('upload-hike-button', 'filename'),
@@ -60,16 +68,18 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
         dash.State('language', 'data'),
         dash.State('hikes-info', 'data'),
         dash.State('dummy-with-traces', 'data'),
+        dash.State({'type' : 'magic-link-multiselect', 'index' : dash.ALL}, 'data'),
         prevent_initial_call = True
     )
     def upload_hike_first_pass(
-        file_contents : list[str] | None, 
-        filenames     : list[str], 
-        hike_widgets  : list[dmc.Space],
-        traces        : list[dl.Polyline],
-        language      : LANGUAGE,
-        hikes_info    : dict[str, HikeInfo],
-        dummy         : DummyWithTraces
+        file_contents    : list[str] | None, 
+        filenames        : list[str], 
+        hike_widgets     : list[dmc.Space],
+        traces           : list[dl.Polyline],
+        language         : LANGUAGE,
+        hikes_info       : dict[str, HikeInfo],
+        dummy            : DummyWithTraces,
+        multiselect_data : list[MultiselectData]
     ) -> tuple[
             list[dmc.Space]     | dash.NoUpdate, 
             int                 | dash.NoUpdate, 
@@ -77,7 +87,8 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
             list[Notification],
             dict[str, str]      | dash.NoUpdate,
             dict[str, str]      | dash.NoUpdate,
-            DummyWithTraces     | dash.NoUpdate
+            DummyWithTraces     | dash.NoUpdate,
+            list[MultiselectData]
         ]:
         r'''
         Actions taken when a hike is loaded through the load hike button.
@@ -92,6 +103,7 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
         :param language: current language of the application
         :param hikes_info: dictionary-like `HikeInfo` object containing all the information about all the loaded hikes
         :param dummy: dummy object that will be modified
+        :param multiselect_data: data values for all the multiselect components in the magic link panel
 
         :returns:
             - updated list of hike widgets
@@ -101,6 +113,7 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
             - dictionary indicating whether the elevation plot should be visible or not
             - dictionary indicating the height of the map
             - dummy object containing the traces used to trigger the second rendering pass
+            - updated multiselect data for all components
         '''
 
         if file_contents is None or len(file_contents) == 0: raise dash.exceptions.PreventUpdate
@@ -153,6 +166,13 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
 
             hike_properties[hike_name] = properties
 
+            multiselect_row = MultiselectDataRow(
+                value = hike_name,
+                label = hike_name
+            )
+
+            multiselect_data = [m + [multiselect_row] for m in multiselect_data]
+
         else:
 
             # If logged in, we send hikes to the db
@@ -182,5 +202,5 @@ def register_upload_hike_callbacks(app: dash.Dash) -> None:
         return (
             new_widgets, n_hikes, out_hikes_info, 
             [notification], ev_style, map_style,
-            out_dummy
+            out_dummy, multiselect_data
         )
